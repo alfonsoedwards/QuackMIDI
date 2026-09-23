@@ -212,7 +212,7 @@ function dec(b){let i=0;const u8=()=>{if(i>=b.length)throw Error('corto');return
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.23-1854';
+const QM_VERSION='2026.09.23-1857';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -395,7 +395,7 @@ function renderMain(){renderTabs();const m=$('#main');m.innerHTML='';m.classList
   if(st.crc)m.append(h('div',{class:'banner er'},'⚠ Los datos guardados estaban dañados (¿se cortó la luz mientras guardaba?). No los cargué. Importa tu respaldo en Ajustes.'));
   if(st.warn>=0&&st.warn!=null)m.append(h('div',{class:'banner'},`⚠ El switch ${st.warn+1} parece no estar en modo momentáneo. Cámbialo en el Ampero.`,h('span',{class:'sp'}),h('button',{onclick:()=>cmd('warnok')},'Entendido')));
   if(st.thru)m.append(h('div',{class:'banner'},'MIDI Thru activado: Quack MIDI deja pasar todo y no toca acordes.'));
-  if(window.APPMODE&&!window.SIM_NOBACKUPNAG&&Date.now()-lastExport()>7*864e5&&M.songs.some(x=>x.id>3))m.append(h('div',{class:'banner'},lastExport()?'Hace más de una semana que no respaldas tus canciones.':'Todavía no respaldas tus canciones en un archivo.',h('span',{class:'sp'}),h('button',{onclick:doExport},'⇩ Respaldar ahora')));
+  if(window.APPMODE&&!window.SIM_NOBACKUPNAG&&Date.now()-lastExport()>7*864e5&&M.songs.some(x=>x.id>3))m.append(h('div',{class:'banner'},lastExport()?'Hace más de una semana que no respaldas tus canciones.':'Todavía no respaldas tus canciones en un archivo.',h('span',{class:'sp'}),h('button',{onclick:saveBackup},'💾 Guardar (respaldar)')));
   ({live:vLive,songs:vSongs,sets:vSets,edit:vEdit,cfg:vCfg})[tab](m);
   if(tab==='edit'&&M.songs.length)document.body.append(editToolbar(M.songs[edSong]));}
 function renderLive(){if(tab==='live'&&M&&!dragS&&!document.activeElement.matches('input,textarea'))renderAll();}
@@ -609,13 +609,14 @@ let lastCapMode=0;setInterval(()=>{if(st.cap)lastCapMode=st.cap;},100);
 /* ---------- Vista: Ajustes ---------- */
 const TT=[['0','CC'],['1','Program Change'],['2','Nota'],['255','Apagado']];
 const SWN=['Switch 1 · acorde anterior','Switch 2 · acorde siguiente','Switch 3 · canción anterior (mantener: silenciar)','Switch 4 · canción siguiente (mantener: reiniciar)'];
+function saveBackup(){takeSnap(true);doExport();}
 function saveCard(){
   const le=lastExport();
   return h('div',{class:'card',style:'border:2px solid var(--ac)'},h('div',{class:'row'},
     h('div',{class:'grow'},h('h2',{style:'margin:0'},'Guardar avance'),
       h('div',{class:'mu sm'},(window.APPMODE?'Todo se guarda solo en esta tablet. Este botón además deja una copia en un archivo (Descargas) que no se pierde aunque se borren los datos. ':'')+(le?'Último respaldo: '+new Date(le).toLocaleString('es-CL'):'Todavía no has respaldado en un archivo.'))),
     window.APPMODE?null:h('button',{onclick:doSave},'💾 Guardar en el Arduino'),
-    h('button',{class:'ac',style:'padding:.8em 1.2em',onclick:()=>{takeSnap(true);doExport();}},'💾 Guardar (respaldar)')));}
+    h('button',{class:'ac',style:'padding:.8em 1.2em',onclick:saveBackup},'💾 Guardar (respaldar)')));}
 function vCfg(m){const S=M.settings;
   m.append(saveCard());
   const tt=h('div');
@@ -636,8 +637,8 @@ function vCfg(m){const S=M.settings;
     prefs.lyrics?h('div',{style:'margin-top:10px'},seg([['local','En este dispositivo'],['qwiic','En la memoria Qwiic']],prefs.lyrStore,v=>{if(v==='qwiic'&&!st.q)return toast('No se detectó una memoria Qwiic conectada');prefs.lyrStore=v;savePrefs();saveLyrics().then(()=>renderAll());}),
       h('p',{class:'mu sm'},prefs.lyrStore==='local'?'Las letras quedan en el navegador de este dispositivo (ideal para la tablet del escenario). Viajan en el respaldo.':'Las letras viven en la memoria Qwiic del Arduino y se ven desde cualquier dispositivo.')):null));
   const used=enc(M).length,max=st.max||8112;
-  m.append(h('div',{class:'card'},h('h2',null,'Memoria y respaldo'),h('div',{class:'mem'},h('i',{style:`width:${Math.min(100,used/max*100)}%`})),h('p',{class:'mu sm'},`${used} de ${max} bytes (${(used/max*100).toFixed(1)} %).`),h('p',{class:'mu sm'},'El respaldo es un archivo que queda en Descargas: sobrevive aunque se borren los datos de la app o del navegador. Hazlo de vez en cuando.'+(lastExport()?' Último respaldo: '+new Date(lastExport()).toLocaleString('es-CL')+'.':' Todavía no has hecho ninguno.')),
-    h('div',{class:'row'},window.APPMODE?h('button',{class:'ac',onclick:syncOut},'📡 Enviar a Quack MIDI'):h('button',{class:'ac',onclick:doSave},'💾 Guardar en el Arduino'),window.APPMODE?null:h('button',{onclick:syncOut},'📱 Llevar a la app'),window.APPMODE?null:h('button',{onclick:doDiscard},'Descartar cambios'),h('button',{onclick:doExport},'⇩ Exportar respaldo a un archivo'),h('button',{onclick:doImport},'⇧ Importar respaldo'))));
+  m.append(h('div',{class:'card'},h('h2',null,'Memoria y respaldo'),h('div',{class:'mem'},h('i',{style:`width:${Math.min(100,used/max*100)}%`})),h('p',{class:'mu sm'},`${used} de ${max} bytes (${(used/max*100).toFixed(1)} %).`),h('p',{class:'mu sm'},'Para respaldar usa "Guardar (respaldar)", arriba de todo. Con "Abrir un respaldo" vuelves a cualquiera de los archivos guardados en Descargas.'),
+    h('div',{class:'row'},window.APPMODE?h('button',{class:'ac',onclick:syncOut},'📡 Enviar a Quack MIDI'):h('button',{class:'ac',onclick:doSave},'💾 Guardar en el Arduino'),window.APPMODE?null:h('button',{onclick:syncOut},'📱 Llevar a la app'),window.APPMODE?null:h('button',{onclick:doDiscard},'Descartar cambios'),h('button',{onclick:doImport},'⇧ Abrir un respaldo'))));
   m.append(snapsCard());
   m.append(h('div',{class:'card'},h('h2',null,'Apariencia'),h('p',{class:'mu sm',style:'margin-top:0'},'Quack MIDI versión '+QM_VERSION),seg([['dark','Oscuro'],['light','Claro']],prefs.theme,v=>{prefs.theme=v;savePrefs();applyTheme();renderAll();})));
   const lg=h('div',{class:'col'},h('span',{class:'mu'},'Cargando…'));
