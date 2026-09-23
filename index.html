@@ -206,7 +206,7 @@ function dec(b){let i=0;const u8=()=>{if(i>=b.length)throw Error('corto');return
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.23-1511';
+const QM_VERSION='2026.09.23-1648';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -572,6 +572,7 @@ function vCfg(m){const S=M.settings;
     h('button',{class:'ac',onclick:()=>learn(k)},'Aprender'))));
   m.append(h('div',{class:'card'},h('h2',null,'Switches del Ampero'),h('p',{class:'mu sm',style:'margin-top:0'},'Pon los 4 switches en modo momentáneo (mandan un valor al pisar y otro al soltar). Toca "Aprender" y pisa el switch.'),tt,
     h('div',{class:'row',style:'margin-top:10px'},knob({label:'Mantener (ms)',value:S.longMs,min:300,max:2000,step:50,onInput:v=>edit(()=>S.longMs=v,false)}),h('span',{class:'mu sm grow'},'Tiempo que hay que mantener pisado el switch 3 o 4 para silenciar o reiniciar.'))));
+  m.append(wifiCard(S));
   m.append(h('div',{class:'card'},h('h2',null,'MIDI'),h('div',{class:'row',style:'gap:16px'},
     knob({label:'Canal salida',value:S.outCh+1,min:1,max:16,onInput:v=>edit(()=>S.outCh=v-1,false)}),
     h('div',{class:'col'},toggle('Enviar MIDI Clock (tempo) al MiniNova',S.clock,v=>edit(()=>S.clock=v)),toggle('MIDI Thru (pasar todo directo)',!!st.thru,v=>cmd('thru',v?1:0)),toggle('Sonar al tocar un acorde en el editor',prefs.audition,v=>{prefs.audition=v;savePrefs();}))),
@@ -583,14 +584,27 @@ function vCfg(m){const S=M.settings;
   const used=enc(M).length,max=st.max||8112;
   m.append(h('div',{class:'card'},h('h2',null,'Memoria y respaldo'),h('div',{class:'mem'},h('i',{style:`width:${Math.min(100,used/max*100)}%`})),h('p',{class:'mu sm'},`${used} de ${max} bytes (${(used/max*100).toFixed(1)} %). Los respaldos se guardan como archivo en tu dispositivo, no ocupan memoria del Arduino.`),
     h('div',{class:'row'},window.APPMODE?h('button',{class:'ac',onclick:syncOut},'📡 Enviar a Quack MIDI'):h('button',{class:'ac',onclick:doSave},'💾 Guardar en el Arduino'),window.APPMODE?null:h('button',{onclick:syncOut},'📱 Llevar a la app'),h('button',{onclick:doDiscard},'Descartar cambios'),h('button',{onclick:doExport},'⇩ Exportar respaldo'),h('button',{onclick:doImport},'⇧ Importar respaldo'))));
-  m.append(h('div',{class:'card'},h('h2',null,'Red WiFi'),h('p',{class:'mu sm',style:'margin-top:0'},'Los cambios se aplican al reiniciar el Arduino. La clave debe tener al menos 8 caracteres.'),
-    h('div',{class:'row'},h('input',{type:'text',value:S.ssid,maxlength:24,placeholder:'Nombre de la red',onchange:e=>edit(()=>S.ssid=e.target.value)}),h('input',{type:'text',value:S.pass,maxlength:24,placeholder:'Clave',onchange:e=>{if(e.target.value.length<8)return toast('La clave necesita al menos 8 caracteres');edit(()=>S.pass=e.target.value);}}))));
   m.append(h('div',{class:'card'},h('h2',null,'Apariencia'),h('p',{class:'mu sm',style:'margin-top:0'},'Quack MIDI versión '+QM_VERSION),seg([['dark','Oscuro'],['light','Claro']],prefs.theme,v=>{prefs.theme=v;savePrefs();applyTheme();renderAll();})));
   const lg=h('div',{class:'col'},h('span',{class:'mu'},'Cargando…'));
   m.append(h('div',{class:'card'},h('h2',null,'Registro'),lg,h('div',{class:'row',style:'margin-top:8px'},h('button',{onclick:()=>api('/api/c?x=clrlog').then(()=>renderAll())},'Borrar registro'))));
   api('/api/log').then(r=>r.json()).then(j=>{lg.innerHTML='';lg.append(h('div',{class:'sm'},`Último arranque: ${j.boot}. Encendido hace ${fmtT(st.up||0)}.`+(j.ov?` Mensajes MIDI perdidos: ${j.ov}.`:'')));
     if(!j.e.length)lg.append(h('div',{class:'mu sm'},'Sin caídas registradas. 👍'));
     for(const e of j.e)lg.append(h('div',{class:'sm'},`⚠ ${e.c} tras ${fmtT(e.t)} encendido · canción ${e.s+1}, paso ${e.st+1}, acorde ${e.ch<255?e.ch+1:'—'}`));}).catch(()=>{lg.textContent='No se pudo leer el registro.';});}
+/* Red WiFi que crea el Arduino (nombre y clave) */
+function wifiCard(S){
+  const nm=h('input',{type:'text',id:'wifi-ssid',value:S.ssid,maxlength:24,placeholder:'Quack MIDI',style:'flex:1 1 12em'});
+  const pw=h('input',{type:'password',id:'wifi-pass',value:S.pass,maxlength:24,placeholder:'mínimo 8 caracteres',style:'flex:1 1 12em'});
+  const ok=()=>{const n=nm.value.trim(),p=pw.value;if(!n){toast('Ponle un nombre a la red');return false;}if(p.length<8){toast('La clave necesita al menos 8 caracteres');return false;}
+    if(n!==S.ssid||p!==S.pass)edit(()=>{S.ssid=n;S.pass=p;},false);return true;};
+  const applyBtn=window.APPMODE?h('button',{class:'ac',onclick:()=>{if(ok())toast('Listo. Se aplica cuando envíes las canciones al Arduino y lo reinicies.');}},'Guardar')
+    :h('button',{class:'ac',onclick:()=>{if(!ok())return;modal('¿Cambiar la red WiFi?',h('div',null,h('p',null,`El Arduino guardará todo y se reiniciará con la red "${nm.value.trim()}".`),h('p',null,'Después conecta esta tablet a la red nueva, con la clave nueva, y vuelve a abrir http://192.168.4.1')),
+      [['Cancelar'],['Guardar y reiniciar',async()=>{await doSave();await cmd('reboot');toast('Reiniciando… conéctate a la red nueva');},'ac']]);}},'Guardar y reiniciar el Arduino');
+  return h('div',{class:'card'},h('h2',null,'Red WiFi del Arduino'),
+    h('p',{class:'mu sm',style:'margin-top:0'},'El Arduino crea su propia red WiFi. Aquí eliges cómo se llama y su clave (al menos 8 caracteres). Si algún día olvidas la clave: conecta el Arduino al PC por USB y abre el Monitor Serie del Arduino IDE (115200); al encender muestra el nombre y la clave.'),
+    h('div',{class:'row'},h('label',{for:'wifi-ssid',class:'sm mu',style:'width:4.5em'},'Nombre'),nm),
+    h('div',{class:'row',style:'margin-top:8px'},h('label',{for:'wifi-pass',class:'sm mu',style:'width:4.5em'},'Clave'),pw,
+      h('button',{class:'gh',onclick:e=>{pw.type=pw.type==='password'?'text':'password';e.target.textContent=pw.type==='password'?'Mostrar':'Ocultar';}},'Mostrar')),
+    h('div',{class:'row',style:'margin-top:10px'},applyBtn));}
 const fmtT=t=>t<60?t+' s':t<3600?Math.floor(t/60)+' min':Math.floor(t/3600)+' h '+Math.floor(t%3600/60)+' min';
 async function doSave(){if(pendingUp||uploading)await upload();try{const j=await(await api('/api/save',{method:'POST',timeout:10000})).json();if(j.ok){toast('Guardado en el Arduino ✓');lastErr='';}else{lastErr=j.e||'No se pudo guardar';toast(lastErr);}}catch(e){toast('No se pudo guardar');}updPill();}
 async function doDiscard(){modal('¿Descartar cambios?',h('p',null,'Vuelve a lo último guardado en el Arduino.'),[['Cancelar'],['Descartar',async()=>{clearTimeout(upTimer);pendingUp=false;await api('/api/discard',{method:'POST'});await loadBlob();renderAll();},'er']]);}
@@ -723,7 +737,7 @@ function status(){const s=song();let end=0;if(s&&S.c>=0&&!s.repeat&&!nextPos(S.s
 function cmd(q){const x=q.get('x'),a=q.has('a')?+q.get('a'):null;
   switch(x){case'next':next();break;case'prev':prev();break;case'snext':songStep(1);break;case'sprev':songStep(-1);break;
   case'restart':S.st=0;S.r=0;S.c=-1;break;case'song':S.set=255;load(a);break;case'jump':S.st=a;S.r=0;S.c=-1;break;
-  case'set':a!==255?enterSet(a):S.set=255;break;case'thru':S.thru=a;break;case'warnok':S.warn=-1;break;
+  case'set':a!==255?enterSet(a):S.set=255;break;case'thru':S.thru=a;break;case'warnok':S.warn=-1;break;case'reboot':break;
   case'learn':if(a===255)S.L=0;else{S.L=1;S.Lk=a;S.Lr=0;setTimeout(()=>{if(!S.L)return;m.settings.trig[a]={t:0,ch:0,n:80+a};blob=enc(m);S.bv++;S.L=0;S.Lr=1;persist();},1500);}break;
   case'cap':S.cap=a;if(a){const f=()=>{if(!S.cap)return;S.cv=[57,60,64,67];S.cn++;if(S.cap===1)S.cap=0;else setTimeout(f,2500);};setTimeout(f,1500);}break;}
   return{ok:1};}
