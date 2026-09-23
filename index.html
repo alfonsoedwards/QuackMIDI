@@ -666,7 +666,7 @@ function offerIncoming(){if(!incoming||!M)return;const j=incoming;incoming=null;
 function syncOut(){
   if(window.APPMODE){modal('Enviar a Quack MIDI',h('div',null,h('p',null,'1. Conecta esta tablet a la red WiFi "Quack MIDI".'),h('p',null,'2. Toca "Enviar". Se abre la página del Arduino y te pregunta si reemplazar sus canciones por las de la app.')),
     [['Cancelar'],['📡 Enviar',()=>{location.href=ARDUINO_URL+'#qm='+packPayload();},'ac']]);return;}
-  let url='';try{url=localStorage.getItem('qm_app_url')||'';}catch(e){}
+  let url='https://alfonsoedwards.github.io/quack-midi/';try{url=localStorage.getItem('qm_app_url')||url;}catch(e){}
   const inp=h('input',{type:'text',value:url,placeholder:'https://tu-usuario.github.io/quack-midi/',style:'width:100%'});
   modal('Llevar a la app',h('div',null,h('p',null,'Abre la app Quack MIDI de esta tablet con las canciones del Arduino. La app debe estar instalada (funciona sin internet).'),h('p',{class:'sm mu'},'Dirección de la app:'),inp),
     [['Cancelar'],['📱 Llevar',()=>{const u=inp.value.trim();if(!/^https?:\/\//.test(u)){toast('Escribe la dirección de la app');return false;}try{localStorage.setItem('qm_app_url',u);}catch(e){}location.href=u.split('#')[0]+'#qm='+packPayload();},'ac']]);}
