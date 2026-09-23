@@ -206,6 +206,7 @@ function dec(b){let i=0;const u8=()=>{if(i>=b.length)throw Error('corto');return
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
+const QM_VERSION='2026.09.23-1511';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -228,9 +229,10 @@ function synthPlay(notes,vel=100,tie=false){if(!sndOn())return;
   const lvl=.22*vel/127/Math.sqrt(Math.max(1,notes.length));
   for(const n of notes){if(voices.has(n))continue;const o=actx.createOscillator(),g=actx.createGain();o.type='triangle';o.frequency.value=440*Math.pow(2,(n-69)/12);
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(lvl,t+.02);
-    if(prefs.sound==='fade')g.gain.exponentialRampToValueAtTime(lvl*.002,t+2.2);else g.gain.exponentialRampToValueAtTime(lvl*.6,t+.5);
-    o.connect(g).connect(actx.destination);o.start(t);if(prefs.sound==='fade')o.stop(t+2.3);   // stop() siempre después de start()
-    voices.set(n,{o,g});}}
+    if(prefs.sound==='fade')g.gain.setTargetAtTime(0,t+.05,.45);else g.gain.setTargetAtTime(lvl*.6,t+.05,.2);
+    o.connect(g).connect(actx.destination);o.start(t);
+    const v={o,g};voices.set(n,v);
+    if(prefs.sound==='fade')setTimeout(()=>{if(voices.get(n)===v){try{o.stop();}catch(e){}voices.delete(n);}},2600);}}
 // Íconos planos (colores lisos, estilo Quack Notes)
 const ICON_SND=`<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z" fill="currentColor"/>`;
 function sndIcon(){return prefs.sound?ICON_SND+`<path d="M15.5 8.5a5 5 0 010 7" stroke="var(--ac)" stroke-width="2.4" fill="none" stroke-linecap="round"/>`+(prefs.sound==='latch'?`<path d="M18.5 5.5a9 9 0 010 13" stroke="var(--ac)" stroke-width="2.4" fill="none" stroke-linecap="round"/>`:'')+`</svg>`
@@ -583,7 +585,7 @@ function vCfg(m){const S=M.settings;
     h('div',{class:'row'},window.APPMODE?h('button',{class:'ac',onclick:syncOut},'📡 Enviar a Quack MIDI'):h('button',{class:'ac',onclick:doSave},'💾 Guardar en el Arduino'),window.APPMODE?null:h('button',{onclick:syncOut},'📱 Llevar a la app'),h('button',{onclick:doDiscard},'Descartar cambios'),h('button',{onclick:doExport},'⇩ Exportar respaldo'),h('button',{onclick:doImport},'⇧ Importar respaldo'))));
   m.append(h('div',{class:'card'},h('h2',null,'Red WiFi'),h('p',{class:'mu sm',style:'margin-top:0'},'Los cambios se aplican al reiniciar el Arduino. La clave debe tener al menos 8 caracteres.'),
     h('div',{class:'row'},h('input',{type:'text',value:S.ssid,maxlength:24,placeholder:'Nombre de la red',onchange:e=>edit(()=>S.ssid=e.target.value)}),h('input',{type:'text',value:S.pass,maxlength:24,placeholder:'Clave',onchange:e=>{if(e.target.value.length<8)return toast('La clave necesita al menos 8 caracteres');edit(()=>S.pass=e.target.value);}}))));
-  m.append(h('div',{class:'card'},h('h2',null,'Apariencia'),seg([['dark','Oscuro'],['light','Claro']],prefs.theme,v=>{prefs.theme=v;savePrefs();applyTheme();renderAll();})));
+  m.append(h('div',{class:'card'},h('h2',null,'Apariencia'),h('p',{class:'mu sm',style:'margin-top:0'},'Quack MIDI versión '+QM_VERSION),seg([['dark','Oscuro'],['light','Claro']],prefs.theme,v=>{prefs.theme=v;savePrefs();applyTheme();renderAll();})));
   const lg=h('div',{class:'col'},h('span',{class:'mu'},'Cargando…'));
   m.append(h('div',{class:'card'},h('h2',null,'Registro'),lg,h('div',{class:'row',style:'margin-top:8px'},h('button',{onclick:()=>api('/api/c?x=clrlog').then(()=>renderAll())},'Borrar registro'))));
   api('/api/log').then(r=>r.json()).then(j=>{lg.innerHTML='';lg.append(h('div',{class:'sm'},`Último arranque: ${j.boot}. Encendido hace ${fmtT(st.up||0)}.`+(j.ov?` Mensajes MIDI perdidos: ${j.ov}.`:'')));
@@ -680,7 +682,7 @@ $('#btnHelp').onclick=()=>modal('Cómo usar Quack MIDI',h('div',{class:'col sm'}
   h('p',null,h('b',null,'Editar: '),'toca un acorde para seleccionarlo y oírlo. Mantén presionado y arrastra para cambiarlo de lugar, o usa ← →. El punto amarillo indica que ese acorde tiene ajustes propios.'),
   h('p',null,h('b',null,'Probar y guardar: '),'todo lo que cambias ya suena en el Arduino, pero solo queda permanente al tocar "Guardar" (en Ajustes o en el indicador de arriba).'),
   h('p',null,h('b',null,'Silencio: '),'pon un acorde vacío al final de la canción para cortar el sonido.'),
-  h('p',null,h('b',null,'Presentaciones: '),'arma el orden del show y toca "Performar". En un show, los switches 3 y 4 recorren la presentación.')));
+  h('p',null,h('b',null,'Presentaciones: '),'arma el orden del show y toca "Performar". En un show, los switches 3 y 4 recorren la presentación.'),h('p',{class:'mu'},'Versión '+QM_VERSION)));
 $('#pill').onclick=()=>{if(st.dirty||pendingUp)modal('Cambios sin guardar',h('p',null,'Lo que cambiaste ya suena, pero se perderá si se desenchufa el Arduino.'),[['Ahora no'],['💾 Guardar',()=>{doSave();},'ac']]);else if(lastErr)toast(lastErr);};
 document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,select'))return;if(tab==='edit'&&(e.key==='Delete'||e.key==='Backspace')&&M){const s=M.songs[edSong],p=s&&s.phrases[edSel.p];if(p&&p.chords[edSel.c]){e.preventDefault();edit(()=>{p.chords.splice(edSel.c,1);fixSel();});}return;}if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();e.shiftKey?redo():undo();}else if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();redo();}});
 window.addEventListener('beforeunload',e=>{if(pendingUp){e.preventDefault();e.returnValue='';}});
