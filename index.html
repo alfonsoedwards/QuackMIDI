@@ -228,8 +228,9 @@ function synthPlay(notes,vel=100,tie=false){if(!sndOn())return;
   const lvl=.22*vel/127/Math.sqrt(Math.max(1,notes.length));
   for(const n of notes){if(voices.has(n))continue;const o=actx.createOscillator(),g=actx.createGain();o.type='triangle';o.frequency.value=440*Math.pow(2,(n-69)/12);
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(lvl,t+.02);
-    if(prefs.sound==='fade'){g.gain.exponentialRampToValueAtTime(lvl*.002,t+2.2);o.stop(t+2.3);}else g.gain.exponentialRampToValueAtTime(lvl*.6,t+.5);
-    o.connect(g).connect(actx.destination);o.start(t);voices.set(n,{o,g});}}
+    if(prefs.sound==='fade')g.gain.exponentialRampToValueAtTime(lvl*.002,t+2.2);else g.gain.exponentialRampToValueAtTime(lvl*.6,t+.5);
+    o.connect(g).connect(actx.destination);o.start(t);if(prefs.sound==='fade')o.stop(t+2.3);   // stop() siempre después de start()
+    voices.set(n,{o,g});}}
 // Íconos planos (colores lisos, estilo Quack Notes)
 const ICON_SND=`<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z" fill="currentColor"/>`;
 function sndIcon(){return prefs.sound?ICON_SND+`<path d="M15.5 8.5a5 5 0 010 7" stroke="var(--ac)" stroke-width="2.4" fill="none" stroke-linecap="round"/>`+(prefs.sound==='latch'?`<path d="M18.5 5.5a9 9 0 010 13" stroke="var(--ac)" stroke-width="2.4" fill="none" stroke-linecap="round"/>`:'')+`</svg>`
