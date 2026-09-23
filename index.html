@@ -206,7 +206,7 @@ function dec(b){let i=0;const u8=()=>{if(i>=b.length)throw Error('corto');return
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.23-1648';
+const QM_VERSION='2026.09.23-1829';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -289,6 +289,7 @@ async function saveLyrics(){if(!M)return;lyrDoc=collectLyrics();const txt=JSON.s
 /* ---------- Indicador de estado ---------- */
 function updPill(){const p=$('#pill');let c='',t='Guardado';
   if(!online){c='off';t='Sin conexión';}else if(lastErr){c='er';t='Error';}else if(pendingUp||st.dirty){c='un';t='Sin guardar';}
+  if(window.APPMODE&&online&&!lastErr){c=pendingUp?'un':'';t=pendingUp?'Guardando…':'Guardado en la tablet';}
   p.className='pill '+c;p.lastChild.textContent=t;p.title=lastErr||'';}
 
 /* ---------- Sondeo del estado ---------- */
@@ -752,7 +753,7 @@ window.fetch=async function(path,opt={}){
   if(p==='/api/log')return J({boot:'simulador (sin Arduino)',ov:0,e:[]});
   if(p==='/api/lyr')return post?J({ok:1}):new Response('');
   if(p==='/api/blob'&&!post)return new Response(blob.slice(),{headers:{'X-Bv':String(S.bv)}});
-  if(p==='/api/blob'&&post){const b=new Uint8Array(opt.body);if(b.length>8112)return J({ok:0,e:'No cabe en la memoria'});try{m=dec(b);}catch(e){return J({ok:0,e:'Datos inválidos'});}blob=b;S.bv++;if(S.s>=m.songs.length)load(0);else if(S.st>=form().length){S.st=0;S.r=0;S.c=-1;}persist();return J({ok:1,bv:S.bv});}
+  if(p==='/api/blob'&&post){const b=new Uint8Array(opt.body);if(b.length>8112)return J({ok:0,e:'No cabe en la memoria'});try{m=dec(b);}catch(e){return J({ok:0,e:'Datos inválidos'});}blob=b;flash=b.slice();S.bv++;if(S.s>=m.songs.length)load(0);else if(S.st>=form().length){S.st=0;S.r=0;S.c=-1;}persist();return J({ok:1,bv:S.bv});}
   if(p==='/api/save'){flash=blob.slice();persist();return J({ok:1});}
   if(p==='/api/discard'){blob=flash.slice();m=dec(blob);S.bv++;persist();return J({ok:1});}
   return J({ok:0,e:'no existe'});};
