@@ -103,6 +103,12 @@ main{padding:8px 16px;max-width:1200px;margin:0 auto}
 .sndmenu button{background:transparent;text-align:left;font-weight:700}
 .sndmenu button.on{background:var(--ac);color:var(--aci)}
 #btnSnd{display:inline-flex;align-items:center;padding:.35em .5em}
+.tbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--sf);box-shadow:0 -4px 18px #0002;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:6px max(12px,env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom,0px));justify-content:safe center}
+.tbar button{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:58px;padding:.35em .45em;background:transparent;font-size:.7rem;font-weight:800;color:var(--tx)}
+.tbar button b{font-size:1.15rem;line-height:1.1}
+.tbar button.ac{background:var(--ac);color:var(--aci)}
+.tbar .sepv{flex:0 0 1px;background:var(--ln);margin:4px 2px}
+main.withbar{padding-bottom:84px}
 .modal{position:fixed;inset:0;background:#000a;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
 .modal .box{background:var(--sf);border-radius:18px;padding:18px;max-width:560px;width:100%;max-height:90vh;overflow:auto;box-shadow:var(--sh)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--sf3);color:var(--tx);padding:.7em 1.1em;border-radius:12px;font-weight:800;z-index:60;box-shadow:var(--sh);max-width:90vw}
@@ -206,7 +212,7 @@ function dec(b){let i=0;const u8=()=>{if(i>=b.length)throw Error('corto');return
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.23-1842';
+const QM_VERSION='2026.09.23-1843';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -385,12 +391,13 @@ function renderAll(){
   if(sameTab)scrollTo(0,keepY);
   if(revealSel){revealSel=false;const c=document.querySelector('.cc.sel');if(c)c.scrollIntoView({inline:'nearest',block:'nearest',behavior:'smooth'});}
   saveUi();}
-function renderMain(){renderTabs();const m=$('#main');m.innerHTML='';if(!M){m.append(h('div',{class:'card'},'Conectando con Quack MIDI…'));return;}
+function renderMain(){renderTabs();const m=$('#main');m.innerHTML='';m.classList.toggle('withbar',tab==='edit'&&!!M&&M.songs.length>0);const ob=$('.tbar');if(ob)ob.remove();if(!M){m.append(h('div',{class:'card'},'Conectando con Quack MIDI…'));return;}
   if(st.crc)m.append(h('div',{class:'banner er'},'⚠ Los datos guardados estaban dañados (¿se cortó la luz mientras guardaba?). No los cargué. Importa tu respaldo en Ajustes.'));
   if(st.warn>=0&&st.warn!=null)m.append(h('div',{class:'banner'},`⚠ El switch ${st.warn+1} parece no estar en modo momentáneo. Cámbialo en el Ampero.`,h('span',{class:'sp'}),h('button',{onclick:()=>cmd('warnok')},'Entendido')));
   if(st.thru)m.append(h('div',{class:'banner'},'MIDI Thru activado: Quack MIDI deja pasar todo y no toca acordes.'));
   if(window.APPMODE&&!window.SIM_NOBACKUPNAG&&Date.now()-lastExport()>7*864e5&&M.songs.some(x=>x.id>3))m.append(h('div',{class:'banner'},lastExport()?'Hace más de una semana que no respaldas tus canciones.':'Todavía no respaldas tus canciones en un archivo.',h('span',{class:'sp'}),h('button',{onclick:doExport},'⇩ Respaldar ahora')));
-  ({live:vLive,songs:vSongs,sets:vSets,edit:vEdit,cfg:vCfg})[tab](m);}
+  ({live:vLive,songs:vSongs,sets:vSets,edit:vEdit,cfg:vCfg})[tab](m);
+  if(tab==='edit'&&M.songs.length)document.body.append(editToolbar(M.songs[edSong]));}
 function renderLive(){if(tab==='live'&&M&&!dragS&&!document.activeElement.matches('input,textarea'))renderAll();}
 
 /* ---------- Vista: En vivo ---------- */
@@ -533,6 +540,24 @@ function vEdit(m){
   m.append(pc);
   // --- Editor del acorde seleccionado (o de varios) ---
   m.append(chordEditor(s));}
+
+/* Barra fija de edición (abajo): siempre a mano, sin volver arriba */
+function editToolbar(s){
+  const cur=()=>{fixSel();const p=s.phrases[edSel.p];return{p,c:p&&p.chords[edSel.c]};};
+  const insertAt=(arr)=>edit(()=>{const {p}=cur();if(!p)return;const at=p.chords.length?edSel.c+1:0;p.chords.splice(at,0,...arr);edSel.c=at+arr.length-1;revealSel=true;});
+  const B=(ico,txt,fn,opt={})=>h('button',{title:opt.title||txt,class:opt.cl||'',disabled:opt.off||null,onclick:fn},h('b',null,ico),txt);
+  const sep=()=>h('span',{class:'sepv'});
+  return h('div',{class:'tbar'},
+    B('↶','Deshacer',undo,{off:!hist.u.length}),B('↷','Rehacer',redo,{off:!hist.r.length}),sep(),
+    B('▶','Escuchar',()=>{const {c}=cur();if(c)audition(c,s);}),B('■','Parar',()=>cmd('stop')),sep(),
+    B('＋','Acorde',()=>{const {c}=cur();insertAt([{notes:c&&c.notes.length?[...c.notes]:buildChord(0,4,0,0)}]);},{title:'Agregar un acorde después del seleccionado'}),
+    B('—','Silencio',()=>insertAt([{notes:[]}]),{title:'Agregar un silencio después del seleccionado'}),sep(),
+    B('⧉','Copiar',()=>{const sel=selChords(s);if(!sel.length)return toast('Selecciona un acorde');clip={kind:'chords',data:copy(sel)};toast(sel.length+' acorde(s) copiados');renderAll();}),
+    B('📋','Pegar',()=>{if(!clip)return;if(clip.kind==='chords')insertAt(copy(clip.data));else edit(()=>{const d=copy(clip.data);s.phrases.push(d);s.form.push({p:s.phrases.length-1,r:1});});},{off:!clip,title:clip&&clip.kind==='phrase'?'Pegar la frase copiada':'Pegar después del seleccionado'}),
+    B('⊕','Duplicar',()=>{const {c}=cur();if(c)insertAt([copy(c)]);}),sep(),
+    B('←','Mover',()=>{const {p}=cur();if(p&&edSel.c>0)edit(()=>{moveArr(p.chords,edSel.c,edSel.c-1);edSel.c--;revealSel=true;});},{title:'Mover el acorde a la izquierda'}),
+    B('→','Mover',()=>{const {p}=cur();if(p&&edSel.c<p.chords.length-1)edit(()=>{moveArr(p.chords,edSel.c,edSel.c+1);edSel.c++;revealSel=true;});},{title:'Mover el acorde a la derecha'}),sep(),
+    B('✕','Borrar',()=>edit(()=>{if(multiMode&&multi.size){const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();}else{const {p}=cur();if(p&&p.chords.length)p.chords.splice(edSel.c,1);}fixSel();}),{title:'Borrar el acorde seleccionado'}));}
 
 let bRoot=0,bOct=4,bType=0,bInv=0,pianoBase=48;
 function chordEditor(s){
@@ -817,7 +842,7 @@ function toastSim(t){const e=document.createElement('div');e.className='toast';e
 const st=document.createElement('style');st.textContent=`
 .simbar{background:var(--wa);color:#2a1a00;font-weight:800;font-size:.85rem;padding:.35em 16px;display:flex;gap:.6em;align-items:center;flex-wrap:wrap}
 .simbar button{background:#0003;color:#2a1a00;padding:.2em .7em;font-size:.8rem}
-.simped{position:fixed;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:45;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.simped{position:fixed;right:12px;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:45;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .simped .sw{display:grid;grid-template-columns:repeat(4,64px);gap:6px;background:#0b1114ee;padding:8px;border-radius:16px;box-shadow:0 6px 24px #0008}
 .simped .sw button{height:64px;border-radius:50%;background:#26343c;color:#e8f1f4;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;touch-action:none;user-select:none;-webkit-user-select:none}
 .simped .sw button b{font-size:1.2rem}.simped .sw button small{font-size:.55rem;opacity:.8;line-height:1}
