@@ -13,7 +13,7 @@
 :root{--bg:#0f1417;--sf:#172026;--sf2:#202b32;--sf3:#2a3740;--tx:#e8f1f4;--mu:#8aa0ab;--ac:#4ec6df;--aci:#05313b;--ok:#5bd6a0;--wa:#ffb84d;--er:#ff6b6b;--ln:#2c3a43;--sh:0 6px 24px #0007;--r:14px}
 :root[data-theme=light]{--bg:#eef4f6;--sf:#fff;--sf2:#e6eff2;--sf3:#d6e4e9;--tx:#10252c;--mu:#58707a;--ac:#1fa9c6;--aci:#fff;--ln:#cfdde2;--sh:0 6px 20px #0002}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 Nunito,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+html,body{overscroll-behavior-y:none;margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 Nunito,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 body{min-height:100vh;padding-bottom:40px}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;border-radius:10px;background:var(--sf2);padding:.55em .9em;font-weight:700;transition:filter .15s,transform .05s}
@@ -206,7 +206,7 @@ function dec(b){let i=0;const u8=()=>{if(i>=b.length)throw Error('corto');return
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.23-1829';
+const QM_VERSION='2026.09.23-1833';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -249,7 +249,9 @@ function sndMenu(){const old=$('.sndmenu');if(old){old.remove();return;}const r=
 let M=null;          // modelo completo
 let st={};           // último estado del Arduino
 let online=false,lastErr='',knownBv=-1,pendingUp=false,uploading=false;
-let tab='live',perfOn=false;
+let tab='live',perfOn=false,revealSel=false;
+let uiSaved={};try{uiSaved=JSON.parse(localStorage.getItem('qm_ui')||'{}');}catch(e){}
+if(uiSaved.tab)tab=uiSaved.tab;
 let edSong=0,edSel={p:0,c:0},multi=new Set(),multiMode=false;
 let clip=null;       // {kind:'chords'|'phrase', data}
 let editSet=-1;
@@ -372,7 +374,18 @@ function posIndex(seq){if(st.c<0){const i=seq.findIndex(x=>x.st>=st.st);return{i
 /* ---------- Pestañas ---------- */
 const TABS=[['live','En vivo'],['songs','Canciones'],['sets','Presentaciones'],['edit','Editar'],['cfg','Ajustes']];
 function renderTabs(){const t=$('#tabs');t.innerHTML='';for(const[k,n]of TABS)t.append(h('button',{class:tab===k?'on':'',onclick:()=>{tab=k;renderAll();scrollTo(0,0);}},n));}
-function renderAll(){renderTabs();const m=$('#main');m.innerHTML='';if(!M){m.append(h('div',{class:'card'},'Conectando con Quack MIDI…'));return;}
+function saveUi(){try{localStorage.setItem('qm_ui',JSON.stringify({tab,edSong,edSel,editSet,y:scrollY}));}catch(e){}}
+let uiTimer=null;addEventListener('scroll',()=>{clearTimeout(uiTimer);uiTimer=setTimeout(saveUi,300);},{passive:true});
+function renderAll(){
+  // conservar el desplazamiento de la página y de cada fila de acordes al redibujar
+  const keepY=scrollY,keepX={};document.querySelectorAll('[data-sk]').forEach(e=>keepX[e.dataset.sk]=e.scrollLeft);
+  const sameTab=renderAll.lastTab===tab;renderAll.lastTab=tab;
+  renderMain();
+  document.querySelectorAll('[data-sk]').forEach(e=>{if(keepX[e.dataset.sk]!=null)e.scrollLeft=keepX[e.dataset.sk];});
+  if(sameTab)scrollTo(0,keepY);
+  if(revealSel){revealSel=false;const c=document.querySelector('.cc.sel');if(c)c.scrollIntoView({inline:'nearest',block:'nearest',behavior:'smooth'});}
+  saveUi();}
+function renderMain(){renderTabs();const m=$('#main');m.innerHTML='';if(!M){m.append(h('div',{class:'card'},'Conectando con Quack MIDI…'));return;}
   if(st.crc)m.append(h('div',{class:'banner er'},'⚠ Los datos guardados estaban dañados (¿se cortó la luz mientras guardaba?). No los cargué. Importa tu respaldo en Ajustes.'));
   if(st.warn>=0&&st.warn!=null)m.append(h('div',{class:'banner'},`⚠ El switch ${st.warn+1} parece no estar en modo momentáneo. Cámbialo en el Ampero.`,h('span',{class:'sp'}),h('button',{onclick:()=>cmd('warnok')},'Entendido')));
   if(st.thru)m.append(h('div',{class:'banner'},'MIDI Thru activado: Quack MIDI deja pasar todo y no toca acordes.'));
@@ -472,7 +485,7 @@ function vEdit(m){
       h('div',{class:'col'},toggle('Cambiar sonido del MiniNova',s.sendPC,v=>edit(()=>s.sendPC=v)),s.sendPC?h('div',{class:'row',style:'align-items:flex-end'},h('div',{class:'col'},h('span',{class:'mu sm'},'Banco'),seg([[0,'Actual'],[1,'A'],[2,'B'],[3,'C']],s.bank||0,v=>edit(()=>s.bank=v))),knob({label:'Programa',value:s.pc+1,min:1,max:128,onInput:v=>edit(()=>s.pc=v-1,false)})):null))));
   // --- Forma de la canción (horizontal) ---
   if(s.phrases.length>1||s.form.length>1||(s.form[0]&&s.form[0].r>1)){
-    const fs=h('div',{class:'strip'});
+    const fs=h('div',{class:'strip','data-sk':'form'+s.id});
     s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip','data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0]},p?p.name:'?',
       h('button',{class:'nodrag',onclick:()=>edit(()=>f.r=clamp(f.r-1,1,99))},'−'),h('b',null,'×'+f.r),h('button',{class:'nodrag',onclick:()=>edit(()=>f.r=clamp(f.r+1,1,99))},'+'),
       h('button',{class:'nodrag',title:'Mover a la izquierda',onclick:()=>i>0&&edit(()=>moveArr(s.form,i,i-1))},'←'),h('button',{class:'nodrag',title:'Mover a la derecha',onclick:()=>i<s.form.length-1&&edit(()=>moveArr(s.form,i,i+1))},'→'),
@@ -488,14 +501,14 @@ function vEdit(m){
     multiMode&&multi.size?h('button',{class:'er',onclick:()=>edit(()=>{const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();fixSel();})},`🗑 Borrar ${multi.size}`):null,
     st.cap?h('button',{class:'er',onclick:()=>cmd('cap',0)},st.cap===2?'■ Detener grabación':'■ Cancelar captura'):null));
   s.phrases.forEach((p,pi)=>{
-    const strip=h('div',{class:'strip'});
+    const strip=h('div',{class:'strip','data-sk':'ph'+s.id+'.'+pi});
     p.chords.forEach((c,ci)=>{const key=pi+'.'+ci,sel=!multiMode&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null;
       strip.append(h('div',{class:'cc'+(sel?' sel':'')+(multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:()=>{
         if(multiMode){multi.has(key)?multi.delete(key):multi.add(key);}else{edSel={p:pi,c:ci};audition(c,s);}renderAll();}},
         ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel?h('button',{class:'del',title:'Borrar este acorde',onclick:ev=>{ev.stopPropagation();edit(()=>{p.chords.splice(ci,1);fixSel();});}},'✕'):null,h('div',{class:'nm'},chordName(c.notes)),h('div',{class:'nt'},c.notes.length?c.notes.map(noteName).join(' '):'silencio'),
         prefs.lyrics&&c.lyr?h('div',{class:'ly'},c.lyr):null));});
     sortable(strip,(a,b)=>edit(()=>{moveArr(p.chords,a,b);if(edSel.p===pi)edSel.c=b;}));
-    const addC=(notes)=>{if(p.chords.length>=255)return toast('Máximo 255 acordes por frase');edit(()=>{const at=edSel.p===pi?edSel.c+1:p.chords.length;p.chords.splice(at,0,{notes});edSel={p:pi,c:at};});};
+    const addC=(notes)=>{if(p.chords.length>=255)return toast('Máximo 255 acordes por frase');edit(()=>{const at=edSel.p===pi?edSel.c+1:p.chords.length;p.chords.splice(at,0,{notes});edSel={p:pi,c:at};revealSel=true;});};
     pc.append(h('div',{class:'ph',style:'--pc:'+PCOL[p.color%8]},
       h('div',{class:'phh'},h('input',{type:'text',value:p.name,maxlength:16,onchange:e=>edit(()=>p.name=e.target.value)}),
         h('button',{title:'Color',style:'background:'+PCOL[p.color%8]+';color:#081418',onclick:()=>edit(()=>p.color=(p.color+1)%8)},'●'),
@@ -523,7 +536,7 @@ function chordEditor(s){
   card.append(h('div',{class:'row'},h('h2',{class:'grow',style:'margin:0'},title),
     one&&!multiMode?[h('button',{title:'Mover a la izquierda',onclick:()=>edSel.c>0&&edit(()=>{moveArr(p.chords,edSel.c,edSel.c-1);edSel.c--;})},'←'),h('button',{title:'Mover a la derecha',onclick:()=>edSel.c<p.chords.length-1&&edit(()=>{moveArr(p.chords,edSel.c,edSel.c+1);edSel.c++;})},'→')]:null,
     h('button',{onclick:()=>{clip={kind:'chords',data:copy(sel)};toast(sel.length+' acorde(s) copiados');renderAll();}},'Copiar'),
-    one&&!multiMode?h('button',{onclick:()=>edit(()=>{p.chords.splice(edSel.c+1,0,copy(one));edSel.c++;})},'Duplicar'):null,
+    one&&!multiMode?h('button',{onclick:()=>edit(()=>{p.chords.splice(edSel.c+1,0,copy(one));edSel.c++;revealSel=true;})},'Duplicar'):null,
     h('button',{class:'er',onclick:()=>edit(()=>{if(multiMode){const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();}else p.chords.splice(edSel.c,1);fixSel();})},'Borrar')));
   if(one){
     // Constructor rápido
@@ -703,7 +716,9 @@ document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,sele
 window.addEventListener('beforeunload',e=>{if(pendingUp){e.preventDefault();e.returnValue='';}});
 
 /* ---------- Arranque ---------- */
-(async()=>{renderAll();await new Promise(r=>setTimeout(r,0));try{const r=await api('/api/s');st=await r.json();online=true;await loadLyrics();await loadBlob();}catch(e){}renderAll();updPill();offerIncoming();poll();})();
+(async()=>{renderAll();await new Promise(r=>setTimeout(r,0));try{const r=await api('/api/s');st=await r.json();online=true;await loadLyrics();await loadBlob();}catch(e){}
+  if(M){if(uiSaved.edSong!=null)edSong=uiSaved.edSong;if(uiSaved.edSel)edSel=uiSaved.edSel;if(uiSaved.editSet!=null)editSet=uiSaved.editSet;fixSel();}
+  renderAll();if(uiSaved.y)setTimeout(()=>scrollTo(0,uiSaved.y),50);updPill();offerIncoming();poll();})();
 </script>
 
 <script>
