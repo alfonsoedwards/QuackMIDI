@@ -206,7 +206,7 @@ function dec(b){let i=0;const u8=()=>{if(i>=b.length)throw Error('corto');return
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.23-1839';
+const QM_VERSION='2026.09.23-1842';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -389,6 +389,7 @@ function renderMain(){renderTabs();const m=$('#main');m.innerHTML='';if(!M){m.ap
   if(st.crc)m.append(h('div',{class:'banner er'},'⚠ Los datos guardados estaban dañados (¿se cortó la luz mientras guardaba?). No los cargué. Importa tu respaldo en Ajustes.'));
   if(st.warn>=0&&st.warn!=null)m.append(h('div',{class:'banner'},`⚠ El switch ${st.warn+1} parece no estar en modo momentáneo. Cámbialo en el Ampero.`,h('span',{class:'sp'}),h('button',{onclick:()=>cmd('warnok')},'Entendido')));
   if(st.thru)m.append(h('div',{class:'banner'},'MIDI Thru activado: Quack MIDI deja pasar todo y no toca acordes.'));
+  if(window.APPMODE&&!window.SIM_NOBACKUPNAG&&Date.now()-lastExport()>7*864e5&&M.songs.some(x=>x.id>3))m.append(h('div',{class:'banner'},lastExport()?'Hace más de una semana que no respaldas tus canciones.':'Todavía no respaldas tus canciones en un archivo.',h('span',{class:'sp'}),h('button',{onclick:doExport},'⇩ Respaldar ahora')));
   ({live:vLive,songs:vSongs,sets:vSets,edit:vEdit,cfg:vCfg})[tab](m);}
 function renderLive(){if(tab==='live'&&M&&!dragS&&!document.activeElement.matches('input,textarea'))renderAll();}
 
@@ -602,8 +603,9 @@ function vCfg(m){const S=M.settings;
     prefs.lyrics?h('div',{style:'margin-top:10px'},seg([['local','En este dispositivo'],['qwiic','En la memoria Qwiic']],prefs.lyrStore,v=>{if(v==='qwiic'&&!st.q)return toast('No se detectó una memoria Qwiic conectada');prefs.lyrStore=v;savePrefs();saveLyrics().then(()=>renderAll());}),
       h('p',{class:'mu sm'},prefs.lyrStore==='local'?'Las letras quedan en el navegador de este dispositivo (ideal para la tablet del escenario). Viajan en el respaldo.':'Las letras viven en la memoria Qwiic del Arduino y se ven desde cualquier dispositivo.')):null));
   const used=enc(M).length,max=st.max||8112;
-  m.append(h('div',{class:'card'},h('h2',null,'Memoria y respaldo'),h('div',{class:'mem'},h('i',{style:`width:${Math.min(100,used/max*100)}%`})),h('p',{class:'mu sm'},`${used} de ${max} bytes (${(used/max*100).toFixed(1)} %). Los respaldos se guardan como archivo en tu dispositivo, no ocupan memoria del Arduino.`),
-    h('div',{class:'row'},window.APPMODE?h('button',{class:'ac',onclick:syncOut},'📡 Enviar a Quack MIDI'):h('button',{class:'ac',onclick:doSave},'💾 Guardar en el Arduino'),window.APPMODE?null:h('button',{onclick:syncOut},'📱 Llevar a la app'),h('button',{onclick:doDiscard},'Descartar cambios'),h('button',{onclick:doExport},'⇩ Exportar respaldo'),h('button',{onclick:doImport},'⇧ Importar respaldo'))));
+  m.append(h('div',{class:'card'},h('h2',null,'Memoria y respaldo'),h('div',{class:'mem'},h('i',{style:`width:${Math.min(100,used/max*100)}%`})),h('p',{class:'mu sm'},`${used} de ${max} bytes (${(used/max*100).toFixed(1)} %).`),h('p',{class:'mu sm'},'El respaldo es un archivo que queda en Descargas: sobrevive aunque se borren los datos de la app o del navegador. Hazlo de vez en cuando.'+(lastExport()?' Último respaldo: '+new Date(lastExport()).toLocaleString('es-CL')+'.':' Todavía no has hecho ninguno.')),
+    h('div',{class:'row'},window.APPMODE?h('button',{class:'ac',onclick:syncOut},'📡 Enviar a Quack MIDI'):h('button',{class:'ac',onclick:doSave},'💾 Guardar en el Arduino'),window.APPMODE?null:h('button',{onclick:syncOut},'📱 Llevar a la app'),window.APPMODE?null:h('button',{onclick:doDiscard},'Descartar cambios'),h('button',{onclick:doExport},'⇩ Exportar respaldo a un archivo'),h('button',{onclick:doImport},'⇧ Importar respaldo'))));
+  m.append(snapsCard());
   m.append(h('div',{class:'card'},h('h2',null,'Apariencia'),h('p',{class:'mu sm',style:'margin-top:0'},'Quack MIDI versión '+QM_VERSION),seg([['dark','Oscuro'],['light','Claro']],prefs.theme,v=>{prefs.theme=v;savePrefs();applyTheme();renderAll();})));
   const lg=h('div',{class:'col'},h('span',{class:'mu'},'Cargando…'));
   m.append(h('div',{class:'card'},h('h2',null,'Registro'),lg,h('div',{class:'row',style:'margin-top:8px'},h('button',{onclick:()=>api('/api/c?x=clrlog').then(()=>renderAll())},'Borrar registro'))));
@@ -625,11 +627,28 @@ function wifiCard(S){
     h('div',{class:'row',style:'margin-top:8px'},h('label',{for:'wifi-pass',class:'sm mu',style:'width:4.5em'},'Clave'),pw,
       h('button',{class:'gh',onclick:e=>{pw.type=pw.type==='password'?'text':'password';e.target.textContent=pw.type==='password'?'Mostrar':'Ocultar';}},'Mostrar')),
     h('div',{class:'row',style:'margin-top:10px'},applyBtn));}
+/* ---------- Copias automáticas (dentro de este dispositivo) ----------
+   Una copia al abrir y cada 10 minutos si hubo cambios; se guardan las últimas 20.
+   Sirven para deshacer errores. NO sobreviven a "borrar datos": para eso está el respaldo a archivo. */
+const SNAP_KEY='qm_snaps';
+function lastExport(){try{return +localStorage.getItem('qm_lastexp')||0;}catch(e){return 0;}}
+function getSnaps(){try{return JSON.parse(localStorage.getItem(SNAP_KEY)||'[]');}catch(e){return [];}}
+function takeSnap(){if(!M)return;try{const b=b64(enc(M)),a=getSnaps();if(a.length&&a[0].b===b)return;
+  a.unshift({t:Date.now(),b,n:M.songs.length,ly:collectLyrics()});localStorage.setItem(SNAP_KEY,JSON.stringify(a.slice(0,20)));}catch(e){}}
+setInterval(takeSnap,10*60*1000);
+function snapsCard(){const a=getSnaps();
+  return h('div',{class:'card'},h('h2',null,'Copias automáticas'),
+    h('p',{class:'mu sm',style:'margin-top:0'},'Quack MIDI guarda solo una copia al abrir y cada 10 minutos de trabajo (las últimas 20), para volver atrás si borras algo por error.'),
+    a.length?h('div',null,a.map(x=>h('div',{class:'li'},h('span',{class:'grow'},new Date(x.t).toLocaleString('es-CL'),h('span',{class:'mu sm'},`  ·  ${x.n} canciones`)),
+      h('button',{onclick:()=>modal('¿Volver a esta copia?',h('p',null,`Las canciones quedan como estaban el ${new Date(x.t).toLocaleString('es-CL')}. Lo actual se guarda antes como otra copia.`),
+        [['Cancelar'],['Volver a esta copia',()=>{takeSnap();try{const nm=dec(unb64(x.b));snap();M=nm;lyrDoc=x.ly||{};attachLyrics();fixSel();changed();toast('Listo ✓');}catch(e){toast('Esa copia está dañada');}},'ac']])},'Recuperar'))))
+    :h('p',{class:'mu'},'Aún no hay copias.'));}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
 const fmtT=t=>t<60?t+' s':t<3600?Math.floor(t/60)+' min':Math.floor(t/3600)+' h '+Math.floor(t%3600/60)+' min';
 async function doSave(){if(pendingUp||uploading)await upload();try{const j=await(await api('/api/save',{method:'POST',timeout:10000})).json();if(j.ok){toast('Guardado en el Arduino ✓');lastErr='';}else{lastErr=j.e||'No se pudo guardar';toast(lastErr);}}catch(e){toast('No se pudo guardar');}updPill();}
 async function doDiscard(){modal('¿Descartar cambios?',h('p',null,'Vuelve a lo último guardado en el Arduino.'),[['Cancelar'],['Descartar',async()=>{clearTimeout(upTimer);pendingUp=false;await api('/api/discard',{method:'POST'});await loadBlob();renderAll();},'er']]);}
 function doExport(){const b=enc(M);let bin='';for(const x of b)bin+=String.fromCharCode(x);const data={app:'QuackMIDI',v:1,blob:btoa(bin),lyrics:collectLyrics()};
-  const a=h('a',{href:URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})),download:`QuackMIDI_${new Date().toISOString().slice(0,10)}.json`});document.body.append(a);a.click();a.remove();}
+  const a=h('a',{href:URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})),download:`QuackMIDI_${new Date().toISOString().slice(0,10)}.json`});document.body.append(a);a.click();a.remove();try{localStorage.setItem('qm_lastexp',String(Date.now()));}catch(e){}toast('Respaldo guardado en Descargas');renderAll();}
 function doImport(){const i=h('input',{type:'file',accept:'.json,application/json'});i.onchange=async()=>{try{const d=JSON.parse(await i.files[0].text());if(d.app!=='QuackMIDI')throw 0;const b=Uint8Array.from(atob(d.blob),c=>c.charCodeAt(0));const nm=dec(b);
   modal('¿Importar respaldo?',h('p',null,`${nm.songs.length} canciones y ${nm.sets.length} presentaciones. Reemplaza lo que hay ahora (luego toca Guardar).`),[['Cancelar'],['Importar',()=>{snap();M=nm;lyrDoc=d.lyrics||{};attachLyrics();fixSel();changed();},'ac']]);}catch(e){toast('Ese archivo no es un respaldo de Quack MIDI');}};i.click();}
 let learnK=-1,learnM=null;
@@ -724,7 +743,7 @@ window.addEventListener('beforeunload',e=>{if(pendingUp){e.preventDefault();e.re
 /* ---------- Arranque ---------- */
 (async()=>{renderAll();await new Promise(r=>setTimeout(r,0));try{const r=await api('/api/s');st=await r.json();online=true;await loadLyrics();await loadBlob();}catch(e){}
   if(M){if(uiSaved.edSong!=null)edSong=uiSaved.edSong;if(uiSaved.edSel)edSel=uiSaved.edSel;if(uiSaved.editSet!=null)editSet=uiSaved.editSet;fixSel();}
-  renderAll();if(uiSaved.y)setTimeout(()=>scrollTo(0,uiSaved.y),50);updPill();offerIncoming();poll();})();
+  takeSnap();renderAll();if(uiSaved.y)setTimeout(()=>scrollTo(0,uiSaved.y),50);updPill();offerIncoming();poll();})();
 </script>
 
 <script>
