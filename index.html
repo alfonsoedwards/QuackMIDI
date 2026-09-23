@@ -206,7 +206,7 @@ function dec(b){let i=0;const u8=()=>{if(i>=b.length)throw Error('corto');return
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.23-1833';
+const QM_VERSION='2026.09.23-1839';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -503,8 +503,14 @@ function vEdit(m){
   s.phrases.forEach((p,pi)=>{
     const strip=h('div',{class:'strip','data-sk':'ph'+s.id+'.'+pi});
     p.chords.forEach((c,ci)=>{const key=pi+'.'+ci,sel=!multiMode&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null;
-      strip.append(h('div',{class:'cc'+(sel?' sel':'')+(multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:()=>{
-        if(multiMode){multi.has(key)?multi.delete(key):multi.add(key);}else{edSel={p:pi,c:ci};audition(c,s);}renderAll();}},
+      strip.append(h('div',{class:'cc'+(sel?' sel':'')+(multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
+        // Seleccionar sin redibujar la fila (así no se pierde el desplazamiento)
+        const card=ev.currentTarget;
+        if(multiMode){multi.has(key)?multi.delete(key):multi.add(key);renderAll();return;}
+        else{document.querySelectorAll('.cc.sel').forEach(x=>{x.classList.remove('sel');const d=x.querySelector('.del');if(d)d.remove();});
+          card.classList.add('sel');card.prepend(h('button',{class:'del',title:'Borrar este acorde',onclick:e2=>{e2.stopPropagation();edit(()=>{p.chords.splice(ci,1);fixSel();});}},'✕'));
+          edSel={p:pi,c:ci};audition(c,s);}
+        const old=document.getElementById('ceditor');if(old)old.replaceWith(chordEditor(s));saveUi();}},
         ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel?h('button',{class:'del',title:'Borrar este acorde',onclick:ev=>{ev.stopPropagation();edit(()=>{p.chords.splice(ci,1);fixSel();});}},'✕'):null,h('div',{class:'nm'},chordName(c.notes)),h('div',{class:'nt'},c.notes.length?c.notes.map(noteName).join(' '):'silencio'),
         prefs.lyrics&&c.lyr?h('div',{class:'ly'},c.lyr):null));});
     sortable(strip,(a,b)=>edit(()=>{moveArr(p.chords,a,b);if(edSel.p===pi)edSel.c=b;}));
@@ -529,7 +535,7 @@ function vEdit(m){
 
 let bRoot=0,bOct=4,bType=0,bInv=0,pianoBase=48;
 function chordEditor(s){
-  const sel=selChords(s);const card=h('div',{class:'card'});
+  const sel=selChords(s);const card=h('div',{class:'card',id:'ceditor'});
   if(!sel.length){card.append(h('p',{class:'mu'},multiMode?'Toca varios acordes para seleccionarlos.':'Selecciona un acorde.'));return card;}
   const one=sel.length===1?sel[0]:null,p=s.phrases[edSel.p];
   const title=one?`Acorde ${edSel.c+1} de "${p.name}": ${chordName(one.notes)}`:`${sel.length} acordes seleccionados`;
