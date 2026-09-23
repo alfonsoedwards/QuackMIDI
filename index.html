@@ -212,7 +212,7 @@ function dec(b){let i=0;const u8=()=>{if(i>=b.length)throw Error('corto');return
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.23-1852';
+const QM_VERSION='2026.09.23-1854';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -669,12 +669,13 @@ function getSnaps(){try{return JSON.parse(localStorage.getItem(SNAP_KEY)||'[]');
 function takeSnap(force){if(!M)return;try{const b=b64(enc(M)),a=getSnaps();if(!force&&a.length&&a[0].b===b)return;
   a.unshift({t:Date.now(),b,n:M.songs.length,ly:collectLyrics()});localStorage.setItem(SNAP_KEY,JSON.stringify(a.slice(0,20)));}catch(e){}}
 setInterval(takeSnap,10*60*1000);
+function delSnap(t){try{localStorage.setItem(SNAP_KEY,JSON.stringify(t==null?[]:getSnaps().filter(x=>x.t!==t)));}catch(e){}renderAll();}
 function snapsCard(){const a=getSnaps();
   return h('div',{class:'card'},h('h2',null,'Copias automáticas'),
-    h('p',{class:'mu sm',style:'margin-top:0'},'Quack MIDI guarda solo una copia al abrir y cada 10 minutos de trabajo (las últimas 20), para volver atrás si borras algo por error.'),
+    h('p',{class:'mu sm',style:'margin-top:0'},'Quack MIDI guarda solo una copia al abrir y cada 10 minutos de trabajo (las últimas 20), para volver atrás si borras algo por error. Los archivos de respaldo que quedan en Descargas se borran desde la app Mis archivos de la tablet.'),
     a.length?h('div',null,a.map(x=>h('div',{class:'li'},h('span',{class:'grow'},new Date(x.t).toLocaleString('es-CL'),h('span',{class:'mu sm'},`  ·  ${x.n} canciones`)),
       h('button',{onclick:()=>modal('¿Volver a esta copia?',h('p',null,`Las canciones quedan como estaban el ${new Date(x.t).toLocaleString('es-CL')}. Lo actual se guarda antes como otra copia.`),
-        [['Cancelar'],['Volver a esta copia',()=>{takeSnap();try{const nm=dec(unb64(x.b));snap();M=nm;lyrDoc=x.ly||{};attachLyrics();fixSel();changed();toast('Listo ✓');}catch(e){toast('Esa copia está dañada');}},'ac']])},'Recuperar'))))
+        [['Cancelar'],['Volver a esta copia',()=>{takeSnap();try{const nm=dec(unb64(x.b));snap();M=nm;lyrDoc=x.ly||{};attachLyrics();fixSel();changed();toast('Listo ✓');}catch(e){toast('Esa copia está dañada');}},'ac']])},'Recuperar'),h('button',{title:'Borrar esta copia',onclick:()=>modal('¿Borrar esta copia?',h('p',null,new Date(x.t).toLocaleString('es-CL')),[['Cancelar'],['Borrar',()=>delSnap(x.t),'er']])},'🗑'))),h('div',{class:'row',style:'margin-top:8px'},h('button',{onclick:()=>modal('¿Borrar todas las copias?',h('p',null,'Se borran las '+a.length+' copias automáticas de esta tablet. Tus canciones actuales y los archivos de respaldo en Descargas no se tocan.'),[['Cancelar'],['Borrar todas',()=>delSnap(null),'er']])},'Borrar todas las copias')))
     :h('p',{class:'mu'},'Aún no hay copias.'));}
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
 const fmtT=t=>t<60?t+' s':t<3600?Math.floor(t/60)+' min':Math.floor(t/3600)+' h '+Math.floor(t%3600/60)+' min';
