@@ -226,7 +226,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-1822';
+const QM_VERSION='2026.09.25-1824';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -967,7 +967,7 @@ document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,sele
 window.addEventListener('beforeunload',e=>{if(pendingUp){e.preventDefault();e.returnValue='';}});
 
 /* ---------- Arranque ---------- */
-(async()=>{renderAll();await new Promise(r=>setTimeout(r,0));try{const r=await api('/api/s');st=await r.json();online=true;await loadLyrics();await loadBlob();}catch(e){}
+(async()=>{renderAll();await new Promise(r=>document.readyState==='loading'?document.addEventListener('DOMContentLoaded',r):r());try{const r=await api('/api/s');st=await r.json();online=true;await loadLyrics();await loadBlob();}catch(e){}
   if(M){if(uiSaved.edSong!=null)edSong=uiSaved.edSong;if(uiSaved.edSel)edSel=uiSaved.edSel;if(uiSaved.editSet!=null)editSet=uiSaved.editSet;fixSel();}
   takeSnap();renderAll();if(uiSaved.y)setTimeout(()=>scrollTo(0,uiSaved.y),50);updPill();offerIncoming();poll();
   if(window.APPMODE&&M){initMeta();if(syncMeta().connected){syncState=tokenOk()?'busy':'login';updCloud();if(tokenOk())syncNow(false);}else{syncState='off';updCloud();}}})();
