@@ -226,7 +226,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-1824';
+const QM_VERSION='2026.09.25-1825';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -425,7 +425,7 @@ function renderMain(){renderTabs();const m=$('#main');m.innerHTML='';m.classList
   if(st.crc)m.append(h('div',{class:'banner er'},'⚠ Los datos guardados estaban dañados (¿se cortó la luz mientras guardaba?). No los cargué. Importa tu respaldo en Ajustes.'));
   if(st.warn>=0&&st.warn!=null)m.append(h('div',{class:'banner'},`⚠ El switch ${st.warn+1} parece no estar en modo momentáneo. Cámbialo en el Ampero.`,h('span',{class:'sp'}),h('button',{onclick:()=>cmd('warnok')},'Entendido')));
   if(st.thru)m.append(h('div',{class:'banner'},'MIDI Thru activado: Quack MIDI deja pasar todo y no toca acordes.'));
-  if(window.APPMODE&&!window.SIM_NOBACKUPNAG&&Date.now()-lastExport()>7*864e5&&M.songs.some(x=>x.id>3))m.append(h('div',{class:'banner'},lastExport()?'Hace más de una semana que no respaldas tus canciones.':'Todavía no respaldas tus canciones en un archivo.',h('span',{class:'sp'}),h('button',{onclick:saveBackup},'💾 Guardar (respaldar)')));
+  if(window.APPMODE&&!window.SIM_NOBACKUPNAG&&Date.now()-lastExport()>7*864e5&&M.songs.some(x=>x.id>4))m.append(h('div',{class:'banner'},lastExport()?'Hace más de una semana que no respaldas tus canciones.':'Todavía no respaldas tus canciones en un archivo.',h('span',{class:'sp'}),h('button',{onclick:saveBackup},'💾 Guardar (respaldar)')));
   ({live:vLive,songs:vSongs,sets:vSets,edit:vEdit,cfg:vCfg})[tab](m);
   if(tab==='edit'&&M.songs.length)document.body.append(editToolbar(M.songs[edSong]));}
 function renderLive(){if(tab==='live'&&M&&!dragS&&!document.activeElement.matches('input,textarea'))renderAll();}
