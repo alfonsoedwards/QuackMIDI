@@ -198,8 +198,12 @@ function buildChord(root,oct,ti,inv){let ns=TYPES[ti][1].map(i=>12*(oct+1)+root+
 const te=new TextEncoder(),td=new TextDecoder();
 function utf8(s,max){let b=te.encode(s||'');while(b.length>max){s=s.slice(0,-1);b=te.encode(s);}return b;}
 // Ajustes extra opcionales (ver qm_codec.py): de sonido por canción y por acorde
-const SX=['voice','bendRange','trans','glide'],CX=['trans','glide','bend','mod'];
-function packX(d,keys){let f=0;const v=[];keys.forEach((k,i)=>{if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):d[k])&255);}});return f?[f,...v]:[];}
+const SX=['voice','bendRange','trans','glide'],CX=['trans','glide','bend','mod'];   // la lista de controles va aparte (bit 4)
+// Controles del MiniNova: [nombre, CC, se puede deslizar, valor inicial]
+const CTRL=[['Modulación',1,true,0],['Filtro (frecuencia)',74,true,64],['Resonancia',71,true,0],['Drive',63,true,0],['Ataque',73,false,0],['Decay',75,false,64],['Sustain',70,false,127],['Release',72,false,20]];
+function packX(d,keys){let f=0;const v=[];keys.forEach((k,i)=>{if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):d[k])&255);}});
+  const ids=Object.keys(d.ctl||{}).map(Number).sort((a,b)=>a-b);if(ids.length){f|=16;v.push(ids.length);for(const id of ids)v.push(id,d.ctl[id]&127);}
+  return f?[f,...v]:[];}
 function enc(m){const o=[];const u8=v=>o.push(v&255),u16=v=>{u8(v);u8(v>>8)},str=(s,mx)=>{const b=utf8(s,mx);u8(b.length);for(const x of b)o.push(x)};
   const S=m.settings;u8(S.outCh);u8(S.clock?1:0);u8(Math.round(S.longMs/10));for(const t of S.trig){u8(t.t);u8(t.ch);u8(t.n);}str(S.ssid,24);str(S.pass,24);u16(S.nextId);
   u8(m.songs.length);for(const s of m.songs){u16(s.id);str(s.name,24);const sx=packX(s,SX);u8((s.hold?1:0)|(s.tie?2:0)|(s.repeat?4:0)|(s.sendPC?8:0)|((s.bank||0)&3)<<4|(sx.length?64:0));u16(s.bpm);u8(s.vel);u8(s.pc);for(const x of sx)u8(x);u8(s.phrases.length);
@@ -208,7 +212,10 @@ function enc(m){const o=[];const u8=v=>o.push(v&255),u16=v=>{u8(v);u8(v>>8)},str
     u8(s.form.length);for(const f of s.form){u8(f.p);u8(f.r);}}
   u8(m.sets.length);for(const st of m.sets){str(st.name,24);u8(st.entries.length);for(const e of st.entries){u8(e.k);if(e.k===0){u8(e.s);u8(e.t&255);str(e.note||'',40);}else str(e.label||'',24);}}
   return new Uint8Array(o);}
-function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)=>{if(f&(1<<j)){let v=u8();if(k==='glide')v*=10;if(k==='bend'&&v>127)v-=256;d[k]=v;}});};const u8=()=>{if(i>=b.length)throw Error('corto');return b[i++]},u16=()=>u8()|u8()<<8,str=()=>{const n=u8();const s=td.decode(b.subarray(i,i+n));i+=n;return s};
+function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)=>{if(f&(1<<j)){let v=u8();if(k==='glide')v*=10;if(k==='bend'&&v>127)v-=256;d[k]=v;}});
+    if(f&16){d.ctl={};for(let n=u8();n--;){const id=u8();d.ctl[id]=u8();}}
+    if(d.mod!=null){d.ctl=d.ctl||{};d.ctl[0]=d.mod;delete d.mod;}};   // la antigua "mod" pasa a ser el control Modulación
+  const u8=()=>{if(i>=b.length)throw Error('corto');return b[i++]},u16=()=>u8()|u8()<<8,str=()=>{const n=u8();const s=td.decode(b.subarray(i,i+n));i+=n;return s};
   const S={outCh:u8(),clock:!!(u8()&1),longMs:u8()*10,trig:[0,1,2,3].map(()=>({t:u8(),ch:u8(),n:u8()}))};S.ssid=str();S.pass=str();S.nextId=u16();
   const songs=[];for(let k=u8();k--;){const s={id:u16(),name:str()};const f=u8();Object.assign(s,{hold:!!(f&1),tie:!!(f&2),repeat:!!(f&4),sendPC:!!(f&8),bank:(f>>4)&3,bpm:u16(),vel:u8(),pc:u8(),phrases:[]});if(f&64)unpackX(s,SX);
     for(let p=u8();p--;){const ph={name:str(),color:u8(),chords:[]};for(let c=u8();c--;){const hd=u8(),ch={};if(hd&24){const ov=u8();if(hd&8)ch.hold=!!(ov&1);if(hd&16)ch.tie=!!(ov&2);}if(hd&32)ch.bpm=u16();if(hd&64)ch.vel=u8();if(hd&128)unpackX(ch,CX);ch.notes=[];for(let n=hd&7;n--;)ch.notes.push(u8());ph.chords.push(ch);}s.phrases.push(ph);}
@@ -217,7 +224,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.24-0921';
+const QM_VERSION='2026.09.25-1544';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -519,7 +526,8 @@ function vEdit(m){
       h('div',{class:'col'},h('span',{class:'mu sm'},'Modo de voz (al empezar)'),seg([[undefined,'No tocar'],[0,'Mono'],[1,'Mono AG'],[2,'Poly']],s.voice,v=>edit(()=>{if(v==null)delete s.voice;else s.voice=v;}))),
       h('div',{class:'col'},h('span',{class:'mu sm'},'Rango de la rueda de pitch'),h('div',{class:'row'},seg([[undefined,'No tocar'],[12,'Fijar']],s.bendRange==null?undefined:12,v=>edit(()=>{if(v==null)delete s.bendRange;else s.bendRange=12;})),
         s.bendRange!=null?knob({label:'± semitonos',value:s.bendRange,min:1,max:12,onInput:v=>edit(()=>s.bendRange=v,false)}):null))),
-    h('p',{class:'mu sm'},'Legato: la nota nueva entra antes de soltar la anterior, así el MiniNova desliza (glide) sin re-atacar. Pitch bend: no toca notas nuevas, solo mueve la rueda de pitch. "Deslizar" es cuánto tarda la transición; cada acorde puede tener la suya.')));
+    h('p',{class:'mu sm'},'Legato: la nota nueva entra antes de soltar la anterior, así el MiniNova desliza (glide) sin re-atacar. Pitch bend: no toca notas nuevas, solo mueve la rueda de pitch. "Deslizar" es cuánto tarda la transición; cada acorde puede tener la suya.'),
+    songCtlBlock(s)));
   // --- Forma de la canción (horizontal) ---
   if(s.phrases.length>1||s.form.length>1||(s.form[0]&&s.form[0].r>1)){
     const fs=h('div',{class:'strip','data-sk':'form'+s.id});
@@ -539,7 +547,7 @@ function vEdit(m){
     st.cap?h('button',{class:'er',onclick:()=>cmd('cap',0)},st.cap===2?'■ Detener grabación':'■ Cancelar captura'):null));
   s.phrases.forEach((p,pi)=>{
     const strip=h('div',{class:'strip','data-sk':'ph'+s.id+'.'+pi});
-    p.chords.forEach((c,ci)=>{const key=pi+'.'+ci,sel=!multiMode&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.bend!=null||c.mod!=null;
+    p.chords.forEach((c,ci)=>{const key=pi+'.'+ci,sel=!multiMode&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.bend!=null||(c.ctl&&Object.keys(c.ctl).length>0);
       strip.append(h('div',{class:'cc'+(sel?' sel':'')+(multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
         // Seleccionar sin redibujar la fila (así no se pierde el desplazamiento)
         const card=ev.currentTarget;
@@ -588,6 +596,29 @@ function editToolbar(s){
     B('→','Mover',()=>{const {p}=cur();if(p&&edSel.c<p.chords.length-1)edit(()=>{moveArr(p.chords,edSel.c,edSel.c+1);edSel.c++;revealSel=true;});},{title:'Mover el acorde a la derecha'}),sep(),
     B('✕','Borrar',()=>edit(()=>{if(multiMode&&multi.size){const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();}else{const {p}=cur();if(p&&p.chords.length)p.chords.splice(edSel.c,1);}fixSel();}),{title:'Borrar el acorde seleccionado'}));}
 
+/* Controles del MiniNova de la canción: se agregan solo si se necesitan */
+function songCtlBlock(s){
+  const ids=Object.keys(s.ctl||{}).map(Number).sort((a,b)=>a-b);
+  const free=CTRL.map((c,i)=>i).filter(i=>!ids.includes(i));
+  const add=h('select',{class:'nodrag'},h('option',{value:''},'＋ Control…'),free.map(i=>h('option',{value:i},CTRL[i][0])));
+  add.onchange=()=>{if(add.value==='')return;const id=+add.value;edit(()=>{s.ctl=s.ctl||{};s.ctl[id]=CTRL[id][3];});};
+  return h('div',null,h('h3',null,'Controles del MiniNova'),
+    ids.length?h('p',{class:'mu sm',style:'margin-top:0'},'Se mandan al empezar la canción. Cada acorde puede cambiarlos (en su panel) y el valor se queda hasta que otro acorde lo cambie.')
+      :h('p',{class:'mu sm',style:'margin-top:0'},'Agrega solo los que necesites (filtro, ataque…). Después cada acorde puede cambiarlos.'),
+    h('div',{class:'row',style:'gap:14px;align-items:flex-end'},
+      ids.map(id=>h('div',{class:'col',style:'align-items:center'},knob({label:CTRL[id][0],value:s.ctl[id],min:0,max:127,onInput:v=>edit(()=>s.ctl[id]=v,false)}),
+        h('button',{class:'gh sm',title:'Quitar este control',onclick:()=>edit(()=>{delete s.ctl[id];if(!Object.keys(s.ctl).length)delete s.ctl;
+          for(const p of s.phrases)for(const c of p.chords)if(c.ctl){delete c.ctl[id];if(!Object.keys(c.ctl).length)delete c.ctl;}})},'✕ quitar'))),
+      free.length?add:null));}
+function chordCtlBlock(s,sel){
+  const ids=Object.keys(s.ctl||{}).map(Number).sort((a,b)=>a-b);
+  if(!ids.length)return h('p',{class:'mu sm'},'Para cambiar el filtro, el ataque u otras perillas en este acorde, primero agrégalas en "Controles del MiniNova" de la canción (arriba).');
+  const val=id=>{const v=sel.map(c=>c.ctl&&c.ctl[id]);return v.every(x=>x===v[0])?v[0]:'mix';};
+  const setC=(id,v)=>edit(()=>{for(const c of sel){if(v==null){if(c.ctl){delete c.ctl[id];if(!Object.keys(c.ctl).length)delete c.ctl;}}else{c.ctl=c.ctl||{};c.ctl[id]=v;}}});
+  return h('div',{class:'row',style:'gap:16px;align-items:flex-end'},ids.map(id=>{const v=val(id),set=typeof v==='number';
+    return h('div',{class:'col',style:'align-items:center'},knob({label:CTRL[id][0],value:set?v:s.ctl[id],min:0,max:127,inherit:!set,onInput:x=>setC(id,x)}),
+      set?h('button',{class:'gh sm',onclick:()=>setC(id,null)},'↺ sin cambio'):h('span',{class:'mu sm'},'sin cambio'));}));}
+
 let bRoot=0,bOct=4,bType=0,bInv=0,pianoBase=48;
 function chordEditor(s){
   const sel=selChords(s);const card=h('div',{class:'card',id:'ceditor'});
@@ -629,8 +660,10 @@ function chordEditor(s){
       h('div',{class:'col'},h('span',{class:'mu sm'},'Cómo llega a este acorde'),seg([[undefined,`Canción (${sTr})`],...TRANS_OPTS],trv,v=>edit(()=>{for(const c of sel){if(v==null)delete c.trans;else c.trans=v;if(v===2&&c.bend==null)c.bend=2;}if(v===2&&s.bendRange==null)s.bendRange=12;}))),
       h('div',{class:'col'},knob({label:'Deslizar (ms)',value:typeof gv==='number'?gv:(s.glide!=null?s.glide:150),min:0,max:2550,step:10,inherit:gv==null||gv==='mix',onInput:v=>setAll('glide',v)}),gv!=null&&gv!=='mix'?h('button',{class:'gh sm',onclick:()=>setAll('glide',null)},'↺ heredar'):h('span',{class:'mu sm'},'hereda')),
       (trv===2||(trv==null&&s.trans===2))?h('div',{class:'col'},knob({label:'Pitch (semitonos)',value:typeof bnv==='number'?bnv:0,min:-(s.bendRange||12),max:s.bendRange||12,onInput:v=>setAll('bend',v)}),h('span',{class:'mu sm'},'rango ±'+(s.bendRange||12))):null,
-      h('div',{class:'col'},knob({label:'Modulación',value:typeof mv==='number'?mv:0,min:0,max:127,inherit:mv==null||mv==='mix',onInput:v=>setAll('mod',v)}),mv!=null&&mv!=='mix'?h('button',{class:'gh sm',onclick:()=>setAll('mod',null)},'↺ sin cambio'):h('span',{class:'mu sm'},'sin cambio'))),
-    h('p',{class:'mu sm'},'La modulación se queda como la dejes hasta que otro acorde la cambie. El pitch vuelve al centro en el siguiente acorde que no sea "Pitch bend".'));
+),
+    h('p',{class:'mu sm'},'El pitch vuelve al centro en el siguiente acorde que no sea "Pitch bend".'),
+    h('h3',null,'Controles del MiniNova en este acorde'),chordCtlBlock(s,sel),
+    h('p',{class:'mu sm'},'Los controles se quedan como los dejes hasta que otro acorde los cambie. Filtro, resonancia, drive y modulación se deslizan con el tiempo de "Deslizar"; ataque, decay, sustain y release cambian de golpe.'));
   return card;}
 function piano(one,s){const box=h('div',{class:'piano'});const W=[0,2,4,5,7,9,11],whites=[];for(let n=pianoBase;n<pianoBase+36;n++)if(W.includes(n%12))whites.push(n);
   const ww=100/whites.length;
@@ -822,7 +855,7 @@ window.addEventListener('beforeunload',e=>{if(pendingUp){e.preventDefault();e.re
 /* ===== Arduino simulado (solo en esta versión de prueba) ===== */
 window.SIM=true;window.APPMODE=true;
 (function(){
-const DEMO=new Uint8Array([0, 1, 60, 0, 0, 80, 0, 0, 81, 0, 0, 82, 0, 0, 83, 10, 81, 117, 97, 99, 107, 32, 77, 73, 68, 73, 10, 113, 117, 97, 99, 107, 113, 117, 97, 99, 107, 5, 0, 4, 1, 0, 15, 68, 101, 109, 111, 58, 32, 73, 45, 86, 45, 118, 105, 45, 73, 86, 4, 100, 0, 100, 0, 1, 6, 86, 117, 101, 108, 116, 97, 0, 4, 3, 60, 64, 67, 3, 55, 59, 62, 3, 57, 60, 64, 3, 53, 57, 60, 1, 0, 1, 2, 0, 20, 68, 101, 109, 111, 58, 32, 69, 115, 116, 114, 111, 102, 97, 32, 121, 32, 99, 111, 114, 111, 0, 92, 0, 96, 0, 3, 7, 69, 115, 116, 114, 111, 102, 97, 0, 4, 3, 57, 60, 64, 3, 53, 57, 60, 3, 60, 64, 67, 3, 55, 59, 62, 4, 67, 111, 114, 111, 1, 4, 4, 53, 57, 60, 64, 3, 55, 59, 62, 3, 52, 55, 59, 12, 1, 57, 60, 64, 67, 5, 70, 105, 110, 97, 108, 2, 2, 4, 60, 64, 67, 71, 0, 5, 0, 2, 1, 1, 0, 1, 1, 2, 2, 1, 3, 0, 12, 68, 101, 109, 111, 58, 32, 76, 105, 103, 97, 100, 111, 2, 80, 0, 90, 0, 1, 5, 86, 111, 99, 101, 115, 3, 4, 4, 48, 55, 64, 71, 4, 48, 55, 64, 69, 4, 48, 55, 64, 67, 0, 1, 0, 1, 4, 0, 24, 68, 101, 109, 111, 58, 32, 77, 101, 108, 111, 100, 195, 173, 97, 32, 99, 111, 110, 32, 103, 108, 105, 100, 101, 64, 90, 0, 100, 0, 15, 1, 12, 1, 15, 1, 8, 77, 101, 108, 111, 100, 195, 173, 97, 4, 6, 1, 67, 1, 69, 129, 2, 40, 72, 129, 15, 2, 80, 253, 64, 72, 129, 9, 0, 0, 67, 0, 1, 0, 1, 1, 14, 83, 104, 111, 119, 32, 100, 101, 32, 112, 114, 117, 101, 98, 97, 4, 0, 0, 0, 0, 1, 10, 73, 110, 116, 101, 114, 109, 101, 100, 105, 111, 0, 1, 2, 20, 80, 114, 101, 115, 101, 110, 116, 97, 114, 32, 97, 32, 108, 97, 32, 98, 97, 110, 100, 97, 0, 2, 0, 0]);
+const DEMO=new Uint8Array([0, 1, 60, 0, 0, 80, 0, 0, 81, 0, 0, 82, 0, 0, 83, 10, 81, 117, 97, 99, 107, 32, 77, 73, 68, 73, 10, 113, 117, 97, 99, 107, 113, 117, 97, 99, 107, 5, 0, 4, 1, 0, 15, 68, 101, 109, 111, 58, 32, 73, 45, 86, 45, 118, 105, 45, 73, 86, 4, 100, 0, 100, 0, 1, 6, 86, 117, 101, 108, 116, 97, 0, 4, 3, 60, 64, 67, 3, 55, 59, 62, 3, 57, 60, 64, 3, 53, 57, 60, 1, 0, 1, 2, 0, 20, 68, 101, 109, 111, 58, 32, 69, 115, 116, 114, 111, 102, 97, 32, 121, 32, 99, 111, 114, 111, 0, 92, 0, 96, 0, 3, 7, 69, 115, 116, 114, 111, 102, 97, 0, 4, 3, 57, 60, 64, 3, 53, 57, 60, 3, 60, 64, 67, 3, 55, 59, 62, 4, 67, 111, 114, 111, 1, 4, 4, 53, 57, 60, 64, 3, 55, 59, 62, 3, 52, 55, 59, 12, 1, 57, 60, 64, 67, 5, 70, 105, 110, 97, 108, 2, 2, 4, 60, 64, 67, 71, 0, 5, 0, 2, 1, 1, 0, 1, 1, 2, 2, 1, 3, 0, 12, 68, 101, 109, 111, 58, 32, 76, 105, 103, 97, 100, 111, 2, 80, 0, 90, 0, 1, 5, 86, 111, 99, 101, 115, 3, 4, 4, 48, 55, 64, 71, 4, 48, 55, 64, 69, 4, 48, 55, 64, 67, 0, 1, 0, 1, 4, 0, 24, 68, 101, 109, 111, 58, 32, 77, 101, 108, 111, 100, 195, 173, 97, 32, 99, 111, 110, 32, 103, 108, 105, 100, 101, 64, 90, 0, 100, 0, 31, 1, 12, 1, 15, 2, 0, 0, 1, 60, 1, 8, 77, 101, 108, 111, 100, 195, 173, 97, 4, 6, 1, 67, 1, 69, 129, 2, 40, 72, 129, 23, 2, 80, 253, 2, 0, 64, 1, 110, 72, 129, 17, 0, 2, 0, 0, 1, 60, 67, 0, 1, 0, 1, 1, 14, 83, 104, 111, 119, 32, 100, 101, 32, 112, 114, 117, 101, 98, 97, 4, 0, 0, 0, 0, 1, 10, 73, 110, 116, 101, 114, 109, 101, 100, 105, 111, 0, 1, 2, 20, 80, 114, 101, 115, 101, 110, 116, 97, 114, 32, 97, 32, 108, 97, 32, 98, 97, 110, 100, 97, 0, 2, 0, 0]);
 const LS='qm_app_v1';
 let flash,blob;
 try{const s=JSON.parse(localStorage.getItem(LS)||'null');if(s){flash=new Uint8Array(s.f);blob=new Uint8Array(s.b);}}catch(e){}
