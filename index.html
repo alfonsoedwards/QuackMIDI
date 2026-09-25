@@ -102,7 +102,8 @@ main{padding:8px 16px;max-width:1200px;margin:0 auto}
 .sndmenu{position:fixed;z-index:55;background:var(--sf);border-radius:14px;box-shadow:var(--sh);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:14em}
 .sndmenu button{background:transparent;text-align:left;font-weight:700}
 .sndmenu button.on{background:var(--ac);color:var(--aci)}
-#btnSnd{display:inline-flex;align-items:center;padding:.35em .5em}
+#btnSnd,#btnCloud{display:inline-flex;align-items:center;padding:.35em .5em}
+.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .tbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--sf);box-shadow:0 -4px 18px #0002;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:6px max(12px,env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom,0px));justify-content:safe center}
 .tbar button{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:58px;padding:.35em .45em;background:transparent;font-size:.7rem;font-weight:800;color:var(--tx)}
 .tbar button b{font-size:1.15rem;line-height:1.1}
@@ -161,6 +162,7 @@ table.tr{width:100%;border-collapse:collapse}table.tr td{padding:4px}
   <div class="brand"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><circle cx="15" cy="15" r="11" fill="#4EC6DF"/><circle cx="18.5" cy="12" r="1.8" fill="#10252c"/><path d="M24 15.5q6 .5 6.5 2.5-3 2-7.5 1z" fill="#ffb84d"/></svg><span>Quack <b>MIDI</b></span></div>
   <span class="sp"></span>
   <span id="pill" class="pill off"><i></i><span>Conectando…</span></span>
+  <button class="gh" id="btnCloud" title="Sincronizar con Google Drive" hidden></button>
   <button class="gh" id="btnSnd" title="Sonido en este dispositivo">🔇</button>
   <button class="gh" id="btnHelp" title="Ayuda">ⓘ</button>
 </div>
@@ -224,7 +226,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-1544';
+const QM_VERSION='2026.09.25-1822';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -296,7 +298,7 @@ const cmd=(x,a,extra='')=>((x==='stop'||x==='mute'||x==='restart')&&synthStop(),
 async function loadBlob(){const r=await api('/api/blob');const b=new Uint8Array(await r.arrayBuffer());M=dec(b);attachLyrics();knownBv=+(r.headers.get('X-Bv')||0);}
 
 let upTimer=null,upRetry=0;
-function changed(render=true){pendingUp=true;upRetry=0;clearTimeout(upTimer);upTimer=setTimeout(upload,350);saveLyricsSoon();if(render)renderAll();updPill();}
+function changed(render=true){try{trackChanges();}catch(e){}pendingUp=true;upRetry=0;clearTimeout(upTimer);upTimer=setTimeout(upload,350);saveLyricsSoon();if(render)renderAll();updPill();}
 async function upload(){if(uploading){upTimer=setTimeout(upload,200);return;}uploading=true;
   try{const b=enc(M);if(st.max&&b.length>st.max){lastErr='No cabe: '+b.length+' de '+st.max+' bytes';toast(lastErr);return;}
     const r=await api('/api/blob',{method:'POST',body:b,headers:{'Content-Type':'application/octet-stream'},timeout:8000});const j=await r.json();
@@ -450,7 +452,8 @@ function vLive(m){const s=liveSong();const tr=liveTr();
 
 /* ---------- Vista: Canciones (biblioteca ordenable) ---------- */
 let songQ='';
-function newSong(){const id=M.settings.nextId++&65535;return{id,name:'Canción nueva',hold:false,tie:false,repeat:false,sendPC:false,bank:0,bpm:120,vel:100,pc:0,phrases:[{name:'Estrofa',color:0,chords:[{notes:buildChord(0,4,0,0)},{notes:[]}]}],form:[{p:0,r:1}]};}
+function newId(){const used=new Set(M.songs.map(x=>x.id));let id;do{id=1+Math.floor(Math.random()*65534);}while(used.has(id));return id;}
+function newSong(){const id=newId();return{id,name:'Canción nueva',hold:false,tie:false,repeat:false,sendPC:false,bank:0,bpm:120,vel:100,pc:0,phrases:[{name:'Estrofa',color:0,chords:[{notes:buildChord(0,4,0,0)},{notes:[]}]}],form:[{p:0,r:1}]};}
 function remapSets(fn){for(const s of M.sets)s.entries=s.entries.filter(e=>{if(e.k!==0)return true;const n=fn(e.s);if(n<0)return false;e.s=n;return true;});}
 function vSongs(m){
   const c=h('div',{class:'card'},h('div',{class:'row'},h('h2',{class:'grow',style:'margin:0'},'Canciones'),h('button',{class:'ac',onclick:()=>{if(M.songs.length>=255)return toast('Máximo 255 canciones');edit(()=>{M.songs.push(newSong());edSong=M.songs.length-1;edSel={p:0,c:0};tab='edit';});}},'+ Nueva')),
@@ -461,7 +464,7 @@ function vSongs(m){
     h('span',{class:'grow'},h('b',null,s.name),h('div',{class:'mu sm'},`${s.phrases.length} frase${s.phrases.length===1?'':'s'} · ${flatten(s).length} acordes · ${s.bpm} BPM`)),
     h('button',{title:'Tocar en vivo',onclick:()=>cmd('song',i)},'▶'),
     h('button',{onclick:()=>{edSong=i;edSel={p:0,c:0};multi.clear();tab='edit';renderAll();}},'Editar'),
-    h('button',{class:'hide-sm',title:'Duplicar',onclick:()=>edit(()=>{const d=copy(s);d.id=M.settings.nextId++&65535;d.name=(s.name+' (copia)').slice(0,24);M.songs.splice(i+1,0,d);remapSets(x=>x>i?x+1:x);})},'⧉'),
+    h('button',{class:'hide-sm',title:'Duplicar',onclick:()=>edit(()=>{const d=copy(s);d.id=newId();d.name=(s.name+' (copia)').slice(0,24);M.songs.splice(i+1,0,d);remapSets(x=>x>i?x+1:x);})},'⧉'),
     h('button',{title:'Borrar',onclick:()=>modal('¿Borrar canción?',h('p',null,`Se borrará "${s.name}" y se quitará de las presentaciones.`),[['Cancelar'],['Borrar',()=>edit(()=>{M.songs.splice(i,1);remapSets(x=>x===i?-1:x>i?x-1:x);if(edSong>=M.songs.length)edSong=Math.max(0,M.songs.length-1);}),'er']])},'🗑'))));
   sortable(list,(f,t)=>edit(()=>{moveArr(M.songs,f,t);remapSets(x=>{if(x===f)return t;if(f<t&&x>f&&x<=t)return x-1;if(f>t&&x>=t&&x<f)return x+1;return x;});}),'y');
   c.append(list);m.append(c);}
@@ -689,6 +692,7 @@ function saveCard(){
     h('button',{class:'ac',style:'padding:.8em 1.2em',onclick:saveBackup},'💾 Guardar (respaldar)')));}
 function vCfg(m){const S=M.settings;
   m.append(saveCard());
+  if(window.APPMODE)m.append(cloudCard());
   const tt=h('div');
   S.trig.forEach((t,k)=>tt.append(h('div',{class:'sm',style:'margin:12px 0 4px'},h('b',null,SWN[k])),h('div',{class:'row'},
     h('select',{onchange:e=>edit(()=>t.t=+e.target.value)},TT.map(([v,n])=>h('option',{value:v,selected:+v===t.t?'':null},n))),
@@ -832,8 +836,125 @@ function syncOut(){
   modal('Llevar a la app',h('div',null,h('p',null,'Abre la app Quack MIDI de esta tablet con las canciones del Arduino. La app debe estar instalada (funciona sin internet).'),h('p',{class:'sm mu'},'Dirección de la app:'),inp),
     [['Cancelar'],['📱 Llevar',()=>{const u=inp.value.trim();if(!/^https?:\/\//.test(u)){toast('Escribe la dirección de la app');return false;}try{localStorage.setItem('qm_app_url',u);}catch(e){}location.href=u.split('#')[0]+'#qm='+packPayload();},'ac']]);}
 
+/* =====================================================================
+   Sincronización entre dispositivos con Google Drive (solo en la app).
+   Archivo "QuackMIDI.json" en la carpeta "Quack MIDI" del Drive del usuario.
+   Se combina canción por canción: gana la edición más reciente de cada una.
+   ===================================================================== */
+const GCLIENT='324991662272-2m4hpscenm2uc77f7lro6b5qvkc8g1gm.apps.googleusercontent.com';
+const GSCOPE='https://www.googleapis.com/auth/drive.file';
+const SYNC_KEY='qm_sync';
+let syncState='off',syncMsg='',syncBusy=false,tokenClient=null,syncTimer=null;
+function syncMeta(){try{return JSON.parse(localStorage.getItem(SYNC_KEY)||'null')||{};}catch(e){return{};}}
+function setSyncMeta(m){try{localStorage.setItem(SYNC_KEY,JSON.stringify(m));}catch(e){}}
+const hash=o=>{const t=JSON.stringify(o);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return h;};
+const setsById=()=>M.sets.map(st=>({name:st.name,entries:st.entries.map(e=>e.k===0?{k:0,id:(M.songs[e.s]||{}).id,t:e.t,note:e.note}:e)}));
+// Anota la hora de cada canción que cambió desde la última vez (y las borradas)
+function trackChanges(){if(!window.APPMODE||!M)return;const m=syncMeta();if(!m.hash)return;const now=Date.now();
+  m.t=m.t||{};m.deleted=m.deleted||{};const seen=new Set();
+  for(const so of M.songs){seen.add(so.id);const hh=hash(so);if(m.hash[so.id]!==hh){m.hash[so.id]=hh;m.t[so.id]=now;delete m.deleted[so.id];}}
+  for(const id of Object.keys(m.hash))if(!seen.has(+id)){m.deleted[id]=now;delete m.hash[id];delete m.t[id];}
+  const oh=hash(M.songs.map(x=>x.id));if(m.orderHash!==oh){m.orderHash=oh;m.orderT=now;}
+  const sh=hash(setsById());if(m.setsHash!==sh){m.setsHash=sh;m.setsT=now;}
+  const gh=hash(M.settings);if(m.settingsHash!==gh){m.settingsHash=gh;m.settingsT=now;}
+  setSyncMeta(m);scheduleSync(20000);}
+function initMeta(){const m=syncMeta();if(m.hash)return m;   // primera vez: lo que ya existe cuenta como "antiguo" (t=0)
+  const n={hash:{},t:{},deleted:{},orderHash:hash(M.songs.map(x=>x.id)),orderT:0,setsHash:hash(setsById()),setsT:0,settingsHash:hash(M.settings),settingsT:0};
+  for(const so of M.songs){n.hash[so.id]=hash(so);n.t[so.id]=0;}setSyncMeta(n);return n;}
+const sane=t=>Math.min(+t||0,Date.now()+3600e3);   // una hora del futuro nunca gana (lección de Quack Notes)
+
+// --- Google: sesión y Drive ---
+function loadGis(){return new Promise((ok,no)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return ok();
+  const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;sc.onload=()=>ok();sc.onerror=()=>no(Error('sin internet'));document.head.append(sc);});}
+function tokenOk(){const m=syncMeta();return m.token&&m.exp>Date.now()+60e3;}
+function getToken(interactive){return new Promise(async(ok,no)=>{if(tokenOk())return ok(syncMeta().token);if(!interactive)return no(Error('login'));
+  try{await loadGis();}catch(e){return no(e);}
+  tokenClient=google.accounts.oauth2.initTokenClient({client_id:GCLIENT,scope:GSCOPE,
+    callback:r=>{if(r.error)return no(Error(r.error));const m=syncMeta();m.token=r.access_token;m.exp=Date.now()+(r.expires_in||3600)*1000;m.connected=true;setSyncMeta(m);ok(r.access_token);},
+    error_callback:e=>no(Error(e&&e.type||'cancelado'))});
+  const m=syncMeta();tokenClient.requestAccessToken({prompt:m.connected?'':'consent',login_hint:m.email||undefined});});}
+async function gd(tok,url,opt={}){const r=await fetch(url,Object.assign({},opt,{headers:Object.assign({Authorization:'Bearer '+tok},opt.headers||{})}));
+  if(r.status===401){const m=syncMeta();m.token=null;setSyncMeta(m);throw Error('login');}if(!r.ok)throw Error('Drive '+r.status);return r;}
+async function driveFile(tok){const m=syncMeta();if(m.fileId)return m.fileId;
+  const q=encodeURIComponent("name='QuackMIDI.json' and trashed=false");
+  const l=await (await gd(tok,`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&spaces=drive`)).json();
+  if(l.files&&l.files.length){m.fileId=l.files[0].id;setSyncMeta(m);return m.fileId;}
+  const fq=encodeURIComponent("name='Quack MIDI' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+  const fl=await (await gd(tok,`https://www.googleapis.com/drive/v3/files?q=${fq}&fields=files(id)`)).json();
+  let folder=fl.files&&fl.files[0]&&fl.files[0].id;
+  if(!folder)folder=(await (await gd(tok,'https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Quack MIDI',mimeType:'application/vnd.google-apps.folder'})})).json()).id;
+  const c=await (await gd(tok,'https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'QuackMIDI.json',mimeType:'application/json',parents:[folder]})})).json();
+  m.fileId=c.id;setSyncMeta(m);return c.id;}
+
+// --- Combinar lo local con lo del Drive ---
+function mergeWith(R){const m=initMeta(),L={};M.songs.forEach(x=>L[x.id]=x);
+  const Rs={};(R.songs||[]).forEach(x=>Rs[x.id]=x);const del=Object.assign({},R.deleted||{});
+  for(const[k,v]of Object.entries(m.deleted||{}))del[k]=Math.max(sane(v),sane(del[k]));
+  const out={},times={},conflicts=[];
+  for(const id of new Set([...Object.keys(L),...Object.keys(Rs)].map(Number))){
+    const l=L[id],r=Rs[id],tl=sane(m.t[id]),tr=r?sane(r._t):0;
+    let win=l,t=tl;if(!l||(r&&tr>tl)){win=r;t=tr;}
+    if(sane(del[id])>t)continue;                             // borrada después de su último cambio
+    if(l&&r&&tl>(m.lastSync||0)&&tr>(m.lastSync||0)&&hash(l)!==hash(strip(r)))conflicts.push(win.name);
+    out[id]=strip(win);times[id]=t;}
+  const localOrder=sane(m.orderT)>=sane(R.orderT);
+  const order=[...(localOrder?M.songs.map(x=>x.id):(R.order||[])),...(localOrder?(R.order||[]):M.songs.map(x=>x.id))];
+  const songs=[...new Set(order)].filter(id=>out[id]).map(id=>out[id]);
+  for(const id of Object.keys(out).map(Number))if(!songs.some(x=>x.id===id))songs.push(out[id]);
+  const setsSrc=sane(m.setsT)>=sane(R.setsT)?setsById():(R.sets||[]);
+  const idx=id=>songs.findIndex(x=>x.id===id);
+  const sets=setsSrc.map(st=>({name:st.name,entries:st.entries.filter(e=>e.k!==0||idx(e.id)>=0).map(e=>e.k===0?{k:0,s:idx(e.id),t:e.t||0,note:e.note||''}:e)}));
+  const settings=sane(m.settingsT)>=sane(R.settingsT)||!R.settings?M.settings:R.settings;
+  return{model:{settings,songs,sets},times,deleted:del,conflicts,
+    orderT:Math.max(sane(m.orderT),sane(R.orderT)),setsT:Math.max(sane(m.setsT),sane(R.setsT)),settingsT:Math.max(sane(m.settingsT),sane(R.settingsT))};}
+const strip=x=>{const c=copy(x);delete c._t;return c;};
+
+async function syncNow(interactive){if(!window.APPMODE||syncBusy||!M)return;
+  if(!navigator.onLine){syncState='offline';syncMsg='Sin internet: se sincroniza cuando vuelva la conexión.';updCloud();return;}
+  syncBusy=true;syncState='busy';updCloud();
+  try{const tok=await getToken(interactive);const fid=await driveFile(tok);
+    const txt=await (await gd(tok,`https://www.googleapis.com/drive/v3/files/${fid}?alt=media`)).text();
+    let R={};try{R=txt?JSON.parse(txt):{};}catch(e){R={};}
+    if(pendingUp||uploading)await upload();
+    const mg=mergeWith(R);
+    if(mg.conflicts.length)takeSnap(true);                                // guardar lo de antes por si acaso
+    const changedHere=hash(mg.model.songs)!==hash(M.songs)||hash(mg.model.sets)!==hash(M.sets)||hash(mg.model.settings)!==hash(M.settings);
+    // Actualizar lo local sin que cuente como edición nueva
+    const m=syncMeta();m.hash={};m.t={};for(const so of mg.model.songs){m.hash[so.id]=hash(so);m.t[so.id]=mg.times[so.id]||0;}
+    m.deleted=mg.deleted;m.orderT=mg.orderT;m.setsT=mg.setsT;m.settingsT=mg.settingsT;m.lastSync=Date.now();
+    if(changedHere){snap();M=mg.model;fixSel();}
+    m.orderHash=hash(M.songs.map(x=>x.id));m.setsHash=hash(setsById());m.settingsHash=hash(M.settings);setSyncMeta(m);
+    if(changedHere){pendingUp=true;clearTimeout(upTimer);upTimer=setTimeout(upload,50);saveLyricsSoon();renderAll();}
+    // Subir la versión combinada
+    const body={app:'QuackMIDI',v:1,t:Date.now(),settings:M.settings,settingsT:m.settingsT,order:M.songs.map(x=>x.id),orderT:m.orderT,
+      sets:setsById(),setsT:m.setsT,deleted:m.deleted,songs:M.songs.map(so=>Object.assign(copy(so),{_t:m.t[so.id]||0}))};
+    await gd(tok,`https://www.googleapis.com/upload/drive/v3/files/${fid}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    syncState='ok';syncMsg='Sincronizado '+new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+'.';
+    if(mg.conflicts.length)toast('Se editó en dos lugares: '+mg.conflicts.join(', ')+'. Quedó lo más nuevo; lo anterior está en Copias automáticas.');
+  }catch(e){const login=String(e.message)==='login';syncState=login?'login':'error';
+    syncMsg=login?'Toca la nube para volver a conectar con Google (la sesión dura una hora).':'No se pudo sincronizar: '+e.message;}
+  finally{syncBusy=false;updCloud();if(tab==='cfg'&&!document.activeElement.matches('input,textarea'))renderAll();}}
+function scheduleSync(ms){if(!window.APPMODE||!syncMeta().connected)return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>{if(tokenOk())syncNow(false);else{syncState='login';updCloud();}},ms);}
+// Ícono plano de nube: gris = sin conectar, calipso = al día, naranjo = hay que tocar, rojo = error
+function updCloud(){const b=$('#btnCloud');if(!b||!window.APPMODE)return;b.hidden=false;
+  const col={off:'var(--mu)',ok:'var(--ac)',busy:'var(--ac)',login:'var(--wa)',offline:'var(--mu)',error:'var(--er)'}[syncState]||'var(--mu)';
+  b.innerHTML=`<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="${syncState==='busy'?'spin':''}"><path d="M7 18h10a4 4 0 00.6-7.95A6 6 0 006.2 9.1 4.5 4.5 0 007 18z" fill="${col}"/>${syncState==='ok'?'<path d="M9 13.5l2 2 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>':''}</svg>`;
+  b.title=syncState==='off'?'Conectar con Google Drive para sincronizar':syncMsg;}
+function cloudCard(){const m=syncMeta();
+  return h('div',{class:'card'},h('h2',null,'Sincronización entre dispositivos'),
+    m.connected?h('div',null,h('p',{class:'sm',style:'margin-top:0'},syncMsg||'Conectado con Google Drive.'),
+        m.lastSync?h('p',{class:'mu sm'},'Última sincronización: '+new Date(m.lastSync).toLocaleString('es-CL')):null,
+        h('div',{class:'row'},h('button',{class:'ac',onclick:()=>syncNow(true)},'☁ Sincronizar ahora'),
+          h('button',{onclick:()=>modal('¿Desconectar de Google Drive?',h('p',null,'Este dispositivo deja de sincronizar. Tus canciones se quedan aquí y en el Drive.'),[['Cancelar'],['Desconectar',()=>{const x=syncMeta();x.connected=false;x.token=null;setSyncMeta(x);syncState='off';updCloud();renderAll();},'er']])},'Desconectar')))
+      :h('div',null,h('p',{class:'mu sm',style:'margin-top:0'},'Conecta tu cuenta de Google y tus canciones quedan en una carpeta "Quack MIDI" de tu Drive, iguales en la tablet, el celular y el PC. También sirve de respaldo en la nube.'),
+        h('button',{class:'ac',onclick:()=>syncNow(true)},'☁ Conectar con Google Drive')));}
+if(window.APPMODE){
+  window.addEventListener('online',()=>scheduleSync(1000));
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleSync(500);});}
+
 /* ---------- Ayuda ---------- */
 $('#btnSnd').onclick=sndMenu;updSnd();
+$('#btnCloud').onclick=()=>syncNow(true);
 $('#btnHelp').onclick=()=>modal('Cómo usar Quack MIDI',h('div',{class:'col sm'},
   h('p',null,h('b',null,'Pedal: '),'switch 1 = acorde anterior · 2 = acorde siguiente · 3 = canción anterior (mantener: silenciar) · 4 = canción siguiente (mantener: reiniciar).'),
   h('p',null,h('b',null,'Canciones: '),'cada canción tiene frases (Estrofa, Coro…) y una forma (Estrofa ×2 → Coro…). Repetir una frase no la copia: si la corriges, se corrige en todas partes.'),
@@ -848,7 +969,8 @@ window.addEventListener('beforeunload',e=>{if(pendingUp){e.preventDefault();e.re
 /* ---------- Arranque ---------- */
 (async()=>{renderAll();await new Promise(r=>setTimeout(r,0));try{const r=await api('/api/s');st=await r.json();online=true;await loadLyrics();await loadBlob();}catch(e){}
   if(M){if(uiSaved.edSong!=null)edSong=uiSaved.edSong;if(uiSaved.edSel)edSel=uiSaved.edSel;if(uiSaved.editSet!=null)editSet=uiSaved.editSet;fixSel();}
-  takeSnap();renderAll();if(uiSaved.y)setTimeout(()=>scrollTo(0,uiSaved.y),50);updPill();offerIncoming();poll();})();
+  takeSnap();renderAll();if(uiSaved.y)setTimeout(()=>scrollTo(0,uiSaved.y),50);updPill();offerIncoming();poll();
+  if(window.APPMODE&&M){initMeta();if(syncMeta().connected){syncState=tokenOk()?'busy':'login';updCloud();if(tokenOk())syncNow(false);}else{syncState='off';updCloud();}}})();
 </script>
 
 <script>
