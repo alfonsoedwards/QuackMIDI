@@ -498,7 +498,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.26-0028';
+const QM_VERSION='2026.09.26-0031';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -956,17 +956,24 @@ function lyrDialog(s){let pi=edSel.p,vv=0;const dlgVars={};const box=h('div',{cl
   draw();
   modal('Letra de la frase',box,[['Cancelar'],['Guardar',()=>{sync();edit(()=>{for(const k in pending){const[a,b]=k.split('.').map(Number),p=s.phrases[a];if(!p)continue;const L=pending[k].split('\n');p.chords.forEach((c,j)=>setLyr(c,b,(L[j]||'').replace(/\s+\/\s+/g,'\n')));}});},'ac']]);}
 /* Letra: pasar al acorde anterior / siguiente sin salir del panel (sigue en la frase siguiente o anterior) */
-function lyrGo(s,d){const a=document.activeElement;if(a&&a.closest&&a.closest('#ceditor .lyr')){a.dispatchEvent(new Event('change'));a.blur();}   // guarda lo escrito
+function lyrGo(s,d){
+  // Guarda lo escrito sin soltar el teclado, y deja la sección Letra exactamente donde estaba en la pantalla
+  const a=document.activeElement;if(a&&a.closest&&a.closest('#ceditor .lyr'))a.dispatchEvent(new Event('change'));
+  const nav=()=>document.querySelector('#ceditor .lynav'),y0=nav()?nav().getBoundingClientRect().top:null;
+  const keep=()=>{const n=nav();if(y0!=null&&n){const dy=n.getBoundingClientRect().top-y0;if(Math.abs(dy)>1)scrollBy(0,dy);}};
   const P=s.phrases;let pi=edSel.p,ci=edSel.c+d;
   while(P[pi]&&(ci<0||ci>=P[pi].chords.length)){pi+=d;if(!P[pi])return;ci=d>0?0:P[pi].chords.length-1;}
   if(!P[pi])return;
-  if(pi===edSel.p){const cards=document.querySelectorAll('#chordsCard .cc');selectChord(s,pi,ci,cards[ci]);revealSel=false;const c=cards[ci];if(c){const sp=c.parentElement;sp.scrollLeft=c.offsetLeft-sp.offsetLeft-sp.clientWidth/2+c.offsetWidth/2;}}   // solo de lado: la página no salta
+  revealSel=false;
+  if(pi===edSel.p){const cards=document.querySelectorAll('#chordsCard .cc');selectChord(s,pi,ci,cards[ci]);const c=cards[ci];if(c){const sp=c.parentElement;sp.scrollLeft=c.offsetLeft-sp.offsetLeft-sp.clientWidth/2+c.offsetWidth/2;}}
   else{edSel={p:pi,c:ci};multi.clear();renderAll();}
-  setTimeout(()=>{const ta=document.querySelector('#ceditor .lyr textarea');if(ta){ta.focus({preventScroll:true});ta.setSelectionRange(ta.value.length,ta.value.length);}},30);}
+  keep();
+  const ta=document.querySelector('#ceditor .lyr textarea');if(ta){ta.focus({preventScroll:true});ta.setSelectionRange(ta.value.length,ta.value.length);}
+  keep();requestAnimationFrame(keep);setTimeout(keep,350);}   // (por si el teclado de la tablet movió algo)
 function lyrNav(s){const P=s.phrases,p=P[edSel.p],first=edSel.p===0&&edSel.c===0,last=edSel.p===P.length-1&&edSel.c>=p.chords.length-1;
-  return h('div',{class:'lynav'},h('button',{disabled:first||null,onmousedown:e=>e.preventDefault(),onclick:()=>lyrGo(s,-1)},ic('left'),'Anterior'),
+  return h('div',{class:'lynav'},h('button',{disabled:first||null,onpointerdown:e=>e.preventDefault(),onmousedown:e=>e.preventDefault(),onclick:()=>lyrGo(s,-1)},ic('left'),'Anterior'),
     h('span',null,`Acorde ${edSel.c+1} de ${p.chords.length} · ${p.name}`),
-    h('button',{disabled:last||null,onmousedown:e=>e.preventDefault(),onclick:()=>lyrGo(s,1)},'Siguiente',ic('right')));}
+    h('button',{disabled:last||null,onpointerdown:e=>e.preventDefault(),onmousedown:e=>e.preventDefault(),onclick:()=>lyrGo(s,1)},'Siguiente',ic('right')));}
 /* Tarjeta de un acorde (se selecciona sin redibujar la fila, para no perder el desplazamiento) */
 // Lo que suena en un acorde con Pitch bend: lo último que se tocó, movido "bend" semitonos.
 // null = no es pitch bend, o antes hay silencio (entonces se toca normal, con sus notas).
