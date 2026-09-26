@@ -125,20 +125,20 @@ table.tr{width:100%;border-collapse:collapse}table.tr td{padding:4px}
 .pulse.b1{background:#fff;box-shadow:0 0 18px #fff}
 .tele{flex:1;display:flex;flex-direction:column;min-height:0;padding-top:1vh;--cs:min(21vw,22vh)}
 .tele.big{--cs:min(30vw,44vh);justify-content:center;padding-bottom:4vh}
-.tch{display:flex;align-items:baseline;gap:.25em;min-width:0;white-space:nowrap}
-.tele .prev{font-weight:900;font-size:calc(var(--cs)*.32);color:#4a4541;flex:0 0 auto}
-.tele .cur{font-weight:900;font-size:var(--cs);line-height:.95;color:var(--ac);flex:0 1 auto;min-width:0;overflow:hidden}
+.tch{flex:none;display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,2.3fr) minmax(0,1.25fr) minmax(0,.9fr);gap:0 2vw;align-items:end;height:calc(var(--cs)*1.05);overflow:hidden}
+.tch>span{white-space:nowrap;overflow:hidden;line-height:1;font-weight:900;min-width:0}
+.tele .prev{font-size:calc(var(--cs)*.32);color:#4a4541;text-align:right}
+.tele .cur{font-size:var(--cs);color:var(--ac)}
 .tele .cur.sil{color:#6b6560}
-.tnx{margin-left:auto;display:flex;align-items:baseline;gap:.5em;font-weight:900;flex:0 0 auto}
-.tnx .n1{font-size:calc(var(--cs)*.42);color:#d8d2cc}.tnx .n2{font-size:calc(var(--cs)*.3);color:#7a736d}
-.tmeta{display:flex;align-items:center;gap:10px;margin-top:.6vh;font-weight:800;font-size:clamp(.85rem,1.8vw,1.1rem);color:#A8A29C;min-width:0}
+.tch .n1{font-size:calc(var(--cs)*.42);color:#d8d2cc}.tch .n2{font-size:calc(var(--cs)*.3);color:#7a736d}
+.tmeta{flex:none;height:2em;display:flex;align-items:center;gap:10px;margin-top:.6vh;font-weight:800;font-size:clamp(.85rem,1.8vw,1.1rem);color:#A8A29C;min-width:0}
 .tmeta .pn{color:#141312;border-radius:8px;padding:.1em .6em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
 .tdots{display:flex;gap:4px;flex:1;max-width:40%}
 .tdots b{flex:0 1 26px;min-width:4px;height:7px;border-radius:4px;background:#2c2926}
 .tly{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:1.4vh;padding-top:1.2vh;border-top:1px solid #2a2724}
 .tele .ly{flex:1 1 0;min-height:0;overflow:hidden;color:#fff;font-weight:800;line-height:1.08;white-space:pre-line;text-wrap:balance;overflow-wrap:normal}
 .tele .ly.none{color:#4a4541}
-.tele .lyn{flex:0 0 auto;height:min(17vh,150px);margin-top:1vh;overflow:hidden;color:#8a837c;font-weight:700;line-height:1.1;white-space:pre-line;text-wrap:balance;display:flex;align-items:flex-end}
+.tele .lyn{flex:none;height:min(16vh,140px);margin:1vh 0 4vh;overflow:hidden;color:#8a837c;font-weight:700;line-height:1.1;white-space:pre-line;text-wrap:balance;display:flex;align-items:flex-start}
 .tele .lyn>span{display:block;width:100%}
 .fstrip{display:flex;gap:3px;height:34px;flex:1;min-width:0}
 .fstrip div{border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.75rem;color:#081418;cursor:pointer;overflow:hidden;white-space:nowrap;position:relative;min-width:0;padding:0 4px}
@@ -162,7 +162,7 @@ table.tr{width:100%;border-collapse:collapse}table.tr td{padding:4px}
 .lockov{position:absolute;inset:0;z-index:5}
 .lockbtn{position:relative;z-index:6}
 .scene{background:#2a2410;color:#ffd98a;border-radius:10px;padding:.5em .8em;font-weight:800;margin-top:6px}
-@media (max-width:640px){.tele .prev,.tnx .n2,.pf-bot .hide-sm{display:none}.tele{--cs:min(27vw,20vh)}.tele.big{--cs:min(40vw,40vh)}.tdots{max-width:30%}.bigbtns{grid-template-columns:1fr 1fr}.hide-sm{display:none}}
+@media (max-width:640px){.tch{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.tele .prev,.tch .n2,.pf-bot .hide-sm{display:none}.tele{--cs:min(27vw,20vh)}.tele.big{--cs:min(40vw,40vh)}.tdots{max-width:30%}.bigbtns{grid-template-columns:1fr 1fr}.hide-sm{display:none}}
 @media print{.hdr,.tabs,.toast{display:none}}
 /* ===================== Look Quack ===================== */
 button{background:var(--sf);border:1px solid var(--ln);color:var(--tx2);border-radius:12px;font-weight:800}
@@ -509,8 +509,8 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.26-1208';
-const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',lyrMin:5,view:'tele'};
+const QM_VERSION='2026.09.26-1220';
+const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
 function savePrefs(){try{localStorage.setItem('qm_prefs2',JSON.stringify(prefs));}catch(e){}}
@@ -815,11 +815,13 @@ function fitBox(el,lo,hi,box){if(!el||!el.textContent)return 0;const W=()=>el.sc
   for(let i=0;i<16;i++){const m=(a+b)/2;el.style.fontSize=m+'px';(W()&&H())?a=m:b=m;}el.style.fontSize=a+'px';return a;}
 function fitLyrics(){const tl=document.querySelector('.tele');if(!tl)return;
   // el acorde: si un nombre largo no cabe en la fila, se achica
-  const cu=tl.querySelector('.cur'),row=tl.querySelector('.tch');if(cu&&row){cu.style.fontSize='';let fs=parseFloat(getComputedStyle(cu).fontSize);
-    for(let i=0;i<30&&row.scrollWidth>row.clientWidth+1;i++){fs*=.93;cu.style.fontSize=fs+'px';}}
+  // cada acorde en su casilla: si el nombre no cabe, se achica él solo (la franja no cambia de alto)
+  tl.querySelectorAll('.tch>span').forEach(el=>{el.style.fontSize='';if(!el.textContent||!el.clientWidth)return;let fs=parseFloat(getComputedStyle(el).fontSize);
+    for(let i=0;i<40&&el.scrollWidth>el.clientWidth+1;i++){fs*=.94;el.style.fontSize=fs+'px';}});
   const ly=tl.querySelector('.ly'),ln=tl.querySelector('.lyn span');if(!ly)return;
-  const pm=(prefs.lyrMin||5)/100,min=Math.max(14,Math.min(innerWidth*pm,innerHeight*pm*1.2));   // piso: Ajustes → Letras
-  const fs=fitBox(ly,min,Math.max(min,innerHeight*.3));
+  const sz=p=>Math.min(innerWidth*p/100,innerHeight*p/100*1.2);   // Ajustes → Letras: tamaños en % del ancho de la pantalla
+  const min=Math.max(14,sz(prefs.lyrMin||5)),max=Math.max(min,sz(prefs.lyrMax||25));
+  const fs=fitBox(ly,min,max);
   if(ln)fitBox(ln,Math.min(14,fs),Math.max(14,Math.min(fs*.55,innerHeight*.08)),ln.parentNode);}
 addEventListener('resize',()=>{if(document.querySelector('.tele'))fitLyrics();});
 function perform(i){cmd('set',i).then(()=>openPerf());}
@@ -1264,7 +1266,8 @@ function vCfg(m0){const S=M.settings;const m=h('div');
       h('span',{class:'mu sm'},'Un tono básico del navegador para reconocer el acorde sin el MiniNova. "Corto" se apaga solo en ~2 s; "Sostenido" suena hasta el siguiente acorde y respeta Ligado y Mantener.'))));
   m.append(h('div',{class:'card'},h('h2',null,'Letras (opcional)'),h('p',{class:'mu sm',style:'margin-top:0'},'Cada canción activa su letra en Editar → Canción → Letra. Aquí eliges dónde se guardan y qué tan grande se ve.'),
     h('div',{class:'row',style:'margin:6px 0 10px;gap:14px'},knob({label:'Tamaño mínimo',value:prefs.lyrMin||5,min:2,max:10,step:.5,onInput:v=>{prefs.lyrMin=v;savePrefs();}}),
-      h('span',{class:'mu sm grow'},'En el Modo Performance la letra se agranda hasta llenar el ancho. Si una frase no cabe, se achica solo hasta este tamaño (en % del ancho de la pantalla; 5 = normal) y lo que sobra baja a la línea siguiente. Más grande = más fácil de leer de lejos, pero con más cortes de línea.')),
+      knob({label:'Tamaño máximo',value:prefs.lyrMax||25,min:6,max:40,step:1,onInput:v=>{prefs.lyrMax=v;savePrefs();}}),
+      h('span',{class:'mu sm grow'},'En el Modo Performance la letra usa el tamaño más grande con el que cabe en su espacio, en varias líneas si hace falta. Nunca pasa del máximo (25 = normal; bájalo si las frases cortas se ven exageradas) ni baja del mínimo (5 = normal). En % del ancho de la pantalla; se guarda en este dispositivo.')),
     h('div',{style:'margin-top:10px'},seg([['local','En este dispositivo'],['qwiic','En la memoria Qwiic']],prefs.lyrStore,v=>{if(v==='qwiic'&&!st.q)return toast('No se detectó una memoria Qwiic conectada');prefs.lyrStore=v;savePrefs();saveLyrics().then(()=>renderAll());}),
       h('p',{class:'mu sm'},prefs.lyrStore==='local'?(window.APPMODE?'Las letras se guardan en esta tablet y se sincronizan con tus otros dispositivos por Google Drive (nube de arriba). No se mandan al Arduino. ':'Las letras quedan en el navegador de este dispositivo. En la app de la tablet se sincronizan por Google Drive. ')+'También viajan en el respaldo.':'Las letras viven en la memoria Qwiic del Arduino y se ven desde cualquier dispositivo.'))));
   const used=enc(M).length,max=st.max||8112;
@@ -1366,7 +1369,7 @@ function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set
     const nx2=pi.next!=null&&seq[pi.next+1]?seq[pi.next+1]:null,cp=cur?s.phrases[cur.p]:null;
     pfEl.append(h('div',{class:'tele'+(s.hasLyr?'':' big')},
       h('div',{class:'tch'},h('span',{class:'prev'},pv?chordName(pv.c.notes,tr):''),h('span',{class:'cur'+(cur&&!cur.c.notes.length?' sil':'')},cn),
-        h('span',{class:'tnx'},h('span',{class:'n1'},nx?chordName(nx.c.notes,tr):''),h('span',{class:'n2'},nx2?chordName(nx2.c.notes,tr):''))),
+        h('span',{class:'n1'},nx?chordName(nx.c.notes,tr):''),h('span',{class:'n2'},nx2?chordName(nx2.c.notes,tr):'')),
       h('div',{class:'tmeta'},cp?[h('span',{class:'pn',style:'background:'+PCOL[cp.color%8]},cp.name),F[cur.st].r>1?h('span',null,`${cur.r+1}/${F[cur.st].r}`):null,
           h('span',{class:'tdots'},cp.chords.map((_,k)=>h('b',{style:k<=cur.ci?`background:${PCOL[cp.color%8]};opacity:${k<cur.ci?.45:1}`:''}))),
           cp.sound?h('span',{class:'hide-sm'},'sonido '+sndLabel(cp.sound)):null]:h('span',null,'Listo: pisa ▶ para empezar')),

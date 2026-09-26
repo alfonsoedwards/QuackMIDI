@@ -1,5 +1,5 @@
 // Guarda la app para que funcione sin internet. Cambia de versión con cada actualización.
-const V='quack-midi-2f820848';
+const V='quack-midi-a078a0c2';
 const FILES=['./','index.html','nunito.woff2','manifest.webmanifest','icon5a-192.png','icon5a-512.png','icon5m-192.png','icon5m-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(FILES)));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))));self.clients.claim();});
