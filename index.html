@@ -500,7 +500,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.26-0042';
+const QM_VERSION='2026.09.26-0045';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -949,6 +949,10 @@ function setLyr(c,v,x){x=(x||'').split('\n').map(l=>l.trim()).join('\n').replace
   c.lyrV=c.lyrV||[];c.lyrV[v-1]=x;for(let k=0;k<c.lyrV.length;k++)if(c.lyrV[k]==null)c.lyrV[k]='';}
 function delVar(p,v){for(const c of p.chords){if(!c.lyrV)continue;c.lyrV.splice(v-1,1);if(!c.lyrV.length||!c.lyrV.some(Boolean))delete c.lyrV;}}
 // Duplica la variación v de toda la frase: la copia queda justo después (p. ej. la 1ª también como 2ª vez)
+// Copiar al portapapeles (también en http, donde el navegador no deja usar el portapapeles moderno)
+function copyText(txt){const ok=()=>toast('Letra copiada');
+  if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(txt).then(ok,()=>fb());fb();
+  function fb(){const ta=h('textarea',{style:'position:fixed;opacity:0;top:0;left:0'});ta.value=txt;document.body.append(ta);ta.select();try{document.execCommand('copy');ok();}catch(e){toast('No se pudo copiar');}ta.remove();}}
 function dupVar(p,v){const n=phraseVars(p);for(const c of p.chords){const a=[c.lyr||'',...(c.lyrV||[])];while(a.length<n)a.push('');a.splice(v+1,0,a[v]);
   if(a[0])c.lyr=a[0];else delete c.lyr;c.lyrV=a.slice(1);if(!c.lyrV.some(Boolean))delete c.lyrV;}
   for(const c of p.chords){c.lyrV=c.lyrV||[];while(c.lyrV.length<n)c.lyrV.push('');}}   // la frase queda con una variación más
@@ -1109,14 +1113,14 @@ function chordEditor(s){
   // Letra (desplegable): 1ª vez y sus variaciones
   if(one&&s.hasLyr)card.append(sec('c:letra','paste','Letra',(one.lyr&&one.lyr!==LCUT?one.lyr:(lyrRes(s,edSel.p,edSel.c,0)?'sigue: '+lyrRes(s,edSel.p,edSel.c,0):'Sin letra')).replace(/\n/g,' / ')+(one.lyrV&&one.lyrV.length?` · ${one.lyrV.length} ${one.lyrV.length>1?'variaciones':'variación'}`:''),()=>[lyrNav(s),(()=>{const p=s.phrases[edSel.p],ci=edSel.c,nv=phraseVars(p),usa=nVueltas(s,edSel.p);
       return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,'Letra'),
-      h('small',null,'Si dejas un acorde vacío, sigue mostrando la letra del acorde anterior (de la misma variación). Con "Cortar" ese acorde queda sin letra. Si la letra cambia cuando la frase se repite, agrega una variación: la 2ª vez que suene usa la 2ª, y así.'+(usa>1?` Esta frase suena ${usa} veces en la forma.`:''))),
+      h('small',null,'Si dejas un acorde vacío, sigue mostrando la letra del acorde anterior (de la misma variación). Escribe - para que ese acorde quede sin letra. Si la letra cambia cuando la frase se repite, agrega una variación: la 2ª vez que suene usa la 2ª, y así.'+(usa>1?` Esta frase suena ${usa} veces en la forma.`:''))),
       h('div',{class:'lyrows'},[...Array(nv)].map((_,v)=>{const x=own(one,v),cut=x===LCUT,inh=ci>0?lyrRes(s,edSel.p,ci-1,v):'';
         return h('label',{class:'lyr'+(cut?' cut':'')},h('span',null,ordV(v)),
-          h('textarea',{rows:Math.max(1,((cut?'':x).match(/\n/g)||[]).length+1),value:cut?'':x,disabled:cut||null,
-            placeholder:cut?'sin letra':inh?'sigue: '+inh.replace(/\n/g,' / '):'letra… (Enter = otra línea)',
+          h('textarea',{rows:Math.max(1,((cut?'':x).match(/\n/g)||[]).length+1),value:cut?'-':x,
+            placeholder:inh?'sigue: '+inh.replace(/\n/g,' / '):'letra… (Enter = otra línea)',
             oninput:e=>{e.target.rows=Math.max(1,(e.target.value.match(/\n/g)||[]).length+1);},
-            onchange:e=>{const t2={};setLyr(t2,0,e.target.value);if((t2.lyr||'')===(cut?'':x))return;edit(()=>setLyr(one,v,e.target.value),false);}}),
-          h('button',{class:'gh'+(cut?' on':''),title:cut?'Volver a seguir la letra anterior':'Dejar este acorde sin letra',onclick:e=>{e.preventDefault();edit(()=>setLyr(one,v,cut?'':LCUT));}},cut?'Seguir':'Cortar'),
+            onchange:e=>{const val=e.target.value.trim()==='-'?LCUT:e.target.value,t2={};setLyr(t2,0,val);if((t2.lyr||'')===x)return;edit(()=>setLyr(one,v,val),false);}}),
+          h('button',{class:'gh',title:'Copiar esta letra para pegarla en otro lado',onclick:e=>{e.preventDefault();const txt=x&&x!==LCUT?x:inh;if(!txt)return toast('No hay letra que copiar');copyText(txt);}},ic('copy'),'Copiar'),
           h('button',{class:'gh',title:`Duplicar la ${ordV(v)} (en toda la frase): la copia queda como ${ordV(v+1)}`,onclick:e=>{e.preventDefault();edit(()=>dupVar(p,v));}},ic('dup')),
           v?h('button',{class:'gh',title:'Quitar esta variación (en toda la frase)',onclick:e=>{e.preventDefault();edit(()=>delVar(p,v));}},ic('close')):null);}),
         h('div',null,h('button',{onclick:()=>edit(()=>addVar(p))},ic('plus'),'Agregar variación'))));})()]));
