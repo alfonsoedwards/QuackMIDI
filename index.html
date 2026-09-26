@@ -129,6 +129,7 @@ table.tr{width:100%;border-collapse:collapse}table.tr td{padding:4px}
 .tele .cur{font-weight:900;font-size:clamp(3.6rem,17vw,11rem);line-height:1;color:var(--ac)}
 .tele .cur.sil{color:#5b6b73}
 .tele .ly,.tele .lyn{white-space:pre;line-height:1.15;overflow:hidden}
+.tele .ly.wrap,.tele .lyn.wrap{white-space:pre-wrap;overflow-wrap:break-word;text-wrap:balance}
 .tele .ly{color:#e6eef1;font-weight:800}
 .tele .lyn{color:#7f959e;font-weight:700}
 .tele .ph{border:0;padding:0;margin:0;font-weight:800;color:#9fb4bd;font-size:1.05rem}
@@ -500,7 +501,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.26-0045';
+const QM_VERSION='2026.09.26-0059';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -800,9 +801,15 @@ function printSet(S){let n=0;const rows=S.entries.map(e=>{if(e.k===1)return`<tr>
   w.document.write(`<html><head><meta charset=utf-8><title>${esc(S.name)}</title><style>body{font-family:system-ui,sans-serif;padding:20px}td,th{padding:6px 4px;text-align:left;border-bottom:1px solid #ddd}table{border-collapse:collapse;width:100%}</style></head><body><h1>${esc(S.name)}</h1><table><tr><th>#</th><th>Canción</th><th>Primer acorde</th><th>BPM</th><th>Sonido</th></tr>${rows}</table><script>print()<\/script></body></html>`);w.document.close();}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // La letra se agranda hasta llenar el ancho de la pantalla (sin cortar palabras); la que viene, más chica
-function fitLyrics(){for(const[sel,k]of[['.tele .ly',1],['.tele .lyn',.6]]){const el=document.querySelector(sel);if(!el||!el.textContent)continue;
-  let fs=Math.min(innerWidth*.085,innerHeight*.11)*k;el.style.fontSize=fs+'px';
-  for(let i=0;i<40&&el.scrollWidth>el.clientWidth+1&&fs>14;i++){fs*=.93;el.style.fontSize=fs+'px';}}}
+function fitLyrics(){
+  // Se agranda hasta llenar el ancho. Si a su tamaño mínimo todavía no cabe, lo que sobra baja a la línea siguiente
+  // (cortando entre palabras). La letra que viene va al 60 %.
+  let lyFs=null;   // la que viene nunca queda más grande que la actual
+  for(const[sel,k]of[['.tele .ly',1],['.tele .lyn',.6]]){const el=document.querySelector(sel);if(!el||!el.textContent)continue;
+    const max=Math.min(Math.min(innerWidth*.085,innerHeight*.11)*k,lyFs?lyFs*.6:1e9),min=Math.max(18,Math.min(innerWidth*.05,innerHeight*.06))*k;
+    let fs=max;el.classList.remove('wrap');el.style.fontSize=fs+'px';
+    for(let i=0;i<60&&el.scrollWidth>el.clientWidth+1&&fs>min;i++){fs=Math.max(min,fs*.94);el.style.fontSize=fs+'px';}
+    if(el.scrollWidth>el.clientWidth+1)el.classList.add('wrap');if(k===1)lyFs=fs;}}
 addEventListener('resize',()=>{if(document.querySelector('.tele'))fitLyrics();});
 function perform(i){cmd('set',i).then(()=>openPerf());}
 
