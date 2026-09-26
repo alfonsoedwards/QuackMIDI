@@ -116,27 +116,34 @@ table.tr{width:100%;border-collapse:collapse}table.tr td{padding:4px}
 .perf{position:fixed;inset:0;z-index:40;background:#0a0e10;color:#eef6f8;display:flex;flex-direction:column;padding:max(12px,env(safe-area-inset-top)) 16px 12px}
 :root[data-theme=light] .perf{background:#0a0e10;color:#eef6f8}
 .pf-top{display:flex;align-items:center;gap:.6em}
-.pf-top .t{font-weight:900;font-size:1.25rem}
+.pf-top .t{font-weight:900;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pf-top button{padding:.35em .5em}.pf-top button .ic{width:22px;height:22px}
+.pf-top .bpm{font-weight:800;color:#A8A29C}
 .pf-top button{background:#1d272d;color:#eef6f8}
 .pulse{width:16px;height:16px;border-radius:50%;background:#25343c}
 .pulse.b{background:var(--ac);box-shadow:0 0 14px var(--ac)}
 .pulse.b1{background:#fff;box-shadow:0 0 18px #fff}
-.tele{flex:1;display:flex;flex-direction:column;justify-content:flex-start;text-align:center;min-height:0;padding-top:2vh}
-.trow{display:grid;grid-template-columns:1fr 2.2fr 1fr;align-items:center;gap:8px}
-.tly{margin-top:clamp(22px,5vh,60px);display:flex;flex-direction:column;gap:clamp(12px,3vh,32px);min-height:0;overflow:hidden}
-.tele .prev,.tele .next{opacity:.38;font-weight:900;font-size:clamp(1.6rem,6vw,3.6rem)}
-.tele .next{opacity:.7}
-.tele .cur{font-weight:900;font-size:clamp(3.6rem,17vw,11rem);line-height:1;color:var(--ac)}
-.tele .cur.sil{color:#5b6b73}
-.tele .ly,.tele .lyn{white-space:pre;line-height:1.15;overflow:hidden}
-.tele .ly.wrap,.tele .lyn.wrap{white-space:pre-wrap;overflow-wrap:break-word;text-wrap:balance}
-.tele .ly{color:#e6eef1;font-weight:800}
-.tele .lyn{color:#7f959e;font-weight:700}
-.tele .ph{border:0;padding:0;margin:0;font-weight:800;color:#9fb4bd;font-size:1.05rem}
-.fstrip{display:flex;gap:4px;height:46px;margin-top:8px}
-.fstrip div{border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;color:#081418;cursor:pointer;overflow:hidden;white-space:nowrap;position:relative;min-width:0}
+.tele{flex:1;display:flex;flex-direction:column;min-height:0;padding-top:1vh;--cs:min(21vw,22vh)}
+.tele.big{--cs:min(30vw,44vh);justify-content:center;padding-bottom:4vh}
+.tch{display:flex;align-items:baseline;gap:.25em;min-width:0;white-space:nowrap}
+.tele .prev{font-weight:900;font-size:calc(var(--cs)*.32);color:#4a4541;flex:0 0 auto}
+.tele .cur{font-weight:900;font-size:var(--cs);line-height:.95;color:var(--ac);flex:0 1 auto;min-width:0;overflow:hidden}
+.tele .cur.sil{color:#6b6560}
+.tnx{margin-left:auto;display:flex;align-items:baseline;gap:.5em;font-weight:900;flex:0 0 auto}
+.tnx .n1{font-size:calc(var(--cs)*.42);color:#d8d2cc}.tnx .n2{font-size:calc(var(--cs)*.3);color:#7a736d}
+.tmeta{display:flex;align-items:center;gap:10px;margin-top:.6vh;font-weight:800;font-size:clamp(.85rem,1.8vw,1.1rem);color:#A8A29C;min-width:0}
+.tmeta .pn{color:#141312;border-radius:8px;padding:.1em .6em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
+.tdots{display:flex;gap:4px;flex:1;max-width:40%}
+.tdots b{flex:0 1 26px;min-width:4px;height:7px;border-radius:4px;background:#2c2926}
+.tly{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:1.4vh;padding-top:1.2vh;border-top:1px solid #2a2724}
+.tele .ly{flex:1 1 0;min-height:0;overflow:hidden;color:#fff;font-weight:800;line-height:1.08;white-space:pre-line;text-wrap:balance;overflow-wrap:normal}
+.tele .ly.none{color:#4a4541}
+.tele .lyn{flex:0 0 auto;height:min(17vh,150px);margin-top:1vh;overflow:hidden;color:#8a837c;font-weight:700;line-height:1.1;white-space:pre-line;text-wrap:balance;display:flex;align-items:flex-end}
+.tele .lyn>span{display:block;width:100%}
+.fstrip{display:flex;gap:3px;height:34px;flex:1;min-width:0}
+.fstrip div{border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.75rem;color:#081418;cursor:pointer;overflow:hidden;white-space:nowrap;position:relative;min-width:0;padding:0 4px}
 .fstrip div.dim{opacity:.35}
-.fstrip div .mk{position:absolute;bottom:0;height:5px;background:#fff}
+.fstrip div .mk{position:absolute;top:0;bottom:0;border:3px solid #fff;border-radius:7px}
 .map{flex:1;overflow:auto;padding-top:8px}
 .map .mr{display:flex;align-items:stretch;gap:6px;margin-bottom:6px}
 .map .ml{flex:0 0 7.5em;border-radius:10px;padding:.4em .6em;font-weight:900;color:#081418;cursor:pointer;display:flex;flex-direction:column;justify-content:center}
@@ -146,15 +153,16 @@ table.tr{width:100%;border-collapse:collapse}table.tr td{padding:4px}
 .map .mc.now{background:var(--ac);color:#062b33}
 .map .mc.now small{color:#0b3f4a}
 .map .mc.done{opacity:.45}
-.pf-bot{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
-.pf-bot .nx{flex:1;color:#9fb4bd;font-weight:800;min-width:10em}
-.pf-bot .nx b{color:#eef6f8}
-.pf-bot button{background:#1d272d;color:#eef6f8;padding:.8em 1.1em}
+.pf-bot{display:flex;align-items:center;gap:8px;margin-top:10px}
+.pf-end{color:#A8A29C;font-weight:800;margin-top:8px;font-size:1.1rem}
+.pf-end b{color:#F2EFEB}
+.pf-bot button{background:#1d272d;color:#eef6f8;padding:0 .9em;height:44px;display:inline-flex;align-items:center;gap:4px;flex:0 0 auto}
+.pf-bot button .ic{width:22px;height:22px}
 .pf-bot button.mute{background:var(--er);color:#fff}
 .lockov{position:absolute;inset:0;z-index:5}
 .lockbtn{position:relative;z-index:6}
 .scene{background:#2a2410;color:#ffd98a;border-radius:10px;padding:.5em .8em;font-weight:800;margin-top:6px}
-@media (max-width:640px){.trow{grid-template-columns:1fr;grid-template-rows:auto auto auto}.tele .prev{display:none}.bigbtns{grid-template-columns:1fr 1fr}.hide-sm{display:none}}
+@media (max-width:640px){.tele .prev,.tnx .n2,.pf-bot .hide-sm{display:none}.tele{--cs:min(27vw,20vh)}.tele.big{--cs:min(40vw,40vh)}.tdots{max-width:30%}.bigbtns{grid-template-columns:1fr 1fr}.hide-sm{display:none}}
 @media print{.hdr,.tabs,.toast{display:none}}
 /* ===================== Look Quack ===================== */
 button{background:var(--sf);border:1px solid var(--ln);color:var(--tx2);border-radius:12px;font-weight:800}
@@ -209,7 +217,7 @@ main{padding:14px 16px}
 .perf{background:#141312;color:#F2EFEB}:root[data-theme=light] .perf{background:#141312;color:#F2EFEB}
 .pf-top button,.pf-bot button{background:#262422;border:1px solid #35322F;color:#F2EFEB}
 .pf-bot button.mute{background:var(--er);border-color:var(--er)}
-.map .mc{background:#221F1D}.tele .ph,.pf-bot .nx{color:#A8A29C}
+.map .mc{background:#221F1D}
 .pf-top .duck{width:28px;height:28px;color:var(--ac)}
 /* Barra de Android (hora, WiFi…): calipso. Lo que queda detrás de esa barra es el fondo de <html>;
    si la app se dibuja de borde a borde, la franja calipso se extiende hasta arriba (zona segura). */
@@ -501,7 +509,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.26-0108';
+const QM_VERSION='2026.09.26-1208';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',lyrMin:5,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -800,17 +808,19 @@ function printSet(S){let n=0;const rows=S.entries.map(e=>{if(e.k===1)return`<tr>
   const w=window.open('','_blank');if(!w)return toast('Permite ventanas emergentes para imprimir');
   w.document.write(`<html><head><meta charset=utf-8><title>${esc(S.name)}</title><style>body{font-family:system-ui,sans-serif;padding:20px}td,th{padding:6px 4px;text-align:left;border-bottom:1px solid #ddd}table{border-collapse:collapse;width:100%}</style></head><body><h1>${esc(S.name)}</h1><table><tr><th>#</th><th>Canción</th><th>Primer acorde</th><th>BPM</th><th>Sonido</th></tr>${rows}</table><script>print()<\/script></body></html>`);w.document.close();}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-// La letra se agranda hasta llenar el ancho de la pantalla (sin cortar palabras); la que viene, más chica
-function fitLyrics(){
-  // Se agranda hasta llenar el ancho. Si a su tamaño mínimo todavía no cabe, lo que sobra baja a la línea siguiente
-  // (cortando entre palabras). La letra que viene va al 60 %.
-  let lyFs=null;   // la que viene nunca queda más grande que la actual
-  for(const[sel,k]of[['.tele .ly',1],['.tele .lyn',.6]]){const el=document.querySelector(sel);if(!el||!el.textContent)continue;
-    const pm=(prefs.lyrMin||5)/100,min=Math.max(14,Math.min(innerWidth*pm,innerHeight*pm*1.2))*k;   // mínimo: Ajustes → Letras
-    const max=Math.max(min,Math.min(Math.min(innerWidth*.085,innerHeight*.11)*k,lyFs?lyFs*.6:1e9));
-    let fs=max;el.classList.remove('wrap');el.style.fontSize=fs+'px';
-    for(let i=0;i<60&&el.scrollWidth>el.clientWidth+1&&fs>min;i++){fs=Math.max(min,fs*.94);el.style.fontSize=fs+'px';}
-    if(el.scrollWidth>el.clientWidth+1)el.classList.add('wrap');if(k===1)lyFs=fs;}}
+// La letra usa el tamaño más grande con el que cabe entera en su zona, cortando entre palabras en las líneas que haga falta
+// (sin cortar palabras). El mínimo de Ajustes → Letras es solo un piso. La que viene va más chica, en su franja de abajo.
+function fitBox(el,lo,hi,box){if(!el||!el.textContent)return 0;const W=()=>el.scrollWidth<=el.clientWidth+1,H=()=>box?el.offsetHeight<=box.clientHeight+1:el.scrollHeight<=el.clientHeight+1;
+  el.style.fontSize=hi+'px';if(W()&&H())return hi;let a=lo,b=hi;
+  for(let i=0;i<16;i++){const m=(a+b)/2;el.style.fontSize=m+'px';(W()&&H())?a=m:b=m;}el.style.fontSize=a+'px';return a;}
+function fitLyrics(){const tl=document.querySelector('.tele');if(!tl)return;
+  // el acorde: si un nombre largo no cabe en la fila, se achica
+  const cu=tl.querySelector('.cur'),row=tl.querySelector('.tch');if(cu&&row){cu.style.fontSize='';let fs=parseFloat(getComputedStyle(cu).fontSize);
+    for(let i=0;i<30&&row.scrollWidth>row.clientWidth+1;i++){fs*=.93;cu.style.fontSize=fs+'px';}}
+  const ly=tl.querySelector('.ly'),ln=tl.querySelector('.lyn span');if(!ly)return;
+  const pm=(prefs.lyrMin||5)/100,min=Math.max(14,Math.min(innerWidth*pm,innerHeight*pm*1.2));   // piso: Ajustes → Letras
+  const fs=fitBox(ly,min,Math.max(min,innerHeight*.3));
+  if(ln)fitBox(ln,Math.min(14,fs),Math.max(14,Math.min(fs*.55,innerHeight*.08)),ln.parentNode);}
 addEventListener('resize',()=>{if(document.querySelector('.tele'))fitLyrics();});
 function perform(i){cmd('set',i).then(()=>openPerf());}
 
@@ -1343,25 +1353,28 @@ function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set
   const s=liveSong();pfEl.innerHTML='';if(!s){pfEl.append(h('button',{onclick:closePerf},'Salir'));return;}
   const tr=liveTr(),seq=flatten(s),pi=posIndex(seq),F=formOf(s);const cur=pi.i>=0?seq[pi.i]:null,nx=pi.next!=null?seq[pi.next]:null,pv=pi.i>0?seq[pi.i-1]:null;
   const inSet=st.set!=null&&st.set<255&&M.sets[st.set];let pos='';if(inSet){const E=M.sets[st.set].entries;const songsOnly=E.filter(e=>e.k===0);pos=`${E.slice(0,st.se+1).filter(e=>e.k===0).length}/${songsOnly.length} · `;}
-  pfEl.append(h('div',{class:'pf-top'},h('span',{class:'pulse',id:'pls'}),h('span',{class:'t grow'},pos+s.name+(tr?` (${tr>0?'+':''}${tr})`:'')),h('span',{style:'font-weight:800;color:#9fb4bd'},`♩ ${st.bpm||s.bpm}`),
-    h('button',{onclick:()=>{prefs.view=prefs.view==='tele'?'map':'tele';savePrefs();lastPfSig='';renderPerf();}},prefs.view==='tele'?[ic('map'),'Mapa']:[ic('tele'),'Teleprompter']),
+  pfEl.append(h('div',{class:'pf-top'},h('span',{class:'pulse',id:'pls'}),h('span',{class:'t grow'},pos+s.name+(tr?` (${tr>0?'+':''}${tr})`:'')),h('span',{class:'bpm'},`♩ ${st.bpm||s.bpm}`),
+    h('button',{title:prefs.view==='tele'?'Ver el mapa':'Ver el teleprompter',onclick:()=>{prefs.view=prefs.view==='tele'?'map':'tele';savePrefs();lastPfSig='';renderPerf();}},ic(prefs.view==='tele'?'map':'tele')),
     h('button',{class:'lockbtn',title:pfLocked?'Mantén presionado para desbloquear':'Bloquear pantalla',onpointerdown:lockDown,onpointerup:lockUp,onpointerleave:lockUp},ic(pfLocked?'lock':'unlock')),
-    pfLocked?null:h('button',{onclick:closePerf},ic('close'))));
+    pfLocked?null:h('button',{title:'Salir',onclick:closePerf},ic('close'))));
   const jump=(sti)=>{if(!pfLocked)cmd('jump',sti);};
   if(prefs.view==='tele'){
     const cn=cur?chordName(cur.c.notes,tr):'▶';
-    // Arriba, siempre en el mismo lugar: acorde anterior · actual · siguiente. La letra va debajo, alineada arriba:
-    // lo que aparece se agrega abajo y nada se mueve hacia arriba.
+    // Cada cosa en su zona fija (nada salta al cambiar de acorde): arriba los acordes (anterior · ACTUAL · los dos que vienen),
+    // debajo la frase y en qué acorde de ella vas, y el resto de la pantalla para la letra (la que viene, más chica abajo).
     const lyNow=s.hasLyr&&cur?lyrRes(s,cur.p,cur.ci,vueltaOf(s,cur.st,cur.r)):'',lyNx=s.hasLyr&&nx?lyrRes(s,nx.p,nx.ci,vueltaOf(s,nx.st,nx.r)):'';
-    pfEl.append(h('div',{class:'tele'},h('div',{class:'trow'},h('div',{class:'prev'},pv?chordName(pv.c.notes,tr):''),
-      h('div',null,h('div',{class:'ph'},cur?s.phrases[cur.p].name+(F[cur.st].r>1?` · ${cur.r+1}/${F[cur.st].r}`:'')+(s.phrases[cur.p].sound?' · sonido '+sndLabel(s.phrases[cur.p].sound):''):'Listo'),h('div',{class:'cur'+(cur&&!cur.c.notes.length?' sil':'')},cn)),
-      h('div',{class:'next'},nx?chordName(nx.c.notes,tr):'')),
-      s.hasLyr?h('div',{class:'tly'},h('div',{class:'ly'},lyNow),lyNx&&lyNx!==lyNow?h('div',{class:'lyn'},lyNx):null):null));
-    fitLyrics();
-    const fsx=h('div',{class:'fstrip'});const tot=seq.length||1;
+    const nx2=pi.next!=null&&seq[pi.next+1]?seq[pi.next+1]:null,cp=cur?s.phrases[cur.p]:null;
+    pfEl.append(h('div',{class:'tele'+(s.hasLyr?'':' big')},
+      h('div',{class:'tch'},h('span',{class:'prev'},pv?chordName(pv.c.notes,tr):''),h('span',{class:'cur'+(cur&&!cur.c.notes.length?' sil':'')},cn),
+        h('span',{class:'tnx'},h('span',{class:'n1'},nx?chordName(nx.c.notes,tr):''),h('span',{class:'n2'},nx2?chordName(nx2.c.notes,tr):''))),
+      h('div',{class:'tmeta'},cp?[h('span',{class:'pn',style:'background:'+PCOL[cp.color%8]},cp.name),F[cur.st].r>1?h('span',null,`${cur.r+1}/${F[cur.st].r}`):null,
+          h('span',{class:'tdots'},cp.chords.map((_,k)=>h('b',{style:k<=cur.ci?`background:${PCOL[cp.color%8]};opacity:${k<cur.ci?.45:1}`:''}))),
+          cp.sound?h('span',{class:'hide-sm'},'sonido '+sndLabel(cp.sound)):null]:h('span',null,'Listo: pisa ▶ para empezar')),
+      s.hasLyr?h('div',{class:'tly'},h('div',{class:'ly'+(lyNow?'':' none')},lyNow||'·'),h('div',{class:'lyn'},h('span',null,lyNx&&lyNx!==lyNow?lyNx:''))):null));
+    const fsx=h('div',{class:'fstrip'});
     F.forEach((f,sti)=>{const p=s.phrases[f.p];if(!p||!p.chords.length)return;const n=p.chords.length*f.r;const d=h('div',{class:cur&&sti<cur.st||(!cur&&sti<st.st)?'dim':'',style:`flex:${n} 1 0;background:${PCOL[p.color%8]}`,onclick:()=>jump(sti)},p.name+(f.r>1?' ×'+f.r:''));
       if(cur&&cur.st===sti){const k=seq.filter(x=>x.st===sti).indexOf(cur);d.append(h('span',{class:'mk',style:`left:${k/n*100}%;width:${100/n}%`}));}fsx.append(d);});
-    pfEl.append(fsx);
+    pfEl._strip=fsx;
   }else{
     const mp=h('div',{class:'map'});let nowEl=null;
     F.forEach((f,sti)=>{const p=s.phrases[f.p];if(!p)return;for(let r=0;r<f.r;r++){const row=h('div',{class:'mr'},h('div',{class:'ml',style:'background:'+PCOL[p.color%8],onclick:()=>jump(sti)},p.name,f.r>1?h('small',null,`${r+1}/${f.r}`):null,p.sound?h('small',null,'sonido '+sndLabel(p.sound)):null));
@@ -1369,10 +1382,13 @@ function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set
     pfEl.append(mp);if(nowEl)requestAnimationFrame(()=>nowEl.scrollIntoView({block:'center',behavior:'smooth'}));
   }
   const atEnd=st.end||(!s.repeat&&pi.next==null&&pi.i>=0);const ni=nextSongInfo();
-  const bot=h('div',{class:'pf-bot'},h('div',{class:'nx'},atEnd?['Siguiente canción: ',h('b',null,ni.name)]:['Después: ',h('b',null,nx?chordName(nx.c.notes,tr):'—')],atEnd&&ni.sep?h('div',{class:'scene'},'— '+ni.sep+' —'):null,atEnd&&ni.note?h('div',{class:'scene'},ni.note):null),
-    pfLocked?null:[h('button',{onclick:()=>cmd('prev')},'◀'),h('button',{onclick:()=>cmd('next')},'▶'),h('button',{onclick:()=>cmd('snext')},'Canción ▶')],
-    h('button',{class:'mute',onclick:()=>cmd('mute')},'■ Silenciar'));
+  if(atEnd)pfEl.append(h('div',{class:'pf-end'},'Siguiente canción: ',h('b',null,ni.name),ni.sep?h('div',{class:'scene'},'— '+ni.sep+' —'):null,ni.note?h('div',{class:'scene'},ni.note):null));
+  const strip=prefs.view==='tele'?pfEl._strip:null;pfEl._strip=null;
+  const bot=h('div',{class:'pf-bot'},strip||h('div',{style:'flex:1'}),
+    pfLocked?null:[h('button',{title:'Acorde anterior',onclick:()=>cmd('prev')},ic('left')),h('button',{title:'Acorde siguiente',onclick:()=>cmd('next')},ic('right')),h('button',{class:'hide-sm',title:'Canción siguiente',onclick:()=>cmd('snext')},'Canción',ic('right'))],
+    h('button',{class:'mute',onclick:()=>cmd('mute')},'■',h('span',{class:'hide-sm'},' Silenciar')));
   pfEl.append(bot);
+  fitLyrics();   // con todo ya puesto, para medir el espacio real que le queda a la letra
   if(pfLocked)pfEl.append(h('div',{class:'lockov',onclick:()=>toast('Pantalla bloqueada: mantén presionado el candado')}));}
 let lockT=null;
 function lockDown(){if(!pfLocked){pfLocked=true;lastPfSig='';renderPerf();return;}lockT=setTimeout(()=>{pfLocked=false;lastPfSig='';renderPerf();},800);}
