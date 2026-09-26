@@ -219,8 +219,8 @@ main{padding:14px 16px}
 .pf-top .duck{width:28px;height:28px;color:var(--ac)}
 /* Guiño del pato al abrir (como en Quack Notes) */
 .splash{position:fixed;inset:0;z-index:100;background:#FFFFFF;display:flex;align-items:center;justify-content:center;color:#4EC6DF;transition:opacity .35s}
-.splash .duck{width:150px;height:150px}.splash b{font-size:1.6rem;font-weight:800}
-.spduck{position:relative;width:150px;height:150px}.spduck .duck{position:absolute;inset:0}
+.splash .duck{width:178px;height:178px}.splash b{font-size:1.6rem;font-weight:800}
+.spduck{position:relative;width:178px;height:178px}.spduck .duck{position:absolute;inset:0}
 /* Igual a la pantalla de carga de Android (fondo blanco, pato con anteojos): parece una sola.
    Los anteojos hacen un destello de luz antes de entrar a la app. */
 .spduck .sweep{transform:translateX(0);animation:sweep .7s ease-in-out .25s both}
@@ -354,7 +354,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-2140';
+const QM_VERSION='2026.09.25-2142';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
