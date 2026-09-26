@@ -217,6 +217,12 @@ main{padding:14px 16px}
 .pf-bot button.mute{background:var(--er);border-color:var(--er)}
 .map .mc{background:#221F1D}.tele .ph,.pf-bot .nx{color:#A8A29C}
 .pf-top .duck{width:28px;height:28px;color:var(--ac)}
+/* Barra de Android (hora, WiFi…): calipso. Lo que queda detrás de esa barra es el fondo de <html>;
+   si la app se dibuja de borde a borde, la franja calipso se extiende hasta arriba (zona segura). */
+html{background:var(--bar)}
+body{background:var(--bg)}
+.hdr{padding-top:calc(.55em + env(safe-area-inset-top,0px))}
+.tabs{top:calc(54px + env(safe-area-inset-top,0px))}
 /* Al entrar, al pato de la barra le bajan los anteojos "like a boss"; después se los saca */
 .hduck{position:relative;display:inline-block;width:34px;height:34px;flex:0 0 auto}
 .hduck .duck{position:absolute;inset:0;width:34px;height:34px}
@@ -357,7 +363,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-2146';
+const QM_VERSION='2026.09.25-2152';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
