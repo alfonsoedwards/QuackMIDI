@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#4EC6DF">
 <title>Quack MIDI</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon4a-192.png">
-<link rel="apple-touch-icon" href="icon4a-192.png">
+<link rel="icon" href="icon5a-192.png">
+<link rel="apple-touch-icon" href="icon5a-192.png">
 <style>
 @font-face{font-family:Nunito;src:url(nunito.woff2) format('woff2');font-weight:200 1000;font-display:swap}
 /* Paleta Quack (igual que Quack Notes): calipso, blanco, crema de las hojas y el gris cálido del navegador */
@@ -354,7 +354,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-2132';
+const QM_VERSION='2026.09.25-2136';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
