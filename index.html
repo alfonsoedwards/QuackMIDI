@@ -335,15 +335,18 @@ button.er,button.er:hover,.pf-bot button.mute{background:var(--sf);color:var(--a
 .sc2{background:var(--sf);color:var(--ack)}
 .sc2.on{background:var(--ac);color:var(--aci)}
 /* Velocity por nota, bajo el piano */
-.vlane{position:relative;height:84px;margin:0 0 6px}
-.vb{position:absolute;top:0;bottom:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;width:30px}
-.vn{font-size:.74rem;font-weight:900;color:var(--mu);cursor:text;line-height:1.2}
+.vlane{position:relative;height:92px;margin:0 0 6px}
+.vb{position:absolute;top:0;bottom:0;transform:translateX(-50%);display:grid;grid-template-rows:15px 1fr 15px;grid-template-columns:minmax(0,1fr);justify-items:center;row-gap:2px}
+.vb .vt{grid-row:2;width:100%}
+.vb .vn,.vb .vin{grid-row:3}.vb.up .vn,.vb.up .vin{grid-row:1}
+.vn{font-size:.66rem;font-weight:900;color:var(--mu);cursor:text;line-height:15px;white-space:nowrap}
+.vb.lig .vt{outline:2px dashed var(--mu);outline-offset:-2px}
 .vb.own .vn{color:var(--ack)}
-.vt{flex:1;width:18px;background:var(--sf2);border-radius:6px;position:relative;touch-action:none;cursor:ns-resize;overflow:hidden}
+.vt{background:var(--sf2);border-radius:6px;position:relative;touch-action:none;cursor:ns-resize;overflow:hidden}
 .vt i{position:absolute;left:0;right:0;bottom:0;background:var(--acl2)}
 .vb.own .vt i{background:var(--ac)}
 .vb small{font-size:.6rem;color:var(--mu);white-space:nowrap}
-.vin{width:3.4em;padding:.1em .2em;font-size:.8rem;text-align:center}
+.vin{position:relative;z-index:3;width:3.4em;padding:.1em .2em;font-size:.8rem;text-align:center}
 /* Transición propia de una perilla y avisos del acorde */
 .ctlt{flex-basis:100%;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:flex-end;margin-top:8px;padding-top:8px;border-top:1px dashed var(--ln)}
 .ctlt small{font-size:.8rem}
@@ -488,7 +491,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-2353';
+const QM_VERSION='2026.09.26-0000';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -1072,11 +1075,16 @@ function velLane(one,s){const lane=h('div',{class:'vlane'});if(!one.notes.length
   const W=[0,2,4,5,7,9,11],whites=[];for(let n=pianoBase;n<pianoBase+36;n++)if(W.includes(n%12))whites.push(n);const ww=100/whites.length;
   const base=one.vel!=null?one.vel:s.vel,p=s.phrases[edSel.p],prev=p&&p.chords[edSel.c-1],tied=(one.tie!=null?one.tie:s.tie)&&prev;
   const setOff=(n,v)=>edit(()=>{const d=clamp(v,1,127)-base;one.nv=one.nv||{};if(d)one.nv[n]=clamp(d,-126,126);else delete one.nv[n];if(!Object.keys(one.nv).length)delete one.nv;audition(one,s);});
-  for(const n of one.notes){if(n<pianoBase||n>=pianoBase+36)continue;
-    const x=W.includes(n%12)?(whites.indexOf(n)+.5)*ww:(whites.indexOf(n-1)+1)*ww;
+  // números: negras arriba y blancas abajo; si igual chocan con el vecino, se pasan a la otra fila
+  const lw=(document.querySelector('#ceditor .piano')||{}).offsetWidth||Math.max(200,(document.getElementById('main')||{}).clientWidth-90||700),ends={up:-1e9,dn:-1e9};
+  const upRow=(x,v,blk)=>{const px=x/100*lw,half=(String(v).length*6+4)/2;const fits=r=>px-half>=ends[r]+2;let r=blk?'up':'dn';if(!fits(r)&&fits(r==='up'?'dn':'up'))r=r==='up'?'dn':'up';ends[r]=px+half;return r==='up';};
+  for(const n of [...one.notes].sort((a,b)=>a-b)){if(n<pianoBase||n>=pianoBase+36)continue;
+    const blk=!W.includes(n%12),x=blk?(whites.indexOf(n-1)+1)*ww:(whites.indexOf(n)+.5)*ww;
     const off=(one.nv&&one.nv[n])||0,v=clamp(base+off,1,127);
     const fill=h('i',{style:`height:${v/127*100}%`}),num=h('span',{class:'vn',title:'Toca para escribir la velocity'},String(v));
-    const bar=h('div',{class:'vb'+(off?' own':''),style:`left:${x}%`},num,h('div',{class:'vt'},fill),tied&&prev.notes.includes(n)?h('small',null,'ligada'):null);
+    // barra angosta (menos de media tecla) y número arriba en las negras / abajo en las blancas: nunca se tocan
+    const lig=tied&&prev.notes.includes(n);
+    const bar=h('div',{class:'vb'+(off?' own':'')+(blk?' bk':'')+(upRow(x,v,blk)?' up':'')+(lig?' lig':''),style:`left:${x}%;width:${ww*.42}%`,title:lig?'Ligada: viene sonando del acorde anterior y no se vuelve a atacar':null},num,h('div',{class:'vt'},fill));
     num.onclick=e=>{e.stopPropagation();const inp=h('input',{type:'number',min:1,max:127,value:v,class:'vin'});num.replaceWith(inp);inp.focus();inp.select();
       let done=false;const ok=()=>{if(done)return;done=true;const x=parseInt(inp.value,10);if(x>=1&&x<=127&&x!==v)setOff(n,x);else inp.replaceWith(num);};
       inp.onkeydown=ev=>{if(ev.key==='Enter')ok();if(ev.key==='Escape'){done=true;inp.replaceWith(num);}};inp.onblur=ok;};
