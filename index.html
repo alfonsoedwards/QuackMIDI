@@ -228,6 +228,28 @@ body{background:var(--bg)}
 .row.fields>.col,.row.fields>.knob{gap:6px}
 .row.fields>.col>span.mu.sm:first-child,.knob .kl{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--mu);line-height:1.2;min-height:1.2em}
 .row.fields .knob{align-items:center}
+/* Frases como tarjetas de color */
+.pt{position:relative;flex:0 0 auto;min-width:120px;max-width:200px;border-radius:12px;padding:10px 12px 10px 16px;background:var(--sf);border:1px solid var(--ln);cursor:pointer;
+  box-shadow:inset 6px 0 0 var(--pc);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-x pan-y;display:flex;flex-direction:column;gap:2px}
+.pt b{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:26px}.pt small{color:var(--mu);font-weight:700;font-size:.78rem}
+.pt.on{outline:3px solid var(--ac);outline-offset:1px;background:color-mix(in srgb,var(--pc) 14%,var(--sf))}
+.pt.add{box-shadow:none;border-style:dashed;align-items:center;justify-content:center;flex-direction:row;gap:6px;color:var(--tx2);min-width:96px}
+.pt.add b{padding:0}
+.pt.lifting{opacity:.25}
+.pt .ptm{position:absolute;top:6px;right:6px;width:28px;height:28px;padding:0;border-radius:8px;background:var(--sf)}
+#chordsCard{box-shadow:inset 6px 0 0 var(--pc)}
+.cc .del{top:4px;right:4px;left:auto;width:22px;height:22px;padding:0;border-radius:50%}
+.cc .del .ic{width:13px;height:13px;stroke-width:3}
+.cc .dot{left:6px;right:auto}
+.strip{padding-top:6px}
+.sndmenu button .ic{width:18px;height:18px;margin-right:4px}.sndmenu button.delm{color:var(--er)}
+/* Barra fija arriba mientras se edita un acorde */
+.stick{position:fixed;left:0;right:0;z-index:18;background:var(--sf);border-bottom:1px solid var(--ln);box-shadow:0 6px 16px #0000001a;display:flex;align-items:center;gap:8px;padding:6px 12px}
+.stick select{font-weight:800;max-width:10em}
+.stick .dotc{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.sc2w{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1}
+.sc2{flex:0 0 auto;padding:.35em .7em;border-radius:8px;background:var(--sheet);border:0;color:var(--tx);font-weight:800}
+.sc2.on{background:var(--ac);color:var(--aci)}
 /* Grupos desplegables: un botón con título y resumen; al tocarlo se abren sus opciones */
 .sec{border:1px solid var(--ln);border-radius:12px;background:var(--sf);margin-top:10px;overflow:hidden}
 .sec>button.sech{width:100%;border:0;border-radius:0;background:transparent;display:flex;align-items:center;gap:10px;padding:12px 14px;text-align:left;color:var(--tx)}
@@ -339,7 +361,8 @@ const ICONS={
   map:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.5h16M4 14.5h16M9.5 4v16"/>',
   tele:'<rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M9 12h6"/>',
   close:'<path d="M6 6l12 12M18 6L6 18"/>', music:'<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/>',
-  tempo:'<path d="M8 20l3-15h2l3 15z"/><path d="M12 13l5-6"/>'};
+  tempo:'<path d="M8 20l3-15h2l3 15z"/><path d="M12 13l5-6"/>',
+  dots:'<circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/>'};
 function ic(n,extra){const e=document.createElementNS('http://www.w3.org/2000/svg','svg');e.setAttribute('viewBox','0 0 24 24');e.setAttribute('class','ic');e.setAttribute('aria-hidden','true');e.innerHTML=ICONS[n]||'';if(extra)e.style.cssText=extra;return e;}
 
 /* ---------- Teoría musical ---------- */
@@ -388,7 +411,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-2215';
+const QM_VERSION='2026.09.25-2232';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -681,7 +704,7 @@ function vEdit(m){
   const pickS=h('select',{onchange:e=>{edSong=+e.target.value;edSel={p:0,c:0};multi.clear();renderAll();}},M.songs.map((x,i)=>h('option',{value:i,selected:i===edSong?'':null},`${i+1}. ${x.name}`)));
   const gl=s.glide!=null?s.glide:150,ctlIds=Object.keys(s.ctl||{});
   m.append(h('div',{class:'card'},
-    h('div',{class:'row'},pickS,h('span',{class:'sp'}),h('button',{onclick:()=>cmd('song',edSong)},ic('play'),'Tocar en vivo')),
+    h('div',{class:'row'},h('h2',{class:'grow',style:'margin:0'},'Canción'),pickS,h('button',{onclick:()=>cmd('song',edSong)},ic('play'),'Tocar en vivo')),
     h('div',{class:'row',style:'margin-top:10px'},h('input',{type:'text',class:'grow',value:s.name,maxlength:24,onchange:e=>edit(()=>s.name=e.target.value)})),
     h('p',{class:'mu sm',style:'margin:8px 0 0'},'Estos ajustes valen para todos los acordes de la canción. Cada acorde puede tener excepciones en su propio panel.'),
     sec('s:tempo','tempo','Tempo y volumen',`${s.bpm} BPM · velocity ${s.vel}`,()=>[
@@ -700,56 +723,95 @@ function vEdit(m){
       srow('Rango de la rueda de pitch','Cuántos semitonos sube o baja la rueda. Necesario para "Pitch bend".',[seg([[undefined,'No tocar'],[12,'Fijar']],s.bendRange==null?undefined:12,v=>edit(()=>{if(v==null)delete s.bendRange;else s.bendRange=12;})),
         s.bendRange!=null?knob({label:'±',value:s.bendRange,min:1,max:12,onInput:v=>edit(()=>s.bendRange=v)}):null])]),
     sec('s:perillas','music','Perillas del MiniNova',ctlIds.length?ctlIds.map(id=>CTRL[id][0]).join(', '):'Ninguna',()=>songCtlBlock(s))));
-  // --- Forma de la canción (horizontal) ---
-  if(s.phrases.length>1||s.form.length>1||(s.form[0]&&s.form[0].r>1)){
-    const fs=h('div',{class:'strip','data-sk':'form'+s.id});
-    s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip','data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0]},p?p.name:'?',
-      h('button',{class:'nodrag',onclick:()=>edit(()=>f.r=clamp(f.r-1,1,99))},'−'),h('b',null,'×'+f.r),h('button',{class:'nodrag',onclick:()=>edit(()=>f.r=clamp(f.r+1,1,99))},'+'),
-      h('button',{class:'nodrag',title:'Mover a la izquierda',onclick:()=>i>0&&edit(()=>moveArr(s.form,i,i-1))},'←'),h('button',{class:'nodrag',title:'Mover a la derecha',onclick:()=>i<s.form.length-1&&edit(()=>moveArr(s.form,i,i+1))},'→'),
-      h('button',{class:'nodrag',onclick:()=>edit(()=>s.form.splice(i,1))},'✕')));});
-    sortable(fs,(a,b)=>edit(()=>moveArr(s.form,a,b)));
-    const addF=h('select',null,h('option',{value:''},'+ Paso…'),s.phrases.map((p,i)=>h('option',{value:i},p.name)));
-    addF.onchange=()=>{if(addF.value!==''&&s.form.length<255)edit(()=>s.form.push({p:+addF.value,r:1}));};
-    m.append(h('div',{class:'card'},h('h3',{style:'margin-top:0'},'Forma de la canción'),h('p',{class:'mu sm',style:'margin:0 0 6px'},'El orden en que suenan las frases. Repetir una frase no la copia.'),fs,addF));
-  }
-  // --- Frases con sus acordes (horizontal) ---
-  const pc=h('div',{class:'card'},h('div',{class:'row',style:'margin-bottom:8px'},h('h3',{class:'grow',style:'margin:0'},'Frases y acordes'),
-    toggle('Selección múltiple',multiMode,v=>{multiMode=v;multi.clear();renderAll();}),
-    multiMode&&multi.size?h('button',{class:'er',onclick:()=>edit(()=>{const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();fixSel();})},[ic('trash'),`Borrar ${multi.size}`]):null,
-    st.cap?h('button',{class:'er',onclick:()=>cmd('cap',0)},st.cap===2?'■ Detener grabación':'■ Cancelar captura'):null));
-  s.phrases.forEach((p,pi)=>{
+  // ② Forma: el orden en que suenan las frases
+  const fs=h('div',{class:'strip','data-sk':'form'+s.id});
+  s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip','data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0]},p?p.name:'?',
+    h('button',{class:'nodrag',onclick:()=>edit(()=>f.r=clamp(f.r-1,1,99))},'−'),h('b',null,'×'+f.r),h('button',{class:'nodrag',onclick:()=>edit(()=>f.r=clamp(f.r+1,1,99))},'+'),
+    h('button',{class:'nodrag',title:'Quitar este paso',onclick:()=>edit(()=>s.form.splice(i,1))},'✕')));});
+  sortable(fs,(a,b)=>edit(()=>moveArr(s.form,a,b)));
+  const addF=h('select',null,h('option',{value:''},'+ Agregar paso…'),s.phrases.map((p,i)=>h('option',{value:i},p.name)));
+  addF.onchange=()=>{if(addF.value!==''&&s.form.length<255)edit(()=>s.form.push({p:+addF.value,r:1}));};
+  m.append(h('div',{class:'card'},h('h2',null,'Forma de la canción'),h('p',{class:'mu sm',style:'margin:-4px 0 8px'},'El orden en que suenan las frases, de izquierda a derecha. Mantén presionado para reordenar; −/+ cambia las repeticiones. Repetir una frase no la copia.'),fs,addF));
+
+  // ③ Frases: tarjetas de color de izquierda a derecha; la elegida se edita abajo
+  const uses=pi=>s.form.filter(f=>f.p===pi).reduce((a,f)=>a+f.r,0);
+  const pstrip=h('div',{class:'strip','data-sk':'phr'+s.id});
+  s.phrases.forEach((p,pi)=>{const on=edSel.p===pi,u=uses(pi);
+    pstrip.append(h('div',{class:'pt'+(on?' on':''),'data-idx':pi,style:'--pc:'+PCOL[p.color%8],onclick:()=>{if(edSel.p!==pi){edSel={p:pi,c:0};multi.clear();renderAll();}}},
+      h('b',null,p.name),h('small',null,`${p.chords.length} acorde${p.chords.length===1?'':'s'}`+(u>1?` · suena ×${u}`:u===0?' · no está en la forma':'')+(p.sound?' · '+sndLabel(p.sound):'')),
+      on?h('button',{class:'ptm nodrag',title:'Opciones de la frase',onclick:e=>{e.stopPropagation();phraseMenu(s,p,pi,e.currentTarget);}},ic('dots')):null));});
+  sortable(pstrip,(a,b)=>edit(()=>{moveArr(s.phrases,a,b);const map=k=>k===a?b:(a<b&&k>a&&k<=b)?k-1:(a>b&&k>=b&&k<a)?k+1:k;for(const f of s.form)f.p=map(f.p);edSel={p:b,c:0};}));
+  pstrip.append(h('div',{class:'pt add',onclick:()=>{if(s.phrases.length>=255)return;edit(()=>{s.phrases.push({name:'Frase '+(s.phrases.length+1),color:s.phrases.length%8,chords:[{notes:buildChord(0,4,0,0)}]});s.form.push({p:s.phrases.length-1,r:1});edSel={p:s.phrases.length-1,c:0};});}},ic('plus'),h('b',null,'Frase')));
+  if(clip&&clip.kind==='phrase')pstrip.append(h('div',{class:'pt add',onclick:()=>edit(()=>{const d=copy(clip.data);s.phrases.push(d);s.form.push({p:s.phrases.length-1,r:1});edSel={p:s.phrases.length-1,c:0};})},ic('paste'),h('b',null,'Pegar "'+clip.data.name+'"')));
+  m.append(h('div',{class:'card'},h('h2',null,'Frases'),h('p',{class:'mu sm',style:'margin:-4px 0 8px'},'Partes de la canción (estrofa, coro…). Toca una para ver y editar sus acordes; ⋯ tiene sus opciones.'),pstrip));
+
+  // ④ Acordes de la frase elegida
+  const p=s.phrases[edSel.p];
+  if(p){const pi=edSel.p;
     const strip=h('div',{class:'strip','data-sk':'ph'+s.id+'.'+pi});
-    p.chords.forEach((c,ci)=>{const key=pi+'.'+ci,sel=!multiMode&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.bend!=null||(c.ctl&&Object.keys(c.ctl).length>0);
-      strip.append(h('div',{class:'cc'+(sel?' sel':'')+(multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
-        // Seleccionar sin redibujar la fila (así no se pierde el desplazamiento)
-        const card=ev.currentTarget;
-        if(multiMode){multi.has(key)?multi.delete(key):multi.add(key);renderAll();return;}
-        else{document.querySelectorAll('.cc.sel').forEach(x=>{x.classList.remove('sel');const d=x.querySelector('.del');if(d)d.remove();});
-          card.classList.add('sel');card.prepend(h('button',{class:'del',title:'Borrar este acorde',onclick:e2=>{e2.stopPropagation();edit(()=>{p.chords.splice(ci,1);fixSel();});}},'✕'));
-          edSel={p:pi,c:ci};audition(c,s);}
-        const old=document.getElementById('ceditor');if(old)old.replaceWith(chordEditor(s));saveUi();}},
-        ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel?h('button',{class:'del',title:'Borrar este acorde',onclick:ev=>{ev.stopPropagation();edit(()=>{p.chords.splice(ci,1);fixSel();});}},'✕'):null,h('div',{class:'nm'},stepLabel(c)),h('div',{class:'nt'},c.trans===2?'pitch bend':(c.notes.length?c.notes.map(noteName).join(' '):'silencio')+(c.notes.length&&(c.trans===1||(c.trans==null&&s.trans===1))?' ~':'')),
-        prefs.lyrics&&c.lyr?h('div',{class:'ly'},c.lyr):null));});
-    sortable(strip,(a,b)=>edit(()=>{moveArr(p.chords,a,b);if(edSel.p===pi)edSel.c=b;}));
-    const addC=(notes)=>{if(p.chords.length>=255)return toast('Máximo 255 acordes por frase');edit(()=>{const at=edSel.p===pi?edSel.c+1:p.chords.length;p.chords.splice(at,0,{notes});edSel={p:pi,c:at};revealSel=true;});};
-    pc.append(h('div',{class:'ph',style:'--pc:'+PCOL[p.color%8]},
-      h('div',{class:'phh'},h('input',{type:'text',value:p.name,maxlength:16,onchange:e=>edit(()=>p.name=e.target.value)}),
-        h('button',{title:'Color',style:'background:'+PCOL[p.color%8]+';color:#081418',onclick:()=>edit(()=>p.color=(p.color+1)%8)},'●'),
-        h('button',{title:'Sonido del MiniNova para esta frase',class:p.sound?'ac':'',onclick:()=>phraseSoundDlg(s,p)},p.sound?[ic('piano'),sndLabel(p.sound)]:ic('piano')),
-        h('button',{onclick:()=>addC(p.chords.length?[...(p.chords[edSel.p===pi?edSel.c:p.chords.length-1]||p.chords[0]).notes]:buildChord(0,4,0,0))},'+ Acorde'),
-        h('button',{onclick:()=>addC([])},'+ Silencio'),
-        h('button',{title:'Tocar acordes en un teclado MIDI: cada acorde se agrega al final',onclick:()=>{edSel={p:pi,c:Math.max(0,p.chords.length-1)};cmd('cap',2);toast('Grabando: toca acordes en tu teclado MIDI');}},ic('rec'),'Grabar'),
-        clip&&clip.kind==='chords'?h('button',{onclick:()=>edit(()=>{const at=edSel.p===pi?edSel.c+1:p.chords.length;p.chords.splice(at,0,...copy(clip.data));})},`Pegar ${clip.data.length}`):null,
-        h('span',{class:'sp'}),
-        h('button',{title:'Copiar frase',onclick:()=>{clip={kind:'phrase',data:copy(p)};toast('Frase copiada');renderAll();}},ic('copy')),
-        h('button',{title:'Ir a esta frase en vivo',onclick:()=>{const st2=s.form.findIndex(f=>f.p===pi);cmd('song',edSong).then(()=>st2>=0&&cmd('jump',st2));}},ic('jump')),
-        h('button',{title:'Borrar frase',onclick:()=>modal('¿Borrar frase?',h('p',null,`"${p.name}" y sus pasos en la forma.`),[['Cancelar'],['Borrar',()=>edit(()=>{s.phrases.splice(pi,1);s.form=s.form.filter(f=>f.p!==pi).map(f=>({p:f.p>pi?f.p-1:f.p,r:f.r}));}),'er']])},ic('trash'))),
-      strip));});
-  pc.append(h('div',{class:'row'},h('button',{onclick:()=>{if(s.phrases.length>=255)return;edit(()=>{s.phrases.push({name:'Frase '+(s.phrases.length+1),color:s.phrases.length%8,chords:[{notes:buildChord(0,4,0,0)}]});s.form.push({p:s.phrases.length-1,r:1});});}},'+ Frase'),
-    clip&&clip.kind==='phrase'?h('button',{onclick:()=>edit(()=>{const d=copy(clip.data);s.phrases.push(d);s.form.push({p:s.phrases.length-1,r:1});})},'Pegar frase "'+clip.data.name+'"'):null));
-  m.append(pc);
-  // --- Editor del acorde seleccionado (o de varios) ---
-  m.append(chordEditor(s));}
+    p.chords.forEach((c,ci)=>strip.append(chordCard(s,p,pi,c,ci)));
+    sortable(strip,(a,b)=>edit(()=>{moveArr(p.chords,a,b);edSel.c=b;}));
+    m.append(h('div',{class:'card',id:'chordsCard',style:'--pc:'+PCOL[p.color%8]},
+      h('div',{class:'row'},h('h2',{class:'grow',style:'margin:0'},'Acordes de "',p.name,'"'),
+        toggle('Selección múltiple',multiMode,v=>{multiMode=v;multi.clear();renderAll();}),
+        multiMode&&multi.size?h('button',{class:'er',onclick:()=>edit(()=>{const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();fixSel();})},[ic('trash'),`Borrar ${multi.size}`]):null,
+        st.cap?h('button',{class:'er',onclick:()=>cmd('cap',0)},st.cap===2?'Detener grabación':'Cancelar captura'):null),
+      h('p',{class:'mu sm',style:'margin:4px 0 8px'},'Toca un acorde para editarlo abajo. Mantén presionado para moverlo. Para agregar, usa la barra de abajo.'),strip));
+  }
+  // ⑤ El acorde elegido (lo más detallado)
+  m.append(chordEditor(s));
+  // Barra fija arriba: frase + acordes, mientras se edita más abajo
+  m.append(stickyBar(s));}
+
+/* Tarjeta de un acorde (se selecciona sin redibujar la fila, para no perder el desplazamiento) */
+function chordCard(s,p,pi,c,ci){
+  const key=pi+'.'+ci,sel=!multiMode&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.bend!=null||(c.ctl&&Object.keys(c.ctl).length>0);
+  const del=()=>h('button',{class:'del nodrag',title:'Borrar este acorde',onclick:e=>{e.stopPropagation();edit(()=>{p.chords.splice(ci,1);fixSel();});}},ic('close'));
+  return h('div',{class:'cc'+(sel?' sel':'')+(multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
+      const card=ev.currentTarget;
+      if(multiMode){multi.has(key)?multi.delete(key):multi.add(key);renderAll();return;}
+      selectChord(s,pi,ci,card);audition(c,s);}},
+    ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel?del():null,h('div',{class:'nm'},stepLabel(c)),
+    h('div',{class:'nt'},c.trans===2?'pitch bend':(c.notes.length?c.notes.map(noteName).join(' '):'silencio')+(c.notes.length&&(c.trans===1||(c.trans==null&&s.trans===1))?' ~':'')),
+    prefs.lyrics&&c.lyr?h('div',{class:'ly'},c.lyr):null);}
+function selectChord(s,pi,ci,card){
+  edSel={p:pi,c:ci};
+  document.querySelectorAll('#chordsCard .cc').forEach((x,k)=>{const on=k===ci;x.classList.toggle('sel',on);const d=x.querySelector('.del');if(d&&!on)d.remove();
+    if(on&&!d)x.insertBefore(h('button',{class:'del nodrag',title:'Borrar este acorde',onclick:e=>{e.stopPropagation();edit(()=>{s.phrases[pi].chords.splice(ci,1);fixSel();});}},ic('close')),x.firstChild);});
+  document.querySelectorAll('.stick .sc2').forEach((x,k)=>x.classList.toggle('on',k===ci));
+  const old=document.getElementById('ceditor');if(old)old.replaceWith(chordEditor(s));saveUi();}
+
+/* Menú ⋯ de la frase */
+function phraseMenu(s,p,pi,btn){const old=$('.sndmenu');if(old)old.remove();const r=btn.getBoundingClientRect();
+  const it=(icn,t,fn,cl)=>h('button',{class:cl||'',onclick:()=>{mn.remove();fn();}},ic(icn),t);
+  const mn=h('div',{class:'sndmenu',style:`top:${Math.min(r.bottom+6,innerHeight-360)}px;left:${Math.max(8,Math.min(r.left,innerWidth-250))}px`},
+    it('paste','Renombrar',()=>{const inp=h('input',{type:'text',value:p.name,maxlength:16,style:'width:100%'});modal('Nombre de la frase',inp,[['Cancelar'],['Guardar',()=>edit(()=>p.name=inp.value.trim()||p.name),'ac']]);setTimeout(()=>inp.focus(),50);}),
+    it('music','Cambiar color',()=>edit(()=>p.color=(p.color+1)%8)),
+    it('piano',p.sound?'Sonido: '+sndLabel(p.sound):'Sonido del MiniNova…',()=>phraseSoundDlg(s,p)),
+    it('rec','Grabar acordes desde teclado MIDI',()=>{edSel={p:pi,c:Math.max(0,p.chords.length-1)};cmd('cap',2);toast('Grabando: toca acordes en tu teclado MIDI');}),
+    it('copy','Copiar frase',()=>{clip={kind:'phrase',data:copy(p)};toast('Frase copiada');renderAll();}),
+    clip&&clip.kind==='chords'?it('paste',`Pegar ${clip.data.length} acorde(s) al final`,()=>edit(()=>p.chords.push(...copy(clip.data)))):null,
+    it('jump','Ir a esta frase en vivo',()=>{const st2=s.form.findIndex(f=>f.p===pi);cmd('song',edSong).then(()=>st2>=0&&cmd('jump',st2));}),
+    it('trash','Borrar frase',()=>modal('¿Borrar frase?',h('p',null,`"${p.name}" y sus pasos en la forma.`),[['Cancelar'],['Borrar',()=>edit(()=>{s.phrases.splice(pi,1);s.form=s.form.filter(f=>f.p!==pi).map(f=>({p:f.p>pi?f.p-1:f.p,r:f.r}));edSel={p:Math.max(0,pi-1),c:0};}),'er']]),'delm'));
+  document.body.append(mn);setTimeout(()=>document.addEventListener('pointerdown',function f(e){if(!mn.contains(e.target)){mn.remove();}document.removeEventListener('pointerdown',f);}),0);}
+
+/* Barra fija arriba: aparece cuando la tarjeta de acordes queda fuera de la vista */
+function stickyBar(s){
+  const p=s.phrases[edSel.p];const bar=h('div',{class:'stick',hidden:true});
+  if(!p)return bar;
+  const sel=h('select',{onchange:e=>{edSel={p:+e.target.value,c:0};multi.clear();renderAll();}},s.phrases.map((x,i)=>h('option',{value:i,selected:i===edSel.p?'':null},x.name)));
+  const chips=h('div',{class:'sc2w'},p.chords.map((c,ci)=>h('button',{class:'sc2'+(ci===edSel.c?' on':''),onclick:()=>{selectChord(s,edSel.p,ci);audition(c,s);}},stepLabel(c))));
+  bar.append(h('span',{class:'dotc',style:'background:'+PCOL[p.color%8]}),sel,chips);
+  setTimeout(updStick,0);
+  return bar;}
+// Muestra la barra fija cuando la tarjeta de acordes ya pasó por arriba (bajo las pestañas)
+function updStick(){const bar=$('.stick'),cc=document.getElementById('chordsCard');if(!bar)return;
+  const t=$('#tabs'),top=t?t.getBoundingClientRect().bottom:0;
+  const show=!!cc&&cc.getBoundingClientRect().bottom<top+4;
+  if(show===!bar.hidden)return;bar.hidden=!show;
+  if(show){bar.style.top=top+'px';const on=bar.querySelector('.sc2.on');if(on)on.scrollIntoView({inline:'center',block:'nearest'});}}
+addEventListener('scroll',updStick,{passive:true});addEventListener('resize',updStick);
+
 
 /* Barra fija de edición (abajo): siempre a mano, sin volver arriba */
 function editToolbar(s){
