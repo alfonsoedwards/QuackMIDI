@@ -487,7 +487,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-2346';
+const QM_VERSION='2026.09.25-2350';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -556,7 +556,8 @@ const hist={u:[],r:[]};
 async function api(path,opt={}){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),opt.timeout||4000);try{const r=await fetch(path,Object.assign({signal:ctl.signal,cache:'no-store'},opt));if(!r.ok)throw Error('HTTP '+r.status);return r;}finally{clearTimeout(to);}}
 const cmd=(x,a,extra='')=>((x==='stop'||x==='mute'||x==='restart')&&synthStop(),api('/api/c?x='+x+(a!=null?'&a='+a:'')+extra).then(r=>r.json()).then(j=>{if(j&&j.ok===0)toast(j.e||'Error');return j;}).catch(()=>toast('Sin conexión con Quack MIDI')));
 
-async function loadBlob(){const r=await api('/api/blob');const b=new Uint8Array(await r.arrayBuffer());M=dec(b);attachLyrics();knownBv=+(r.headers.get('X-Bv')||0);}
+// Las letras no van al Arduino: al releer sus datos se conservan las que ya tenemos (lo más nuevo es lo que está en pantalla)
+async function loadBlob(){const r=await api('/api/blob');const b=new Uint8Array(await r.arrayBuffer());if(M)lyrDoc=collectLyrics();M=dec(b);attachLyrics();knownBv=+(r.headers.get('X-Bv')||0);}
 
 let upTimer=null,upRetry=0;
 function changed(render=true){try{trackChanges();}catch(e){}pendingUp=true;upRetry=0;clearTimeout(upTimer);upTimer=setTimeout(upload,350);saveLyricsSoon();if(render)renderAll();updPill();}
@@ -1135,7 +1136,7 @@ function vCfg(m0){const S=M.settings;const m=h('div');
       h('span',{class:'mu sm'},'Un tono básico del navegador para reconocer el acorde sin el MiniNova. "Corto" se apaga solo en ~2 s; "Sostenido" suena hasta el siguiente acorde y respeta Ligado y Mantener.'))));
   m.append(h('div',{class:'card'},h('h2',null,'Letras (opcional)'),toggle('Mostrar y editar letras',prefs.lyrics,v=>{prefs.lyrics=v;savePrefs();renderAll();}),
     prefs.lyrics?h('div',{style:'margin-top:10px'},seg([['local','En este dispositivo'],['qwiic','En la memoria Qwiic']],prefs.lyrStore,v=>{if(v==='qwiic'&&!st.q)return toast('No se detectó una memoria Qwiic conectada');prefs.lyrStore=v;savePrefs();saveLyrics().then(()=>renderAll());}),
-      h('p',{class:'mu sm'},prefs.lyrStore==='local'?'Las letras quedan en el navegador de este dispositivo (ideal para la tablet del escenario). Viajan en el respaldo.':'Las letras viven en la memoria Qwiic del Arduino y se ven desde cualquier dispositivo.')):null));
+      h('p',{class:'mu sm'},prefs.lyrStore==='local'?(window.APPMODE?'Las letras se guardan en esta tablet y se sincronizan con tus otros dispositivos por Google Drive (nube de arriba). No se mandan al Arduino. ':'Las letras quedan en el navegador de este dispositivo. En la app de la tablet se sincronizan por Google Drive. ')+'También viajan en el respaldo.':'Las letras viven en la memoria Qwiic del Arduino y se ven desde cualquier dispositivo.')):null));
   const used=enc(M).length,max=st.max||8112;
   m.append(h('div',{class:'card'},h('h2',null,'Memoria y respaldo'),h('div',{class:'mem'},h('i',{style:`width:${Math.min(100,used/max*100)}%`})),h('p',{class:'mu sm'},`${used} de ${max} bytes (${(used/max*100).toFixed(1)} %).`),h('p',{class:'mu sm'},'Para respaldar usa "Guardar (respaldar)", arriba de todo. Con "Abrir un respaldo" vuelves a cualquiera de los archivos guardados en Descargas.'),
     h('div',{class:'row'},window.APPMODE?h('button',{class:'ac',onclick:syncOut},ic('send'),'Enviar a Quack MIDI'):h('button',{class:'ac',onclick:doSave},ic('save'),'Guardar en el Arduino'),window.APPMODE?null:h('button',{onclick:syncOut},ic('tablet'),'Llevar a la app'),window.APPMODE?null:h('button',{onclick:doDiscard},'Descartar cambios'),h('button',{onclick:doImport},ic('up'),'Abrir un respaldo'))));
