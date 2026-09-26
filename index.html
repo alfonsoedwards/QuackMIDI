@@ -364,6 +364,8 @@ button.er,button.er:hover,.pf-bot button.mute{background:var(--sf);color:var(--a
 .lyr{display:flex;gap:8px;align-items:center}.lyr button{padding:.3em}.lyr span{font-size:.75rem;font-weight:900;color:var(--ack);min-width:4.2em}.lyr textarea{flex:1;resize:none;min-height:2.2em}
 .lynav{display:flex;align-items:center;gap:8px;margin:8px 0 2px}.lynav span{flex:1;text-align:center;font-weight:800;color:var(--ack);font-size:.9rem}
 .lynav button{background:var(--acl);color:var(--ack)}
+.cc .ly.cont{opacity:.55}
+.lyr button.on{background:var(--ac);color:var(--aci)}.lyr.cut textarea{opacity:.5}
 /* Paletitas y menús emergentes */
 .pop{position:fixed;z-index:55;background:var(--sf);border:1px solid var(--ln);border-radius:14px;box-shadow:var(--sh);padding:10px}
 .pal{display:grid;grid-template-columns:repeat(4,36px);gap:8px}
@@ -498,7 +500,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.26-0031';
+const QM_VERSION='2026.09.26-0040';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -936,25 +938,32 @@ const lyrCount=s=>s.phrases.reduce((a,p)=>a+p.chords.filter(c=>c.lyr||(c.lyrV&&c
    una vuelta sin letra propia usa la de la 1ª. */
 const nVueltas=(s,pi)=>Math.max(1,s.form.filter(f=>f.p===pi).reduce((a,f)=>a+f.r,0));
 function vueltaOf(s,st,r){const f=s.form[st];if(!f)return 0;let n=0;for(let k=0;k<st;k++)if(s.form[k].p===f.p)n+=s.form[k].r;return n+r;}
-const lyrAt=(c,v)=>(v>0&&c.lyrV&&c.lyrV[v-1])||c.lyr||'';
+const LCUT='∅';   // "sin letra desde aquí" (corta la que venía)
+const own=(c,v)=>v?(c.lyrV&&c.lyrV[v-1])||'':c.lyr||'';
+const phraseVars=p=>1+Math.max(0,...p.chords.map(c=>(c.lyrV&&c.lyrV.length)||0));
+// Letra que se ve en el acorde ci de la frase pi, en la variación v: la suya, o la del acorde anterior (misma variación)
+// que sigue sonando. Al empezar la frase no arrastra nada. Una vuelta sin variación usa la 1ª.
+function lyrRes(s,pi,ci,v){const p=s.phrases[pi];if(!p)return'';if(v>=phraseVars(p))v=0;
+  for(let k=ci;k>=0;k--){const x=own(p.chords[k],v);if(x)return x===LCUT?'':x;}return'';}
 function setLyr(c,v,x){x=(x||'').split('\n').map(l=>l.trim()).join('\n').replace(/^\n+|\n+$/g,'');if(v===0){if(x)c.lyr=x;else delete c.lyr;return;}
   c.lyrV=c.lyrV||[];c.lyrV[v-1]=x;for(let k=0;k<c.lyrV.length;k++)if(c.lyrV[k]==null)c.lyrV[k]='';}
-function delVar(c,v){if(!c.lyrV)return;c.lyrV.splice(v-1,1);if(!c.lyrV.length)delete c.lyrV;}
-const nVars=c=>1+((c.lyrV&&c.lyrV.length)||0);
+function delVar(p,v){for(const c of p.chords){if(!c.lyrV)continue;c.lyrV.splice(v-1,1);if(!c.lyrV.length||!c.lyrV.some(Boolean))delete c.lyrV;}}
+function addVar(p){const n=phraseVars(p);for(const c of p.chords){c.lyrV=c.lyrV||[];while(c.lyrV.length<n)c.lyrV.push('');}}
+
 const ordV=v=>(v+1)+'ª vez';
 function lyrDialog(s){let pi=edSel.p,vv=0;const dlgVars={};const box=h('div',{class:'col',style:'gap:8px;min-width:min(30em,80vw)'});
   const draw=()=>{const p=s.phrases[pi];box.innerHTML='';
-    const nv=Math.max(dlgVars[pi]||1,...p.chords.map(nVars));if(vv>=nv)vv=0;
+    const nv=Math.max(dlgVars[pi]||1,phraseVars(p));if(vv>=nv)vv=0;
     const tabs=h('div',{class:'row',style:'gap:6px'},seg([...Array(nv)].map((_,k)=>[k,ordV(k)]),vv,k=>{sync();vv=k;draw();}),
       h('button',{title:'Letra distinta para la siguiente vez que suena la frase',onclick:()=>{sync();dlgVars[pi]=nv+1;vv=nv;draw();}},ic('plus'),'Variación'));
     const pick=h('select',{onchange:e=>{sync();pi=+e.target.value;vv=0;draw();}},s.phrases.map((x,i)=>h('option',{value:i,selected:i===pi?'':null},x.name)));
-    const ta=h('textarea',{rows:Math.max(4,Math.min(14,p.chords.length+1)),id:'lyrTa',placeholder:vv?'Una línea por acorde (vacía = igual que la 1ª vez)…':'Una línea por acorde. Para dos líneas en un mismo acorde, sepáralas con  /  …'});ta.value=(pending[pi+'.'+vv]!=null?pending[pi+'.'+vv]:p.chords.map(c=>(vv?((c.lyrV&&c.lyrV[vv-1])||''):(c.lyr||'')).replace(/\n/g,' / ')).join('\n'));
-    const map=h('div',{class:'mu sm lymap'});const upd=()=>{const L=ta.value.split('\n');map.innerHTML='';p.chords.forEach((c,k)=>map.append(h('div',null,h('b',null,stepLabel(c)),' ',L[k]?L[k]:h('i',null,vv&&c.lyr?'(igual que la 1ª: '+c.lyr.replace(/\n/g,' / ')+')':'(sin letra)'))));
+    const ta=h('textarea',{rows:Math.max(4,Math.min(14,p.chords.length+1)),id:'lyrTa',placeholder:vv?'Una línea por acorde (vacía = igual que la 1ª vez)…':'Una línea por acorde. Línea vacía = sigue la letra del acorde anterior; escribe - para dejarlo sin letra; dos líneas en un acorde: sepáralas con  / '});ta.value=(pending[pi+'.'+vv]!=null?pending[pi+'.'+vv]:p.chords.map(c=>{const x=own(c,vv);return x===LCUT?'-':x.replace(/\n/g,' / ');}).join('\n'));
+    const map=h('div',{class:'mu sm lymap'});const upd=()=>{const L=ta.value.split('\n');map.innerHTML='';p.chords.forEach((c,k)=>map.append(h('div',null,h('b',null,stepLabel(c)),' ',L[k]==='-'?h('i',null,'(sin letra)'):L[k]?L[k]:h('i',null,(()=>{let j=k-1;while(j>=0&&!L[j])j--;return j>=0&&L[j]!=='-'?'(sigue: '+L[j]+')':'(sin letra)';})()))));
       if(L.length>p.chords.length&&L.slice(p.chords.length).some(x=>x.trim()))map.append(h('div',{style:'color:var(--ack)'},`Sobran ${L.length-p.chords.length} línea(s): esta frase tiene ${p.chords.length} acordes.`));};
     ta.oninput=upd;upd();box.append(h('div',{class:'row'},h('span',{class:'mu sm'},'Frase'),pick),tabs,ta,map);};
   const pending={};const sync=()=>{const ta=box.querySelector('#lyrTa');if(ta)pending[pi+'.'+vv]=ta.value;};
   draw();
-  modal('Letra de la frase',box,[['Cancelar'],['Guardar',()=>{sync();edit(()=>{for(const k in pending){const[a,b]=k.split('.').map(Number),p=s.phrases[a];if(!p)continue;const L=pending[k].split('\n');p.chords.forEach((c,j)=>setLyr(c,b,(L[j]||'').replace(/\s+\/\s+/g,'\n')));}});},'ac']]);}
+  modal('Letra de la frase',box,[['Cancelar'],['Guardar',()=>{sync();edit(()=>{for(const k in pending){const[a,b]=k.split('.').map(Number),p=s.phrases[a];if(!p)continue;const L=pending[k].split('\n');p.chords.forEach((c,j)=>{const x=(L[j]||'').trim();setLyr(c,b,x==='-'?LCUT:x.replace(/\s+\/\s+/g,'\n'));});}});},'ac']]);}
 /* Letra: pasar al acorde anterior / siguiente sin salir del panel (sigue en la frase siguiente o anterior) */
 function lyrGo(s,d){
   // Guarda lo escrito sin soltar el teclado, y deja la sección Letra exactamente donde estaba en la pantalla
@@ -994,7 +1003,7 @@ function chordCard(s,p,pi,c,ci){
       selectChord(s,pi,ci,card);audition(c,s);}},
     ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel?delBtn(s,pi,ci):null,h('div',{class:'nm'},hb?'↗ '+chordName(hb):stepLabel(c)),
     h('div',{class:'nt'},hb?'pitch '+((c.bend||0)>0?'+':'')+(c.bend||0):(c.notes.length?c.notes.map(noteName).join(' '):'silencio')+(c.notes.length&&(c.trans===1||(c.trans==null&&s.trans===1))?' ~':'')),
-    s.hasLyr&&(c.lyr||c.lyrV)?h('div',{class:'ly'},(c.lyr||'—')+(c.lyrV&&c.lyrV.some(Boolean)?' · +'+c.lyrV.filter(Boolean).length:'')):null);}
+    s.hasLyr?(()=>{const x=own(c,0),r0=lyrRes(s,pi,ci,0);return x&&x!==LCUT?h('div',{class:'ly'},x):r0&&x!==LCUT?h('div',{class:'ly cont'},'↳ '+r0):null;})():null);}
 const delBtn=(s,pi,ci)=>h('button',{class:'del nodrag',title:'Borrar este acorde',onclick:e=>{e.stopPropagation();edit(()=>{s.phrases[pi].chords.splice(ci,1);fixSel();});}},ic('close'));
 function selectChord(s,pi,ci,card){
   edSel={p:pi,c:ci};lastFocus='chords';
@@ -1091,12 +1100,18 @@ function chordEditor(s){
     h('p',{class:'mu sm',style:'margin:0 0 6px'},'Toca las teclas para agregar o quitar notas. Debajo de cada nota está su velocity: arrástrala hacia arriba o abajo, o toca el número para escribirla. Mantén presionado para volver a la del acorde.'),
     null]));
   // Letra (desplegable): 1ª vez y sus variaciones
-  if(one&&s.hasLyr)card.append(sec('c:letra','paste','Letra',(one.lyr||'Sin letra')+(one.lyrV&&one.lyrV.length?` · ${one.lyrV.length} ${one.lyrV.length>1?'variaciones':'variación'}`:''),()=>[lyrNav(s),(()=>{const nv=nVars(one),usa=nVueltas(s,edSel.p);return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,'Letra'),
-      h('small',null,'Fragmento que se ve bajo el acorde en el Modo Performance. Si la letra cambia cuando la frase se repite, agrega una variación: la 2ª vez que suene usa la 2ª, y así. Una vuelta sin variación (o vacía) usa la 1ª.'+(usa>1?` Esta frase suena ${usa} veces en la forma.`:''))),
-      h('div',{class:'lyrows'},[...Array(nv)].map((_,v)=>h('label',{class:'lyr'},h('span',null,ordV(v)),
-        h('textarea',{rows:Math.max(1,((v?(one.lyrV[v-1]||''):(one.lyr||'')).match(/\n/g)||[]).length+1),value:v?(one.lyrV[v-1]||''):(one.lyr||''),placeholder:v?'igual que la 1ª'+(one.lyr?': '+one.lyr.replace(/\n/g,' / '):''):'letra… (Enter = otra línea)',oninput:e=>{e.target.rows=Math.max(1,(e.target.value.match(/\n/g)||[]).length+1);},onchange:e=>{const was=v?((one.lyrV&&one.lyrV[v-1])||''):(one.lyr||''),t2={};setLyr(t2,0,e.target.value);if((t2.lyr||'')===was)return;edit(()=>setLyr(one,v,e.target.value),false);}}),
-        v?h('button',{class:'gh',title:'Quitar esta variación',onclick:e=>{e.preventDefault();edit(()=>delVar(one,v));}},ic('close')):null)),
-        h('div',null,h('button',{onclick:()=>edit(()=>{one.lyrV=[...(one.lyrV||[]),''];})},ic('plus'),'Agregar variación'))));})()]));
+  if(one&&s.hasLyr)card.append(sec('c:letra','paste','Letra',(one.lyr&&one.lyr!==LCUT?one.lyr:(lyrRes(s,edSel.p,edSel.c,0)?'sigue: '+lyrRes(s,edSel.p,edSel.c,0):'Sin letra')).replace(/\n/g,' / ')+(one.lyrV&&one.lyrV.length?` · ${one.lyrV.length} ${one.lyrV.length>1?'variaciones':'variación'}`:''),()=>[lyrNav(s),(()=>{const p=s.phrases[edSel.p],ci=edSel.c,nv=phraseVars(p),usa=nVueltas(s,edSel.p);
+      return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,'Letra'),
+      h('small',null,'Si dejas un acorde vacío, sigue mostrando la letra del acorde anterior (de la misma variación). Con "Cortar" ese acorde queda sin letra. Si la letra cambia cuando la frase se repite, agrega una variación: la 2ª vez que suene usa la 2ª, y así.'+(usa>1?` Esta frase suena ${usa} veces en la forma.`:''))),
+      h('div',{class:'lyrows'},[...Array(nv)].map((_,v)=>{const x=own(one,v),cut=x===LCUT,inh=ci>0?lyrRes(s,edSel.p,ci-1,v):'';
+        return h('label',{class:'lyr'+(cut?' cut':'')},h('span',null,ordV(v)),
+          h('textarea',{rows:Math.max(1,((cut?'':x).match(/\n/g)||[]).length+1),value:cut?'':x,disabled:cut||null,
+            placeholder:cut?'sin letra':inh?'sigue: '+inh.replace(/\n/g,' / '):'letra… (Enter = otra línea)',
+            oninput:e=>{e.target.rows=Math.max(1,(e.target.value.match(/\n/g)||[]).length+1);},
+            onchange:e=>{const t2={};setLyr(t2,0,e.target.value);if((t2.lyr||'')===(cut?'':x))return;edit(()=>setLyr(one,v,e.target.value),false);}}),
+          h('button',{class:'gh'+(cut?' on':''),title:cut?'Volver a seguir la letra anterior':'Dejar este acorde sin letra',onclick:e=>{e.preventDefault();edit(()=>setLyr(one,v,cut?'':LCUT));}},cut?'Seguir':'Cortar'),
+          v?h('button',{class:'gh',title:'Quitar esta variación (en toda la frase)',onclick:e=>{e.preventDefault();edit(()=>delVar(p,v));}},ic('close')):null);}),
+        h('div',null,h('button',{onclick:()=>edit(()=>addVar(p))},ic('plus'),'Agregar variación'))));})()]));
   // 2. Cómo llega a este acorde
   const trOwn=sel.some(c=>c.trans!=null);
   card.append(sec('c:llega','right','Cómo llega a este acorde',TRANS_OPTS[rTr][1]+(rTr?' · '+rGl+' ms':'')+(rTr===2?' · '+(rBend>0?'+':'')+rBend+' st':'')+(trOwn?'':' (de la canción)'),()=>[
@@ -1311,7 +1326,7 @@ function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set
     const cn=cur?chordName(cur.c.notes,tr):'▶';
     // Arriba, siempre en el mismo lugar: acorde anterior · actual · siguiente. La letra va debajo, alineada arriba:
     // lo que aparece se agrega abajo y nada se mueve hacia arriba.
-    const lyNow=s.hasLyr&&cur?lyrAt(cur.c,vueltaOf(s,cur.st,cur.r)):'',lyNx=s.hasLyr&&nx?lyrAt(nx.c,vueltaOf(s,nx.st,nx.r)):'';
+    const lyNow=s.hasLyr&&cur?lyrRes(s,cur.p,cur.ci,vueltaOf(s,cur.st,cur.r)):'',lyNx=s.hasLyr&&nx?lyrRes(s,nx.p,nx.ci,vueltaOf(s,nx.st,nx.r)):'';
     pfEl.append(h('div',{class:'tele'},h('div',{class:'trow'},h('div',{class:'prev'},pv?chordName(pv.c.notes,tr):''),
       h('div',null,h('div',{class:'ph'},cur?s.phrases[cur.p].name+(F[cur.st].r>1?` · ${cur.r+1}/${F[cur.st].r}`:'')+(s.phrases[cur.p].sound?' · sonido '+sndLabel(s.phrases[cur.p].sound):''):'Listo'),h('div',{class:'cur'+(cur&&!cur.c.notes.length?' sil':'')},cn)),
       h('div',{class:'next'},nx?chordName(nx.c.notes,tr):'')),
@@ -1324,7 +1339,7 @@ function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set
   }else{
     const mp=h('div',{class:'map'});let nowEl=null;
     F.forEach((f,sti)=>{const p=s.phrases[f.p];if(!p)return;for(let r=0;r<f.r;r++){const row=h('div',{class:'mr'},h('div',{class:'ml',style:'background:'+PCOL[p.color%8],onclick:()=>jump(sti)},p.name,f.r>1?h('small',null,`${r+1}/${f.r}`):null,p.sound?h('small',null,'sonido '+sndLabel(p.sound)):null));
-      p.chords.forEach((c,ci)=>{const now=cur&&cur.st===sti&&cur.r===r&&cur.ci===ci;const done=cur&&(sti<cur.st||sti===cur.st&&(r<cur.r||r===cur.r&&ci<cur.ci));const el=h('div',{class:'mc'+(now?' now':'')+(done?' done':'')},chordName(c.notes,tr),s.hasLyr&&lyrAt(c,vueltaOf(s,sti,r))?h('small',null,lyrAt(c,vueltaOf(s,sti,r))):null);if(now)nowEl=el;row.append(el);});mp.append(row);}});
+      p.chords.forEach((c,ci)=>{const now=cur&&cur.st===sti&&cur.r===r&&cur.ci===ci;const done=cur&&(sti<cur.st||sti===cur.st&&(r<cur.r||r===cur.r&&ci<cur.ci));const el=h('div',{class:'mc'+(now?' now':'')+(done?' done':'')},chordName(c.notes,tr),(()=>{const v=vueltaOf(s,sti,r),x=s.hasLyr?lyrRes(s,f.p,ci,v):'';return x&&(ci===0||x!==lyrRes(s,f.p,ci-1,v))?h('small',null,x):null;})());if(now)nowEl=el;row.append(el);});mp.append(row);}});
     pfEl.append(mp);if(nowEl)requestAnimationFrame(()=>nowEl.scrollIntoView({block:'center',behavior:'smooth'}));
   }
   const atEnd=st.end||(!s.repeat&&pi.next==null&&pi.i>=0);const ni=nextSongInfo();
