@@ -121,14 +121,16 @@ table.tr{width:100%;border-collapse:collapse}table.tr td{padding:4px}
 .pulse{width:16px;height:16px;border-radius:50%;background:#25343c}
 .pulse.b{background:var(--ac);box-shadow:0 0 14px var(--ac)}
 .pulse.b1{background:#fff;box-shadow:0 0 18px #fff}
-.tele{flex:1;display:grid;grid-template-columns:1fr 2.2fr 1fr;align-items:center;text-align:center;gap:8px;min-height:0}
+.tele{flex:1;display:flex;flex-direction:column;justify-content:flex-start;text-align:center;min-height:0;padding-top:2vh}
+.trow{display:grid;grid-template-columns:1fr 2.2fr 1fr;align-items:center;gap:8px}
+.tly{margin-top:clamp(22px,5vh,60px);display:flex;flex-direction:column;gap:clamp(12px,3vh,32px);min-height:0;overflow:hidden}
 .tele .prev,.tele .next{opacity:.38;font-weight:900;font-size:clamp(1.6rem,6vw,3.6rem)}
 .tele .next{opacity:.7}
 .tele .cur{font-weight:900;font-size:clamp(3.6rem,17vw,11rem);line-height:1;color:var(--ac)}
 .tele .cur.sil{color:#5b6b73}
-.tele .ly,.tele .lyn{white-space:pre-line}
-.tele .ly{font-size:clamp(1rem,3vw,1.7rem);color:#cfe0e6;margin-top:.3em;font-weight:700}
-.tele .lyn{font-size:clamp(.8rem,2vw,1.1rem);color:#7f959e;margin-top:.3em}
+.tele .ly,.tele .lyn{white-space:pre;line-height:1.15;overflow:hidden}
+.tele .ly{color:#e6eef1;font-weight:800}
+.tele .lyn{color:#7f959e;font-weight:700}
 .tele .ph{border:0;padding:0;margin:0;font-weight:800;color:#9fb4bd;font-size:1.05rem}
 .fstrip{display:flex;gap:4px;height:46px;margin-top:8px}
 .fstrip div{border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;color:#081418;cursor:pointer;overflow:hidden;white-space:nowrap;position:relative;min-width:0}
@@ -151,7 +153,7 @@ table.tr{width:100%;border-collapse:collapse}table.tr td{padding:4px}
 .lockov{position:absolute;inset:0;z-index:5}
 .lockbtn{position:relative;z-index:6}
 .scene{background:#2a2410;color:#ffd98a;border-radius:10px;padding:.5em .8em;font-weight:800;margin-top:6px}
-@media (max-width:640px){.tele{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}.tele .prev{display:none}.bigbtns{grid-template-columns:1fr 1fr}.hide-sm{display:none}}
+@media (max-width:640px){.trow{grid-template-columns:1fr;grid-template-rows:auto auto auto}.tele .prev{display:none}.bigbtns{grid-template-columns:1fr 1fr}.hide-sm{display:none}}
 @media print{.hdr,.tabs,.toast{display:none}}
 /* ===================== Look Quack ===================== */
 button{background:var(--sf);border:1px solid var(--ln);color:var(--tx2);border-radius:12px;font-weight:800}
@@ -494,7 +496,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.26-0012';
+const QM_VERSION='2026.09.26-0017';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -793,6 +795,11 @@ function printSet(S){let n=0;const rows=S.entries.map(e=>{if(e.k===1)return`<tr>
   const w=window.open('','_blank');if(!w)return toast('Permite ventanas emergentes para imprimir');
   w.document.write(`<html><head><meta charset=utf-8><title>${esc(S.name)}</title><style>body{font-family:system-ui,sans-serif;padding:20px}td,th{padding:6px 4px;text-align:left;border-bottom:1px solid #ddd}table{border-collapse:collapse;width:100%}</style></head><body><h1>${esc(S.name)}</h1><table><tr><th>#</th><th>Canción</th><th>Primer acorde</th><th>BPM</th><th>Sonido</th></tr>${rows}</table><script>print()<\/script></body></html>`);w.document.close();}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// La letra se agranda hasta llenar el ancho de la pantalla (sin cortar palabras); la que viene, más chica
+function fitLyrics(){for(const[sel,k]of[['.tele .ly',1],['.tele .lyn',.6]]){const el=document.querySelector(sel);if(!el||!el.textContent)continue;
+  let fs=Math.min(innerWidth*.085,innerHeight*.11)*k;el.style.fontSize=fs+'px';
+  for(let i=0;i<40&&el.scrollWidth>el.clientWidth+1&&fs>14;i++){fs*=.93;el.style.fontSize=fs+'px';}}}
+addEventListener('resize',()=>{if(document.querySelector('.tele'))fitLyrics();});
 function perform(i){cmd('set',i).then(()=>openPerf());}
 
 /* ---------- Vista: Editar canción ---------- */
@@ -1281,9 +1288,14 @@ function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set
   const jump=(sti)=>{if(!pfLocked)cmd('jump',sti);};
   if(prefs.view==='tele'){
     const cn=cur?chordName(cur.c.notes,tr):'▶';
-    pfEl.append(h('div',{class:'tele'},h('div',{class:'prev'},pv?chordName(pv.c.notes,tr):''),
-      h('div',null,h('div',{class:'ph'},cur?s.phrases[cur.p].name+(F[cur.st].r>1?` · ${cur.r+1}/${F[cur.st].r}`:'')+(s.phrases[cur.p].sound?' · sonido '+sndLabel(s.phrases[cur.p].sound):''):'Listo'),h('div',{class:'cur'+(cur&&!cur.c.notes.length?' sil':'')},cn),s.hasLyr&&cur&&lyrAt(cur.c,vueltaOf(s,cur.st,cur.r))?h('div',{class:'ly'},lyrAt(cur.c,vueltaOf(s,cur.st,cur.r))):null,s.hasLyr&&nx&&lyrAt(nx.c,vueltaOf(s,nx.st,nx.r))?h('div',{class:'lyn'},'→ '+lyrAt(nx.c,vueltaOf(s,nx.st,nx.r))):null),
-      h('div',{class:'next'},nx?chordName(nx.c.notes,tr):'')));
+    // Arriba, siempre en el mismo lugar: acorde anterior · actual · siguiente. La letra va debajo, alineada arriba:
+    // lo que aparece se agrega abajo y nada se mueve hacia arriba.
+    const lyNow=s.hasLyr&&cur?lyrAt(cur.c,vueltaOf(s,cur.st,cur.r)):'',lyNx=s.hasLyr&&nx?lyrAt(nx.c,vueltaOf(s,nx.st,nx.r)):'';
+    pfEl.append(h('div',{class:'tele'},h('div',{class:'trow'},h('div',{class:'prev'},pv?chordName(pv.c.notes,tr):''),
+      h('div',null,h('div',{class:'ph'},cur?s.phrases[cur.p].name+(F[cur.st].r>1?` · ${cur.r+1}/${F[cur.st].r}`:'')+(s.phrases[cur.p].sound?' · sonido '+sndLabel(s.phrases[cur.p].sound):''):'Listo'),h('div',{class:'cur'+(cur&&!cur.c.notes.length?' sil':'')},cn)),
+      h('div',{class:'next'},nx?chordName(nx.c.notes,tr):'')),
+      s.hasLyr?h('div',{class:'tly'},h('div',{class:'ly'},lyNow),lyNx&&lyNx!==lyNow?h('div',{class:'lyn'},lyNx):null):null));
+    fitLyrics();
     const fsx=h('div',{class:'fstrip'});const tot=seq.length||1;
     F.forEach((f,sti)=>{const p=s.phrases[f.p];if(!p||!p.chords.length)return;const n=p.chords.length*f.r;const d=h('div',{class:cur&&sti<cur.st||(!cur&&sti<st.st)?'dim':'',style:`flex:${n} 1 0;background:${PCOL[p.color%8]}`,onclick:()=>jump(sti)},p.name+(f.r>1?' ×'+f.r:''));
       if(cur&&cur.st===sti){const k=seq.filter(x=>x.st===sti).indexOf(cur);d.append(h('span',{class:'mk',style:`left:${k/n*100}%;width:${100/n}%`}));}fsx.append(d);});
