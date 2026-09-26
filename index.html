@@ -501,8 +501,8 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.26-0106';
-const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
+const QM_VERSION='2026.09.26-0108';
+const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',lyrMin:5,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
 function savePrefs(){try{localStorage.setItem('qm_prefs2',JSON.stringify(prefs));}catch(e){}}
@@ -806,7 +806,8 @@ function fitLyrics(){
   // (cortando entre palabras). La letra que viene va al 60 %.
   let lyFs=null;   // la que viene nunca queda más grande que la actual
   for(const[sel,k]of[['.tele .ly',1],['.tele .lyn',.6]]){const el=document.querySelector(sel);if(!el||!el.textContent)continue;
-    const max=Math.min(Math.min(innerWidth*.085,innerHeight*.11)*k,lyFs?lyFs*.6:1e9),min=Math.max(18,Math.min(innerWidth*.05,innerHeight*.06))*k;
+    const pm=(prefs.lyrMin||5)/100,min=Math.max(14,Math.min(innerWidth*pm,innerHeight*pm*1.2))*k;   // mínimo: Ajustes → Letras
+    const max=Math.max(min,Math.min(Math.min(innerWidth*.085,innerHeight*.11)*k,lyFs?lyFs*.6:1e9));
     let fs=max;el.classList.remove('wrap');el.style.fontSize=fs+'px';
     for(let i=0;i<60&&el.scrollWidth>el.clientWidth+1&&fs>min;i++){fs=Math.max(min,fs*.94);el.style.fontSize=fs+'px';}
     if(el.scrollWidth>el.clientWidth+1)el.classList.add('wrap');if(k===1)lyFs=fs;}}
@@ -1251,7 +1252,9 @@ function vCfg(m0){const S=M.settings;const m=h('div');
     h('div',{class:'col'},toggle('Enviar MIDI Clock (tempo) al MiniNova',S.clock,v=>edit(()=>S.clock=v)),toggle('MIDI Thru (pasar todo directo)',!!st.thru,v=>cmd('thru',v?1:0)),toggle('Sonar al tocar un acorde en el editor',prefs.audition,v=>{prefs.audition=v;savePrefs();}))),
     h('div',{class:'col',style:'margin-top:12px'},h('span',{class:'mu sm'},'Sonido simple en este dispositivo (también en el botón del parlante, arriba)'),seg(SND_OPTS.map(([v,t])=>[v,t.split(' (')[0]]),prefs.sound,v=>setSound(v)),
       h('span',{class:'mu sm'},'Un tono básico del navegador para reconocer el acorde sin el MiniNova. "Corto" se apaga solo en ~2 s; "Sostenido" suena hasta el siguiente acorde y respeta Ligado y Mantener.'))));
-  m.append(h('div',{class:'card'},h('h2',null,'Letras (opcional)'),h('p',{class:'mu sm',style:'margin-top:0'},'Cada canción activa su letra en Editar → Canción → Letra. Aquí eliges dónde se guardan.'),
+  m.append(h('div',{class:'card'},h('h2',null,'Letras (opcional)'),h('p',{class:'mu sm',style:'margin-top:0'},'Cada canción activa su letra en Editar → Canción → Letra. Aquí eliges dónde se guardan y qué tan grande se ve.'),
+    h('div',{class:'row',style:'margin:6px 0 10px;gap:14px'},knob({label:'Tamaño mínimo',value:prefs.lyrMin||5,min:2,max:10,step:.5,onInput:v=>{prefs.lyrMin=v;savePrefs();}}),
+      h('span',{class:'mu sm grow'},'En el Modo Performance la letra se agranda hasta llenar el ancho. Si una frase no cabe, se achica solo hasta este tamaño (en % del ancho de la pantalla; 5 = normal) y lo que sobra baja a la línea siguiente. Más grande = más fácil de leer de lejos, pero con más cortes de línea.')),
     h('div',{style:'margin-top:10px'},seg([['local','En este dispositivo'],['qwiic','En la memoria Qwiic']],prefs.lyrStore,v=>{if(v==='qwiic'&&!st.q)return toast('No se detectó una memoria Qwiic conectada');prefs.lyrStore=v;savePrefs();saveLyrics().then(()=>renderAll());}),
       h('p',{class:'mu sm'},prefs.lyrStore==='local'?(window.APPMODE?'Las letras se guardan en esta tablet y se sincronizan con tus otros dispositivos por Google Drive (nube de arriba). No se mandan al Arduino. ':'Las letras quedan en el navegador de este dispositivo. En la app de la tablet se sincronizan por Google Drive. ')+'También viajan en el respaldo.':'Las letras viven en la memoria Qwiic del Arduino y se ven desde cualquier dispositivo.'))));
   const used=enc(M).length,max=st.max||8112;
