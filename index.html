@@ -354,7 +354,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-2142';
+const QM_VERSION='2026.09.25-2143';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -1110,7 +1110,7 @@ window.addEventListener('beforeunload',e=>{if(pendingUp){e.preventDefault();e.re
 (function(){const sp=$('#splash');if(!sp)return;const red=matchMedia('(prefers-reduced-motion: reduce)').matches;
   // Android centra su pato en TODA la pantalla (con la barra de estado); la app solo ve el espacio bajo esa barra.
   // Se sube el pato la mitad de lo que ocupan las barras del sistema, para que calce exacto con el de Android.
-  try{if(matchMedia('(display-mode: standalone)').matches){const bars=Math.max(0,screen.height-innerHeight);const dy=Math.min(12,bars/2);   // tope: con barra abajo la diferencia real es menor
+  try{if(matchMedia('(display-mode: standalone)').matches){const bars=Math.max(0,screen.height-innerHeight);const dy=Math.min(6,bars/2);   // tope: con barra abajo la diferencia real es menor
     const d=sp.querySelector('.spduck');if(d)d.style.transform='translateY(-'+dy+'px)';}}catch(e){}
   setTimeout(()=>{sp.classList.add('out');setTimeout(()=>sp.remove(),400);},red?300:1150);})();
 
