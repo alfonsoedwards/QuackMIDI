@@ -501,7 +501,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.26-0103';
+const QM_VERSION='2026.09.26-0104';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -903,7 +903,7 @@ function rackHead(s,p,pi){
     const cur=p.chords[edSel.c],many=multiMode&&multi.size;
     const insertAt=arr=>edit(()=>{const at=p.chords.length?edSel.c+1:0;p.chords.splice(at,0,...arr);edSel.c=at+arr.length-1;revealSel=true;});
   return panelHead('Acordes',multiMode?[multi.size+' elegidos']:cur?[stepLabel(cur)]:null,[
-        tb('plus','Acorde',()=>insertAt([{notes:cur&&cur.notes.length?[...cur.notes]:buildChord(0,4,0,0)}]),{title:'Agregar un acorde después del elegido'}),
+        tb('plus','Acorde',()=>insertAt([{notes:buildChord(0,4,0,0)}]),{title:'Agregar un acorde nuevo (Do mayor) después del elegido; cámbialo con el piano o con Armar'}),
         tb('minus','Silencio',()=>insertAt([{notes:[]}]),{title:'Agregar un silencio después del elegido'}),
         tb('dup','Duplicar',()=>insertAt([copy(cur)]),{off:!cur||multiMode,title:'Duplicar el acorde elegido'}),
         tb('left','',()=>edit(()=>{moveArr(p.chords,edSel.c,edSel.c-1);edSel.c--;revealSel=true;}),{off:!cur||multiMode||edSel.c===0,title:'Mover el acorde a la izquierda'}),
