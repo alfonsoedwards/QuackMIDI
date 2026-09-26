@@ -368,7 +368,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-2204';
+const QM_VERSION='2026.09.25-2208';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -916,8 +916,23 @@ async function doSave(){if(pendingUp||uploading)await upload();try{const j=await
 async function doDiscard(){modal('¿Descartar cambios?',h('p',null,'Vuelve a lo último guardado en el Arduino.'),[['Cancelar'],['Descartar',async()=>{clearTimeout(upTimer);pendingUp=false;await api('/api/discard',{method:'POST'});await loadBlob();renderAll();},'er']]);}
 function doExport(){const b=enc(M);let bin='';for(const x of b)bin+=String.fromCharCode(x);const data={app:'QuackMIDI',v:1,blob:btoa(bin),lyrics:collectLyrics()};
   const a=h('a',{href:URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})),download:(()=>{const d=new Date(),z=n=>String(n).padStart(2,'0');return`QuackMIDI_${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}_${z(d.getHours())}-${z(d.getMinutes())}.json`;})()});document.body.append(a);a.click();a.remove();try{localStorage.setItem('qm_lastexp',String(Date.now()));}catch(e){}toast('Respaldo guardado en Descargas');renderAll();}
-function doImport(){const i=h('input',{type:'file',accept:'.json,application/json'});i.onchange=async()=>{try{const d=JSON.parse(await i.files[0].text());if(d.app!=='QuackMIDI')throw 0;const b=Uint8Array.from(atob(d.blob),c=>c.charCodeAt(0));const nm=dec(b);
-  modal('¿Importar respaldo?',h('p',null,`${nm.songs.length} canciones y ${nm.sets.length} presentaciones. Reemplaza lo que hay ahora (luego toca Guardar).`),[['Cancelar'],['Importar',()=>{snap();M=nm;lyrDoc=d.lyrics||{};attachLyrics();fixSel();changed();},'ac']]);}catch(e){toast('Ese archivo no es un respaldo de Quack MIDI');}};i.click();}
+function modelFromSync(d){   // archivo de la sincronización de Drive (QuackMIDI.json y sus versiones antiguas)
+  const songs=(d.songs||[]).map(x=>{const c=copy(x);delete c._t;return c;});const idx=id=>songs.findIndex(x=>x.id===id);
+  const sets=(d.sets||[]).map(st=>({name:st.name,entries:st.entries.filter(e=>e.k!==0||idx(e.id)>=0).map(e=>e.k===0?{k:0,s:idx(e.id),t:e.t||0,note:e.note||''}:e)}));
+  return{settings:d.settings||M.settings,songs,sets};}
+function doImport(){const i=h('input',{type:'file',accept:'.json,application/json'});i.onchange=async()=>{let nm,ly={};try{const d=JSON.parse(await i.files[0].text());if(d.app!=='QuackMIDI')throw 0;
+    if(d.blob){nm=dec(Uint8Array.from(atob(d.blob),c=>c.charCodeAt(0)));ly=d.lyrics||{};}else if(d.songs)nm=modelFromSync(d);else throw 0;}
+  catch(e){return toast('Ese archivo no es un respaldo de Quack MIDI');}
+  const have=new Set(M.songs.map(x=>x.id)),haveN=new Set(M.songs.map(x=>x.name.trim().toLowerCase()));
+  const missing=nm.songs.filter(x=>!have.has(x.id)&&!haveN.has(x.name.trim().toLowerCase()));
+  modal('Abrir respaldo',h('div',null,
+    h('p',{class:'sm',style:'margin-top:0'},`Este archivo trae ${nm.songs.length} canciones y ${nm.sets.length} presentaciones:`),
+    h('div',{class:'col sm',style:'max-height:40vh;overflow:auto;background:var(--bg);border-radius:10px;padding:8px 12px'},nm.songs.map(x=>h('div',null,(missing.includes(x)?'＋ ':'· ')+x.name))),
+    h('p',{class:'mu sm'},missing.length?`Las marcadas con ＋ (${missing.length}) no están ahora en la app.`:'Todas estas canciones ya están en la app.'),
+    h('p',{class:'mu sm'},'"Agregar solo las que faltan" no toca lo que ya tienes. "Reemplazar todo" deja la app igual que el archivo (lo actual queda en Copias automáticas).')),
+    [['Cancelar'],
+     missing.length?['Agregar solo las que faltan',()=>{takeSnap(true);snap();for(const x of missing){const c=copy(x);if(M.songs.some(y=>y.id===c.id))c.id=newId();M.songs.push(c);}fixSel();changed();toast(missing.length+' canción(es) recuperada(s) ✓');},'ac']:null,
+     ['Reemplazar todo',()=>{takeSnap(true);snap();M=nm;lyrDoc=ly;attachLyrics();fixSel();changed();toast('Respaldo abierto ✓');},missing.length?'':'ac']].filter(Boolean));};i.click();}
 let learnK=-1,learnM=null;
 function learn(k){learnK=k;cmd('learn',k);learnM=modal('Aprender '+SWN[k].split(' · ')[0],h('p',null,'Pisa el switch y suéltalo.'),[['Cancelar',()=>{cmd('learn',255);}]]);}
 function onLearnDone(){if(learnM){learnM.remove();learnM=null;}const r=st.Lr;
