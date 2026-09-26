@@ -107,12 +107,6 @@ main{padding:8px 16px;max-width:1200px;margin:0 auto}
 .sndmenu button.on{background:var(--ac);color:var(--aci)}
 #btnSnd,#btnCloud{display:inline-flex;align-items:center;padding:.35em .5em}
 .spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
-.tbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--sf);box-shadow:0 -4px 18px #0002;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:6px max(12px,env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom,0px));justify-content:safe center}
-.tbar button{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:58px;padding:.35em .45em;background:transparent;font-size:.7rem;font-weight:800;color:var(--tx)}
-.tbar button b{font-size:1.15rem;line-height:1.1}
-.tbar button.ac{background:var(--ac);color:var(--aci)}
-.tbar .sepv{flex:0 0 1px;background:var(--ln);margin:4px 2px}
-main.withbar{padding-bottom:84px}
 .modal{position:fixed;inset:0;background:#000a;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
 .modal .box{background:var(--sf);border-radius:18px;padding:18px;max-width:560px;width:100%;max-height:90vh;overflow:auto;box-shadow:var(--sh)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--sf3);color:var(--tx);padding:.7em 1.1em;border-radius:12px;font-weight:800;z-index:60;box-shadow:var(--sh);max-width:90vw}
@@ -200,10 +194,6 @@ main{padding:14px 16px}
 .tg span.sw{background:var(--sf3)}
 .knob input{background:var(--bg)}
 .piano .w{background:#fff;border:1px solid #CFC8C1}.piano .b{background:#3A3633}.piano .lbl{color:#9A948E}
-.tbar{background:var(--sf);border-top:1px solid var(--ln);box-shadow:none}
-.tbar button{border:0;color:var(--tx2);background:transparent;gap:3px}
-.tbar button .ic{width:22px;height:22px}
-.tbar button.del{color:var(--er)}
 .sndmenu{background:var(--sf);border:1px solid var(--ln)}
 .sndmenu button{border:0}
 .modal .box{background:var(--sf);border:1px solid var(--ln)}
@@ -292,9 +282,71 @@ body{background:var(--bg)}
 @keyframes sweep{from{transform:translateX(0)}to{transform:translateX(150px)}}
 .splash.out{opacity:0;pointer-events:none}
 @media (prefers-reduced-motion:reduce){.splash{transition:none}.spduck .sweep{animation:none;opacity:0}}
+/* ===== Herramientas dentro de cada panel, todo en calipso ===== */
+:root{--acl:color-mix(in srgb,var(--ac) 16%,var(--sf));--acl2:color-mix(in srgb,var(--ac) 30%,var(--sf))}
+/* Franja calipso + pestañas + barra fija: un solo bloque arriba; el contenido empieza debajo (no queda tapado) */
+.topw{position:sticky;top:0;z-index:20;background:var(--bg)}
+html,body{overflow-anchor:none}
+.topw .hdr,.topw .tabs{position:static}
+.htools{display:flex;gap:2px}
+.htools button{padding:.4em .5em}.htools .ic{width:22px;height:22px}
+.htools button:disabled{opacity:.35}
+@media (max-width:560px){.brand>span:last-child{display:none}.hdr{gap:.25em}}
+/* Sin botones rojos: "borrar" y "silenciar" son botones calipso con borde */
+button.er,button.er:hover,.pf-bot button.mute{background:var(--sf);color:var(--ack);border:1px solid var(--ac)}
+.sndmenu button.delm{color:var(--tx)}
+/* Encabezado de panel: título, qué está elegido y sus herramientas */
+.pnh{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;margin-bottom:8px}
+.pnh h2{margin:0}
+.pnh .tgt{font-weight:800;color:var(--ack);background:var(--acl);border-radius:99px;padding:.15em .7em;font-size:.85rem;white-space:nowrap;max-width:12em;overflow:hidden;text-overflow:ellipsis}
+.pnh .tgt i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.tools{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto;align-items:center}
+.tools button,.tools select{background:var(--acl);color:var(--ack);border:0;padding:.4em .6em;font-size:.85rem;font-weight:800;border-radius:9px}
+.tools select{appearance:auto;max-width:9em}
+.tools button .ic{width:17px;height:17px}
+@media (max-width:560px){.tools button,.tools select{padding:.35em .5em;font-size:.8rem}.tools{gap:3px}}
+.tools button.on{background:var(--ac);color:var(--aci)}
+.tools .cnt{font-weight:900;color:var(--ack);min-width:2em;text-align:center}
+.tools .sw{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid var(--sf)}
+.pnh+.hint{margin:-4px 0 8px}
+/* Tarjetas (frases, pasos, acordes): calipso claro; la elegida, calipso fuerte */
+.pt{background:var(--acl);border-color:transparent}
+.pt.on{background:var(--ac);color:var(--aci);outline:0}
+.pt.on small{color:#ffffffd0}
+.chip{background:var(--acl);border:0;border-left:6px solid var(--pc,var(--ac));cursor:pointer;padding:.45em .8em}
+.chip.on{background:var(--ac);color:var(--aci)}
+.chip b{font-weight:900;opacity:.75}
+.cc{background:var(--acl);background-image:none;outline:0;color:var(--tx)}
+.cc .nt{color:var(--tx2)}
+.cc.sel{background:var(--ac);color:var(--aci);outline:0}
+.cc.sel .nt,.cc.sel.sil .nm{color:#ffffffd8}
+.cc.msel{outline:3px dashed var(--ack);outline-offset:1px}
+.cc.sel .dot{background:#fff}
+/* ✕ montada sobre la esquina de la tarjeta, sin cortarse */
+.strip{padding:14px 14px 10px 4px}
+.cc .del{top:-10px;right:-10px;width:26px;height:26px;background:var(--ac);color:#fff;border:2px solid var(--sf);z-index:2}
+.cc .del .ic{width:13px;height:13px}
+/* Combinator: los acordes van dentro del panel de frases */
+.rack{margin-top:6px;border-radius:12px;background:var(--bg);border:1px solid var(--ln);box-shadow:inset 6px 0 0 var(--pc);padding:12px 12px 4px 18px}
+.rack .pnh h2{font-size:1rem}
+#chordsCard{box-shadow:inset 6px 0 0 var(--pc)}
+/* Barra fija: calipso */
+#stickSlot .stick[hidden]{display:none}
+#stickSlot .stick{position:static;background:var(--acl);border:0;box-shadow:0 4px 10px #0000000f;padding:6px 12px}
+.stick select{background:var(--sf);color:var(--ack);border:0}
+.sc2{background:var(--sf);color:var(--ack)}
+.sc2.on{background:var(--ac);color:var(--aci)}
+/* Paletitas y menús emergentes */
+.pop{position:fixed;z-index:55;background:var(--sf);border:1px solid var(--ln);border-radius:14px;box-shadow:var(--sh);padding:10px}
+.pal{display:grid;grid-template-columns:repeat(4,36px);gap:8px}
+.pal button{width:36px;height:36px;border-radius:50%;padding:0;border:3px solid transparent}
+.pal button.on{border-color:var(--tx)}
+.pop .col{gap:8px}
+.pop select{width:100%}
 </style>
 </head>
 <body>
+<div class="topw" id="topw">
 <div class="hdr">
   <div class="brand"><span class="hduck" id="hduck"><span id="hdA"><svg class="duck" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 322 320"><defs>
 <clipPath id="hacBody"><circle cx="158.2" cy="186.2" r="119"/></clipPath>
@@ -314,12 +366,15 @@ body{background:var(--bg)}
 <mask id="hbmPins" maskUnits="userSpaceOnUse" x="0" y="0" width="322" height="320"><rect width="322" height="320" fill="#fff"/><circle cx="249.51" cy="275.89" r="3.4" fill="#000"/><circle cx="253.9" cy="265.28" r="3.4" fill="#000"/><circle cx="264.51" cy="260.89" r="3.4" fill="#000"/><circle cx="275.11" cy="265.28" r="3.4" fill="#000"/><circle cx="279.51" cy="275.89" r="3.4" fill="#000"/><rect x="261.01" y="294.39" width="7" height="7" fill="#000"/></mask>
 </defs><g mask="url(#hbmAir)" fill="currentColor"><path d="M38.2 186.2a120 120 0 1 0 240 0a120 120 0 1 0 -240 0ZM62.2 186.2a96 96 0 1 0 192 0a96 96 0 1 0 -192 0Z" fill-rule="evenodd" mask="url(#hbmBody)"/><line stroke="currentColor" x1="12.65" y1="80.84" x2="137.48" y2="193.28" stroke-width="12" stroke-linecap="round" clip-path="url(#hbcBody)"/><line stroke="currentColor" x1="-3.21" y1="98.45" x2="113.44" y2="203.53" stroke-width="12" stroke-linecap="round" clip-path="url(#hbcBody)"/><line stroke="currentColor" x1="-19.54" y1="116.58" x2="90.42" y2="215.63" stroke-width="12" stroke-linecap="round" clip-path="url(#hbcBody)"/><path d="M159.6 62.4a62.5 62.5 0 1 0 125 0a62.5 62.5 0 1 0 -125 0ZM183.6 62.4a38.5 38.5 0 1 0 77 0a38.5 38.5 0 1 0 -77 0Z" fill-rule="evenodd" clip-path="url(#hbcNeck)"/><path d="M159.6 62.4 L183.6 62.4 L183.6 200.51 L159.6 178.89Z"/><path d="M194 58.35C197.27 58.79 209.17 60.91 213 61.63C216.83 62.36 215.17 62.02 217 62.71C218.83 63.4 221.89 64.55 224 65.76C226.11 66.98 227.94 68.46 229.67 70C231.4 71.54 232.94 73 234.39 75C235.84 77 237.43 80 238.37 82C239.31 84 239.93 86.08 240.03 87C240.14 87.92 240.17 87.7 239 87.5C237.83 87.3 235 86.17 233 85.8C231 85.43 229.33 85.3 227 85.28C224.67 85.27 221 85.5 219 85.72C217 85.95 217.17 85.86 215 86.65C212.83 87.44 209.17 88.67 206 90.48C202.83 92.28 198.04 96.74 196 97.49C193.96 98.24 194.94 96.58 193.77 95C192.59 93.42 188.07 90.38 188.94 88C189.82 85.62 196.32 82.45 199 80.71C201.68 78.97 202.68 78.52 205 77.57C207.32 76.62 211.54 75.59 212.91 75C214.28 74.41 216.75 74.83 213.22 74C209.7 73.17 195.4 70.83 191.77 70C188.13 69.17 191.26 70.33 191.41 69C191.57 67.67 192.38 63.67 192.71 62C193.04 60.33 193.16 59.61 193.38 59C193.59 58.39 190.73 57.91 194 58.35Z"/><path d="M249.2 69.4a19.7 19.7 0 1 0 39.4 0a19.7 19.7 0 1 0 -39.4 0ZM257.9 69.4a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z" fill-rule="evenodd"/><circle cx="271.3" cy="70.4" r="5.6"/><path d="M216.5 100 H310 A12 12 0 0 1 310 124 H216.5Z" mask="url(#hbmBeak)"/><line stroke="currentColor" x1="227" y1="142" x2="310" y2="142" stroke-width="24" stroke-linecap="round"/></g><line x1="10.03" y1="44.16" x2="264.51" y2="273.39" stroke="currentColor" stroke-width="24" stroke-linecap="round" mask="url(#hbmCable)"/><g fill="currentColor" mask="url(#hbmPins)"><circle cx="264.51" cy="273.39" r="27"/></g></svg></span><svg class="duck glasses" viewBox="0 0 322 320" aria-hidden="true"><defs><clipPath id="glc"><path d="M0 94.1 L322 38.9 L322 320 L0 320Z"/></clipPath></defs><g clip-path="url(#glc)" fill="#4EC6DF" stroke="#4EC6DF" stroke-width="7"><circle cx="216.4" cy="81.9" r="31"/><circle cx="268.9" cy="69.4" r="22.5"/></g><path d="M234.4 53.91 L256.9 50.06 L256.9 55.06 L234.4 58.91Z" fill="#4EC6DF" stroke="#4EC6DF" stroke-width="7"/><g clip-path="url(#glc)" fill="#3A3633"><circle cx="216.4" cy="81.9" r="31"/><circle cx="268.9" cy="69.4" r="22.5"/></g><path d="M234.4 53.91 L256.9 50.06 L256.9 55.06 L234.4 58.91Z" fill="#3A3633"/><g stroke="#fff" stroke-width="4.6" stroke-linecap="round"><line x1="199.35" y1="80.35" x2="213.3" y2="66.4"/><line x1="256.52" y1="68.28" x2="266.65" y2="58.15"/></g><clipPath id="gll"><circle cx="216.4" cy="81.9" r="31"/><circle cx="268.9" cy="69.4" r="22.5"/></clipPath><g clip-path="url(#glc)"><g clip-path="url(#gll)"><g transform="rotate(22 242.65 75.65)"><rect class="sweep" x="140" y="-40" width="16" height="200" fill="#fff" opacity=".75"/></g></g></g></svg></span><span>Quack <b>MIDI</b></span></div>
   <span class="sp"></span>
+  <span class="htools" id="htools"></span>
   <span id="pill" class="pill off"><i></i><span>Conectando…</span></span>
   <button class="gh" id="btnCloud" title="Sincronizar con Google Drive" hidden></button>
   <button class="gh" id="btnSnd" title="Sonido en este dispositivo"></button>
   <button class="gh" id="btnHelp" title="Ayuda"></button>
 </div>
 <nav class="tabs" id="tabs"></nav>
+<div id="stickSlot"></div>
+</div>
 <main id="main"></main>
 <script>
 "use strict";
@@ -338,6 +393,7 @@ const ICONS={
   undo:'<path d="M8 5l-4 4 4 4"/><path d="M4 9h9a6 6 0 0 1 0 12h-2"/>',
   redo:'<path d="M16 5l4 4-4 4"/><path d="M20 9h-9a6 6 0 0 0 0 12h2"/>',
   play:'<path d="M8 5.5v13l10.5-6.5z"/>', stop:'<rect x="6.5" y="6.5" width="11" height="11" rx="2"/>',
+  check:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12.5l3 3 5-6"/>',
   plus:'<path d="M12 5v14M5 12h14"/>', minus:'<path d="M5 12h14"/>',
   copy:'<rect x="8" y="8" width="11" height="11" rx="2"/><path d="M5 15V6a1 1 0 0 1 1-1h9"/>',
   paste:'<rect x="6" y="5" width="12" height="15" rx="2"/><path d="M9.5 5V3.8h5V5"/><path d="M9 11h6M9 15h4"/>',
@@ -411,7 +467,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-2232';
+const QM_VERSION='2026.09.25-2304';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -611,13 +667,27 @@ function renderAll(){
   if(sameTab)scrollTo(0,keepY);
   if(revealSel){revealSel=false;const c=document.querySelector('.cc.sel');if(c)c.scrollIntoView({inline:'nearest',block:'nearest',behavior:'smooth'});}
   saveUi();}
-function renderMain(){renderTabs();const m=$('#main');m.innerHTML='';m.classList.toggle('withbar',tab==='edit'&&!!M&&M.songs.length>0);const ob=$('.tbar');if(ob)ob.remove();if(!M){m.append(h('div',{class:'card'},'Conectando con Quack MIDI…'));return;}
+/* Franja calipso: deshacer / rehacer (siempre) y copiar / pegar (al editar) */
+let lastFocus='chords';   // qué se copia: 'chords' (los acordes elegidos) o 'phrase' (la frase elegida)
+function updTop(){const t=$('#htools');if(!t)return;t.innerHTML='';
+  const B=(i,title,fn,off)=>h('button',{class:'gh',title,disabled:off||null,onclick:fn},ic(i));
+  t.append(B('undo','Deshacer',undo,!hist.u.length),B('redo','Rehacer',redo,!hist.r.length));
+  if(tab==='edit'&&M&&M.songs.length){const s=M.songs[edSong];
+    t.append(B('copy',lastFocus==='phrase'?'Copiar la frase elegida':'Copiar los acordes elegidos',()=>copySel(s)),
+      B('paste',!clip?'Nada copiado':clip.kind==='phrase'?`Pegar la frase "${clip.data.name}" después de la elegida`:`Pegar ${clip.data.length} acorde(s) después del elegido`,()=>pasteClip(s),!clip));}}
+function copySel(s){
+  if(lastFocus==='phrase'){const p=s.phrases[edSel.p];if(!p)return;clip={kind:'phrase',data:copy(p)};toast(`Frase "${p.name}" copiada`);}
+  else{const sel=selChords(s);if(!sel.length)return toast('Elige un acorde');clip={kind:'chords',data:copy(sel)};toast(sel.length===1?`Acorde ${stepLabel(sel[0])} copiado`:sel.length+' acordes copiados');}
+  updTop();}
+function pasteClip(s){if(!clip)return;
+  if(clip.kind==='phrase')edit(()=>{const d=copy(clip.data),at=Math.min(edSel.p+1,s.phrases.length);s.phrases.splice(at,0,d);for(const f of s.form)if(f.p>=at)f.p++;s.form.push({p:at,r:1});edSel={p:at,c:0};});
+  else{const p=s.phrases[edSel.p];if(!p)return;edit(()=>{const at=p.chords.length?edSel.c+1:0;p.chords.splice(at,0,...copy(clip.data));edSel.c=at+clip.data.length-1;revealSel=true;});}}
+function renderMain(){renderTabs();updTop();const m=$('#main');m.innerHTML='';const sl=$('#stickSlot');if(sl){sl.innerHTML='';if(tab!=='edit')stickOn=false;}if(!M){m.append(h('div',{class:'card'},'Conectando con Quack MIDI…'));return;}
   if(st.crc)m.append(h('div',{class:'banner er'},'Los datos guardados estaban dañados (¿se cortó la luz mientras guardaba?). No los cargué. Importa tu respaldo en Ajustes.'));
   if(st.warn>=0&&st.warn!=null)m.append(h('div',{class:'banner'},`El switch ${st.warn+1} parece no estar en modo momentáneo. Cámbialo en el Ampero.`,h('span',{class:'sp'}),h('button',{onclick:()=>cmd('warnok')},'Entendido')));
   if(st.thru)m.append(h('div',{class:'banner'},'MIDI Thru activado: Quack MIDI deja pasar todo y no toca acordes.'));
   if(window.APPMODE&&!window.SIM_NOBACKUPNAG&&Date.now()-lastExport()>7*864e5&&M.songs.some(x=>x.id>4))m.append(h('div',{class:'banner'},lastExport()?'Hace más de una semana que no respaldas tus canciones.':'Todavía no respaldas tus canciones en un archivo.',h('span',{class:'sp'}),h('button',{onclick:saveBackup},ic('save'),'Guardar (respaldar)')));
-  ({live:vLive,songs:vSongs,sets:vSets,edit:vEdit,cfg:vCfg})[tab](m);
-  if(tab==='edit'&&M.songs.length)document.body.append(editToolbar(M.songs[edSong]));}
+  ({live:vLive,songs:vSongs,sets:vSets,edit:vEdit,cfg:vCfg})[tab](m);}
 function renderLive(){if(tab==='live'&&M&&!dragS&&!document.activeElement.matches('input,textarea'))renderAll();}
 
 /* ---------- Vista: En vivo ---------- */
@@ -646,7 +716,7 @@ function newId(){const used=new Set(M.songs.map(x=>x.id));let id;do{id=1+Math.fl
 function newSong(){const id=newId();return{id,name:'Canción nueva',hold:false,tie:false,repeat:false,sendPC:false,bank:0,bpm:120,vel:100,pc:0,phrases:[{name:'Estrofa',color:0,chords:[{notes:buildChord(0,4,0,0)},{notes:[]}]}],form:[{p:0,r:1}]};}
 function remapSets(fn){for(const s of M.sets)s.entries=s.entries.filter(e=>{if(e.k!==0)return true;const n=fn(e.s);if(n<0)return false;e.s=n;return true;});}
 function vSongs(m){
-  const c=h('div',{class:'card'},h('div',{class:'row'},h('h2',{class:'grow',style:'margin:0'},'Canciones'),h('button',{class:'ac',onclick:()=>{if(M.songs.length>=255)return toast('Máximo 255 canciones');edit(()=>{M.songs.push(newSong());edSong=M.songs.length-1;edSel={p:0,c:0};tab='edit';});}},'+ Nueva')),
+  const c=h('div',{class:'card'},h('div',{class:'pnh'},h('h2',null,'Canciones'),h('div',{class:'tools'},h('button',{onclick:()=>{if(M.songs.length>=255)return toast('Máximo 255 canciones');edit(()=>{M.songs.push(newSong());edSong=M.songs.length-1;edSel={p:0,c:0};tab='edit';});}},ic('plus'),'Nueva'))),
     h('input',{type:'text',placeholder:'Buscar…',value:songQ,style:'width:100%;margin:10px 0',oninput:e=>{songQ=e.target.value;const f=songQ.toLowerCase();[...list.children].forEach((li,i)=>li.style.display=M.songs[i].name.toLowerCase().includes(f)?'':'none');}}),
     h('p',{class:'mu sm',style:'margin:0 0 8px'},'Mantén presionada una canción y arrástrala para cambiar el orden.'));
   const list=h('div');
@@ -662,7 +732,7 @@ function vSongs(m){
 /* ---------- Vista: Presentaciones ---------- */
 function vSets(m){
   if(editSet>=0&&M.sets[editSet])return vSetEdit(m,M.sets[editSet]);
-  const c=h('div',{class:'card'},h('div',{class:'row'},h('h2',{class:'grow',style:'margin:0'},'Presentaciones'),h('button',{class:'ac',onclick:()=>edit(()=>{M.sets.push({name:'Presentación nueva',entries:[]});editSet=M.sets.length-1;})},'+ Nueva')));
+  const c=h('div',{class:'card'},h('div',{class:'pnh'},h('h2',null,'Presentaciones'),h('div',{class:'tools'},h('button',{onclick:()=>edit(()=>{M.sets.push({name:'Presentación nueva',entries:[]});editSet=M.sets.length-1;})},ic('plus'),'Nueva'))));
   if(!M.sets.length)c.append(h('p',{class:'mu'},'Arma el orden de canciones de un show, con notas entre canciones y transposición.'));
   const list=h('div');
   M.sets.forEach((s,i)=>{const n=s.entries.filter(e=>e.k===0).length;list.append(h('div',{class:'li'+(st.set===i?' cur':''),'data-idx':i},h('span',{class:'grip'},'⠿'),h('span',{class:'grow'},h('b',null,s.name),h('div',{class:'mu sm'},`${n} canciones`)),
@@ -704,7 +774,7 @@ function vEdit(m){
   const pickS=h('select',{onchange:e=>{edSong=+e.target.value;edSel={p:0,c:0};multi.clear();renderAll();}},M.songs.map((x,i)=>h('option',{value:i,selected:i===edSong?'':null},`${i+1}. ${x.name}`)));
   const gl=s.glide!=null?s.glide:150,ctlIds=Object.keys(s.ctl||{});
   m.append(h('div',{class:'card'},
-    h('div',{class:'row'},h('h2',{class:'grow',style:'margin:0'},'Canción'),pickS,h('button',{onclick:()=>cmd('song',edSong)},ic('play'),'Tocar en vivo')),
+    panelHead('Canción',null,[pickS,tb('play','Tocar en vivo',()=>cmd('song',edSong),{title:'Elegir esta canción en el pedal'})]),
     h('div',{class:'row',style:'margin-top:10px'},h('input',{type:'text',class:'grow',value:s.name,maxlength:24,onchange:e=>edit(()=>s.name=e.target.value)})),
     h('p',{class:'mu sm',style:'margin:8px 0 0'},'Estos ajustes valen para todos los acordes de la canción. Cada acorde puede tener excepciones en su propio panel.'),
     sec('s:tempo','tempo','Tempo y volumen',`${s.bpm} BPM · velocity ${s.vel}`,()=>[
@@ -723,113 +793,143 @@ function vEdit(m){
       srow('Rango de la rueda de pitch','Cuántos semitonos sube o baja la rueda. Necesario para "Pitch bend".',[seg([[undefined,'No tocar'],[12,'Fijar']],s.bendRange==null?undefined:12,v=>edit(()=>{if(v==null)delete s.bendRange;else s.bendRange=12;})),
         s.bendRange!=null?knob({label:'±',value:s.bendRange,min:1,max:12,onInput:v=>edit(()=>s.bendRange=v)}):null])]),
     sec('s:perillas','music','Perillas del MiniNova',ctlIds.length?ctlIds.map(id=>CTRL[id][0]).join(', '):'Ninguna',()=>songCtlBlock(s))));
-  // ② Forma: el orden en que suenan las frases
+  // ② Forma: el orden en que suenan las frases. Sus herramientas actúan sobre el paso elegido.
+  fSel=clamp(fSel,0,Math.max(0,s.form.length-1));
   const fs=h('div',{class:'strip','data-sk':'form'+s.id});
-  s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip','data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0]},p?p.name:'?',
-    h('button',{class:'nodrag',onclick:()=>edit(()=>f.r=clamp(f.r-1,1,99))},'−'),h('b',null,'×'+f.r),h('button',{class:'nodrag',onclick:()=>edit(()=>f.r=clamp(f.r+1,1,99))},'+'),
-    h('button',{class:'nodrag',title:'Quitar este paso',onclick:()=>edit(()=>s.form.splice(i,1))},'✕')));});
-  sortable(fs,(a,b)=>edit(()=>moveArr(s.form,a,b)));
-  const addF=h('select',null,h('option',{value:''},'+ Agregar paso…'),s.phrases.map((p,i)=>h('option',{value:i},p.name)));
-  addF.onchange=()=>{if(addF.value!==''&&s.form.length<255)edit(()=>s.form.push({p:+addF.value,r:1}));};
-  m.append(h('div',{class:'card'},h('h2',null,'Forma de la canción'),h('p',{class:'mu sm',style:'margin:-4px 0 8px'},'El orden en que suenan las frases, de izquierda a derecha. Mantén presionado para reordenar; −/+ cambia las repeticiones. Repetir una frase no la copia.'),fs,addF));
+  s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip'+(i===fSel?' on':''),'data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0],
+    onclick:()=>{fSel=i;lastFocus='phrase';if(p&&edSel.p!==f.p){edSel={p:f.p,c:0};multi.clear();}renderAll();}},p?p.name:'?',f.r>1?h('b',null,'×'+f.r):null));});
+  sortable(fs,(a,b)=>edit(()=>{moveArr(s.form,a,b);fSel=b;}));
+  const fc=s.form[fSel],fp=fc&&s.phrases[fc.p];
+  const addF=h('select',{title:'Agregar un paso después del elegido'},h('option',{value:''},'＋ Paso…'),s.phrases.map((p,i)=>h('option',{value:i},p.name)));
+  addF.onchange=()=>{if(addF.value===''||s.form.length>=255)return;const at=s.form.length?fSel+1:0;edit(()=>{s.form.splice(at,0,{p:+addF.value,r:1});fSel=at;});};
+  m.append(h('div',{class:'card'},
+    panelHead('Forma',fp?[fp.name,PCOL[fp.color%8]]:null,[addF,
+      tb('dup','Duplicar',()=>edit(()=>{s.form.splice(fSel+1,0,copy(fc));fSel++;}),{off:!fc,title:'Duplicar el paso elegido'}),
+      tb('left','',()=>edit(()=>{moveArr(s.form,fSel,fSel-1);fSel--;}),{off:!fc||fSel===0,title:'Mover el paso a la izquierda'}),
+      tb('right','',()=>edit(()=>{moveArr(s.form,fSel,fSel+1);fSel++;}),{off:!fc||fSel>=s.form.length-1,title:'Mover el paso a la derecha'}),
+      tb('minus','',()=>edit(()=>fc.r=clamp(fc.r-1,1,99)),{off:!fc||fc.r<=1,title:'Una repetición menos'}),
+      h('span',{class:'cnt',title:'Veces que suena este paso'},fc?'×'+fc.r:''),
+      tb('plus','',()=>edit(()=>fc.r=clamp(fc.r+1,1,99)),{off:!fc,title:'Una repetición más'}),
+      tb('trash','Quitar',()=>edit(()=>{s.form.splice(fSel,1);fSel=Math.max(0,fSel-1);}),{off:!fc,title:'Quitar el paso elegido de la forma (la frase no se borra)'})]),
+    h('p',{class:'mu sm hint'},'El orden en que suenan las frases, de izquierda a derecha. Toca un paso para elegirlo; mantén presionado para moverlo. Repetir una frase no la copia.'),fs));
 
-  // ③ Frases: tarjetas de color de izquierda a derecha; la elegida se edita abajo
+  // ③ Frases, con los acordes de la frase elegida adentro (como un Combinator)
   const uses=pi=>s.form.filter(f=>f.p===pi).reduce((a,f)=>a+f.r,0);
   const pstrip=h('div',{class:'strip','data-sk':'phr'+s.id});
   s.phrases.forEach((p,pi)=>{const on=edSel.p===pi,u=uses(pi);
-    pstrip.append(h('div',{class:'pt'+(on?' on':''),'data-idx':pi,style:'--pc:'+PCOL[p.color%8],onclick:()=>{if(edSel.p!==pi){edSel={p:pi,c:0};multi.clear();renderAll();}}},
-      h('b',null,p.name),h('small',null,`${p.chords.length} acorde${p.chords.length===1?'':'s'}`+(u>1?` · suena ×${u}`:u===0?' · no está en la forma':'')+(p.sound?' · '+sndLabel(p.sound):'')),
-      on?h('button',{class:'ptm nodrag',title:'Opciones de la frase',onclick:e=>{e.stopPropagation();phraseMenu(s,p,pi,e.currentTarget);}},ic('dots')):null));});
-  sortable(pstrip,(a,b)=>edit(()=>{moveArr(s.phrases,a,b);const map=k=>k===a?b:(a<b&&k>a&&k<=b)?k-1:(a>b&&k>=b&&k<a)?k+1:k;for(const f of s.form)f.p=map(f.p);edSel={p:b,c:0};}));
-  pstrip.append(h('div',{class:'pt add',onclick:()=>{if(s.phrases.length>=255)return;edit(()=>{s.phrases.push({name:'Frase '+(s.phrases.length+1),color:s.phrases.length%8,chords:[{notes:buildChord(0,4,0,0)}]});s.form.push({p:s.phrases.length-1,r:1});edSel={p:s.phrases.length-1,c:0};});}},ic('plus'),h('b',null,'Frase')));
-  if(clip&&clip.kind==='phrase')pstrip.append(h('div',{class:'pt add',onclick:()=>edit(()=>{const d=copy(clip.data);s.phrases.push(d);s.form.push({p:s.phrases.length-1,r:1});edSel={p:s.phrases.length-1,c:0};})},ic('paste'),h('b',null,'Pegar "'+clip.data.name+'"')));
-  m.append(h('div',{class:'card'},h('h2',null,'Frases'),h('p',{class:'mu sm',style:'margin:-4px 0 8px'},'Partes de la canción (estrofa, coro…). Toca una para ver y editar sus acordes; ⋯ tiene sus opciones.'),pstrip));
-
-  // ④ Acordes de la frase elegida
-  const p=s.phrases[edSel.p];
-  if(p){const pi=edSel.p;
+    pstrip.append(h('div',{class:'pt'+(on?' on':''),'data-idx':pi,style:'--pc:'+PCOL[p.color%8],onclick:()=>{lastFocus='phrase';if(edSel.p!==pi){edSel={p:pi,c:0};multi.clear();renderAll();}else updTop();}},
+      h('b',null,p.name),h('small',null,`${p.chords.length} acorde${p.chords.length===1?'':'s'}`+(u>1?` · suena ×${u}`:u===0?' · no está en la forma':'')+(p.sound?' · '+sndLabel(p.sound):''))));});
+  sortable(pstrip,(a,b)=>edit(()=>{movePhrase(s,a,b);}));
+  const p=s.phrases[edSel.p],pi=edSel.p;
+  const phCard=h('div',{class:'card'},
+    panelHead('Frases',p?[p.name,PCOL[p.color%8]]:null,[
+      tb('plus','Frase',()=>{if(s.phrases.length>=255)return;edit(()=>{const at=s.phrases.length?pi+1:0;s.phrases.splice(at,0,{name:'Frase '+(s.phrases.length+1),color:s.phrases.length%8,chords:[{notes:buildChord(0,4,0,0)}]});for(const f of s.form)if(f.p>=at)f.p++;s.form.push({p:at,r:1});edSel={p:at,c:0};});},{title:'Agregar una frase después de la elegida'}),
+      tb('dup','Duplicar',()=>edit(()=>{const d=copy(p);d.name=(p.name+' 2').slice(0,16);s.phrases.splice(pi+1,0,d);for(const f of s.form)if(f.p>pi)f.p++;s.form.push({p:pi+1,r:1});edSel={p:pi+1,c:0};}),{off:!p,title:'Duplicar la frase elegida'}),
+      tb('left','',()=>edit(()=>movePhrase(s,pi,pi-1)),{off:!p||pi===0,title:'Mover la frase a la izquierda'}),
+      tb('right','',()=>edit(()=>movePhrase(s,pi,pi+1)),{off:!p||pi>=s.phrases.length-1,title:'Mover la frase a la derecha'}),
+      p?h('button',{title:'Color de la frase',onclick:e=>colorPop(e.currentTarget,p.color%8,v=>edit(()=>p.color=v))},h('span',{class:'sw',style:'background:'+PCOL[p.color%8]}),'Color'):null,
+      tb('dots','Más',e=>phraseMenu(s,p,pi,e.currentTarget),{off:!p,title:'Nombre, sonido, grabar e ir en vivo'}),
+      tb('trash','Borrar',()=>modal('¿Borrar frase?',h('p',null,`"${p.name}" y sus pasos en la forma.`),[['Cancelar'],['Borrar',()=>edit(()=>{s.phrases.splice(pi,1);s.form=s.form.filter(f=>f.p!==pi).map(f=>({p:f.p>pi?f.p-1:f.p,r:f.r}));edSel={p:Math.max(0,pi-1),c:0};}),'er']]),{off:!p,title:'Borrar la frase elegida'})]),
+    h('p',{class:'mu sm hint'},'Partes de la canción (estrofa, coro…). Toca una para ver sus acordes aquí abajo; mantén presionado para moverla.'),pstrip);
+  if(p){
     const strip=h('div',{class:'strip','data-sk':'ph'+s.id+'.'+pi});
     p.chords.forEach((c,ci)=>strip.append(chordCard(s,p,pi,c,ci)));
     sortable(strip,(a,b)=>edit(()=>{moveArr(p.chords,a,b);edSel.c=b;}));
-    m.append(h('div',{class:'card',id:'chordsCard',style:'--pc:'+PCOL[p.color%8]},
-      h('div',{class:'row'},h('h2',{class:'grow',style:'margin:0'},'Acordes de "',p.name,'"'),
-        toggle('Selección múltiple',multiMode,v=>{multiMode=v;multi.clear();renderAll();}),
-        multiMode&&multi.size?h('button',{class:'er',onclick:()=>edit(()=>{const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();fixSel();})},[ic('trash'),`Borrar ${multi.size}`]):null,
-        st.cap?h('button',{class:'er',onclick:()=>cmd('cap',0)},st.cap===2?'Detener grabación':'Cancelar captura'):null),
-      h('p',{class:'mu sm',style:'margin:4px 0 8px'},'Toca un acorde para editarlo abajo. Mantén presionado para moverlo. Para agregar, usa la barra de abajo.'),strip));
+    phCard.append(h('div',{class:'rack',id:'chordsCard',style:'--pc:'+PCOL[p.color%8]},
+      rackHead(s,p,pi),
+      h('p',{class:'mu sm hint'},multiMode?'Toca los acordes que quieras elegir.':'Toca un acorde para editarlo abajo. Mantén presionado para moverlo.'),strip));
   }
-  // ⑤ El acorde elegido (lo más detallado)
+  m.append(phCard);
+  // ④ El acorde elegido (lo más detallado)
   m.append(chordEditor(s));
-  // Barra fija arriba: frase + acordes, mientras se edita más abajo
-  m.append(stickyBar(s));}
+  // Barra fija arriba (bajo las pestañas): frase + acordes, mientras se edita más abajo
+  $('#stickSlot').append(stickyBar(s));}
+
+/* Encabezado del panel de acordes (se redibuja solo al elegir otro acorde) */
+function rackHead(s,p,pi){
+    const cur=p.chords[edSel.c],many=multiMode&&multi.size;
+    const insertAt=arr=>edit(()=>{const at=p.chords.length?edSel.c+1:0;p.chords.splice(at,0,...arr);edSel.c=at+arr.length-1;revealSel=true;});
+  return panelHead('Acordes',multiMode?[multi.size+' elegidos']:cur?[stepLabel(cur)]:null,[
+        tb('plus','Acorde',()=>insertAt([{notes:cur&&cur.notes.length?[...cur.notes]:buildChord(0,4,0,0)}]),{title:'Agregar un acorde después del elegido'}),
+        tb('minus','Silencio',()=>insertAt([{notes:[]}]),{title:'Agregar un silencio después del elegido'}),
+        tb('dup','Duplicar',()=>insertAt([copy(cur)]),{off:!cur||multiMode,title:'Duplicar el acorde elegido'}),
+        tb('left','',()=>edit(()=>{moveArr(p.chords,edSel.c,edSel.c-1);edSel.c--;revealSel=true;}),{off:!cur||multiMode||edSel.c===0,title:'Mover el acorde a la izquierda'}),
+        tb('right','',()=>edit(()=>{moveArr(p.chords,edSel.c,edSel.c+1);edSel.c++;revealSel=true;}),{off:!cur||multiMode||edSel.c>=p.chords.length-1,title:'Mover el acorde a la derecha'}),
+        tb('trash','Borrar',()=>edit(()=>{if(multiMode){const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();}else p.chords.splice(edSel.c,1);fixSel();}),{off:multiMode?!many:!cur,title:multiMode?'Borrar los acordes elegidos':'Borrar el acorde elegido'}),
+        tb('check','Varios',()=>{multiMode=!multiMode;multi.clear();lastFocus='chords';renderAll();},{cl:multiMode?'on':'',title:'Elegir varios acordes a la vez (para cambiarlos, copiarlos o borrarlos juntos)'}),
+        st.cap?h('button',{class:'on',onclick:()=>cmd('cap',0)},st.cap===2?'Detener grabación':'Cancelar captura'):null],'chTgt');}
+
+/* Encabezado común de todos los paneles: título · lo elegido · herramientas de ese panel */
+const tb=(i,txt,fn,opt={})=>h('button',{title:opt.title||txt,class:opt.cl||'',disabled:opt.off||null,onclick:fn},ic(i),txt||null);
+function panelHead(title,tgt,tools,tgtId){
+  return h('div',{class:'pnh'},h('h2',null,title),
+    tgt?h('span',{class:'tgt',id:tgtId||null},tgt[1]?h('i',{style:'background:'+tgt[1]}):null,tgt[0]):null,
+    h('div',{class:'tools'},...tools.filter(Boolean)));}
+function movePhrase(s,a,b){if(b<0||b>=s.phrases.length)return;moveArr(s.phrases,a,b);const map=k=>k===a?b:(a<b&&k>a&&k<=b)?k-1:(a>b&&k>=b&&k<a)?k+1:k;for(const f of s.form)f.p=map(f.p);edSel={p:b,c:0};}
+
+/* Ventanita emergente junto a un botón; se cierra al tocar afuera */
+function popAt(btn,content){document.querySelectorAll('.pop,.sndmenu').forEach(x=>x.remove());const r=btn.getBoundingClientRect();
+  const pp=h('div',{class:'pop'},content);document.body.append(pp);
+  const w=pp.offsetWidth,hh=pp.offsetHeight;
+  pp.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';pp.style.top=(r.bottom+6+hh>innerHeight?Math.max(8,r.top-hh-6):r.bottom+6)+'px';
+  setTimeout(()=>document.addEventListener('pointerdown',function f(e){if(!pp.contains(e.target)){pp.remove();document.removeEventListener('pointerdown',f);}}),0);
+  return pp;}
+function colorPop(btn,cur,fn){const pal=h('div',{class:'pal'},PCOL.map((c,i)=>h('button',{class:i===cur?'on':'',style:'background:'+c,title:'Color '+(i+1),onclick:()=>{pp.remove();fn(i);}})));const pp=popAt(btn,pal);}
+function armarPop(btn,one,s){
+  const pp=popAt(btn,h('div',{class:'col',style:'min-width:13em'},h('b',null,'Armar rápido'),
+    h('select',{onchange:e=>bRoot=+e.target.value},NN.map((n,i)=>h('option',{value:i,selected:i===bRoot?'':null},n))),
+    h('select',{onchange:e=>bType=+e.target.value},TYPES.map((t,i)=>h('option',{value:i,selected:i===bType?'':null},t[2]))),
+    h('select',{onchange:e=>bInv=+e.target.value},['Fundamental','1ª inversión','2ª inversión','3ª inversión'].map((t,i)=>h('option',{value:i,selected:i===bInv?'':null},t))),
+    h('select',{onchange:e=>bOct=+e.target.value},[2,3,4,5].map(o=>h('option',{value:o,selected:o===bOct?'':null},'Octava '+o))),
+    h('button',{class:'ac',onclick:()=>{pp.remove();edit(()=>{one.notes=buildChord(bRoot,bOct,bType,bInv);audition(one,s);});}},'Aplicar')));}
 
 /* Tarjeta de un acorde (se selecciona sin redibujar la fila, para no perder el desplazamiento) */
 function chordCard(s,p,pi,c,ci){
   const key=pi+'.'+ci,sel=!multiMode&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.bend!=null||(c.ctl&&Object.keys(c.ctl).length>0);
-  const del=()=>h('button',{class:'del nodrag',title:'Borrar este acorde',onclick:e=>{e.stopPropagation();edit(()=>{p.chords.splice(ci,1);fixSel();});}},ic('close'));
   return h('div',{class:'cc'+(sel?' sel':'')+(multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
-      const card=ev.currentTarget;
+      const card=ev.currentTarget;lastFocus='chords';
       if(multiMode){multi.has(key)?multi.delete(key):multi.add(key);renderAll();return;}
       selectChord(s,pi,ci,card);audition(c,s);}},
-    ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel?del():null,h('div',{class:'nm'},stepLabel(c)),
+    ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel?delBtn(s,pi,ci):null,h('div',{class:'nm'},stepLabel(c)),
     h('div',{class:'nt'},c.trans===2?'pitch bend':(c.notes.length?c.notes.map(noteName).join(' '):'silencio')+(c.notes.length&&(c.trans===1||(c.trans==null&&s.trans===1))?' ~':'')),
     prefs.lyrics&&c.lyr?h('div',{class:'ly'},c.lyr):null);}
+const delBtn=(s,pi,ci)=>h('button',{class:'del nodrag',title:'Borrar este acorde',onclick:e=>{e.stopPropagation();edit(()=>{s.phrases[pi].chords.splice(ci,1);fixSel();});}},ic('close'));
 function selectChord(s,pi,ci,card){
-  edSel={p:pi,c:ci};
+  edSel={p:pi,c:ci};lastFocus='chords';
   document.querySelectorAll('#chordsCard .cc').forEach((x,k)=>{const on=k===ci;x.classList.toggle('sel',on);const d=x.querySelector('.del');if(d&&!on)d.remove();
-    if(on&&!d)x.insertBefore(h('button',{class:'del nodrag',title:'Borrar este acorde',onclick:e=>{e.stopPropagation();edit(()=>{s.phrases[pi].chords.splice(ci,1);fixSel();});}},ic('close')),x.firstChild);});
+    if(on&&!d)x.insertBefore(delBtn(s,pi,ci),x.firstChild);});
   document.querySelectorAll('.stick .sc2').forEach((x,k)=>x.classList.toggle('on',k===ci));
-  const old=document.getElementById('ceditor');if(old)old.replaceWith(chordEditor(s));saveUi();}
-
-/* Menú ⋯ de la frase */
+  const rk=document.getElementById('chordsCard');if(rk)rk.querySelector(':scope>.pnh').replaceWith(rackHead(s,s.phrases[pi],pi));
+  const old=document.getElementById('ceditor');if(old)old.replaceWith(chordEditor(s));updTop();saveUi();}
+/* Menú "Más" de la frase */
 function phraseMenu(s,p,pi,btn){const old=$('.sndmenu');if(old)old.remove();const r=btn.getBoundingClientRect();
   const it=(icn,t,fn,cl)=>h('button',{class:cl||'',onclick:()=>{mn.remove();fn();}},ic(icn),t);
-  const mn=h('div',{class:'sndmenu',style:`top:${Math.min(r.bottom+6,innerHeight-360)}px;left:${Math.max(8,Math.min(r.left,innerWidth-250))}px`},
-    it('paste','Renombrar',()=>{const inp=h('input',{type:'text',value:p.name,maxlength:16,style:'width:100%'});modal('Nombre de la frase',inp,[['Cancelar'],['Guardar',()=>edit(()=>p.name=inp.value.trim()||p.name),'ac']]);setTimeout(()=>inp.focus(),50);}),
-    it('music','Cambiar color',()=>edit(()=>p.color=(p.color+1)%8)),
+  const mn=h('div',{class:'sndmenu',style:`top:${Math.min(r.bottom+6,innerHeight-240)}px;left:${Math.max(8,Math.min(r.left,innerWidth-270))}px`},
+    it('paste','Cambiar nombre',()=>{const inp=h('input',{type:'text',value:p.name,maxlength:16,style:'width:100%'});modal('Nombre de la frase',inp,[['Cancelar'],['Guardar',()=>edit(()=>p.name=inp.value.trim()||p.name),'ac']]);setTimeout(()=>inp.focus(),50);}),
     it('piano',p.sound?'Sonido: '+sndLabel(p.sound):'Sonido del MiniNova…',()=>phraseSoundDlg(s,p)),
     it('rec','Grabar acordes desde teclado MIDI',()=>{edSel={p:pi,c:Math.max(0,p.chords.length-1)};cmd('cap',2);toast('Grabando: toca acordes en tu teclado MIDI');}),
-    it('copy','Copiar frase',()=>{clip={kind:'phrase',data:copy(p)};toast('Frase copiada');renderAll();}),
-    clip&&clip.kind==='chords'?it('paste',`Pegar ${clip.data.length} acorde(s) al final`,()=>edit(()=>p.chords.push(...copy(clip.data)))):null,
-    it('jump','Ir a esta frase en vivo',()=>{const st2=s.form.findIndex(f=>f.p===pi);cmd('song',edSong).then(()=>st2>=0&&cmd('jump',st2));}),
-    it('trash','Borrar frase',()=>modal('¿Borrar frase?',h('p',null,`"${p.name}" y sus pasos en la forma.`),[['Cancelar'],['Borrar',()=>edit(()=>{s.phrases.splice(pi,1);s.form=s.form.filter(f=>f.p!==pi).map(f=>({p:f.p>pi?f.p-1:f.p,r:f.r}));edSel={p:Math.max(0,pi-1),c:0};}),'er']]),'delm'));
+    it('jump','Ir a esta frase en vivo',()=>{const st2=s.form.findIndex(f=>f.p===pi);cmd('song',edSong).then(()=>st2>=0&&cmd('jump',st2));}));
   document.body.append(mn);setTimeout(()=>document.addEventListener('pointerdown',function f(e){if(!mn.contains(e.target)){mn.remove();}document.removeEventListener('pointerdown',f);}),0);}
 
-/* Barra fija arriba: aparece cuando la tarjeta de acordes queda fuera de la vista */
+/* Barra fija arriba: aparece cuando el panel de acordes queda fuera de la vista.
+   Va dentro del bloque de arriba (no encima del contenido): al aparecer, la página se corre lo mismo que mide. */
+let stickOn=false,stickH=0;
 function stickyBar(s){
-  const p=s.phrases[edSel.p];const bar=h('div',{class:'stick',hidden:true});
-  if(!p)return bar;
+  const p=s.phrases[edSel.p];const bar=h('div',{class:'stick',hidden:!stickOn||!p});
+  if(!p){stickOn=false;return bar;}
   const sel=h('select',{onchange:e=>{edSel={p:+e.target.value,c:0};multi.clear();renderAll();}},s.phrases.map((x,i)=>h('option',{value:i,selected:i===edSel.p?'':null},x.name)));
   const chips=h('div',{class:'sc2w'},p.chords.map((c,ci)=>h('button',{class:'sc2'+(ci===edSel.c?' on':''),onclick:()=>{selectChord(s,edSel.p,ci);audition(c,s);}},stepLabel(c))));
   bar.append(h('span',{class:'dotc',style:'background:'+PCOL[p.color%8]}),sel,chips);
   setTimeout(updStick,0);
   return bar;}
-// Muestra la barra fija cuando la tarjeta de acordes ya pasó por arriba (bajo las pestañas)
-function updStick(){const bar=$('.stick'),cc=document.getElementById('chordsCard');if(!bar)return;
+function updStick(){const bar=$('#stickSlot .stick'),cc=document.getElementById('chordsCard');if(!bar)return;
   const t=$('#tabs'),top=t?t.getBoundingClientRect().bottom:0;
   const show=!!cc&&cc.getBoundingClientRect().bottom<top+4;
-  if(show===!bar.hidden)return;bar.hidden=!show;
-  if(show){bar.style.top=top+'px';const on=bar.querySelector('.sc2.on');if(on)on.scrollIntoView({inline:'center',block:'nearest'});}}
+  if(show===!bar.hidden)return;
+  if(show){bar.hidden=false;stickH=bar.offsetHeight;scrollBy(0,stickH);const on=bar.querySelector('.sc2.on'),w=bar.querySelector('.sc2w');if(on&&w)w.scrollLeft=on.offsetLeft-w.offsetLeft-w.clientWidth/2+on.offsetWidth/2;}
+  else{bar.hidden=true;scrollBy(0,-stickH);}
+  stickOn=show;}
 addEventListener('scroll',updStick,{passive:true});addEventListener('resize',updStick);
-
-
-/* Barra fija de edición (abajo): siempre a mano, sin volver arriba */
-function editToolbar(s){
-  const cur=()=>{fixSel();const p=s.phrases[edSel.p];return{p,c:p&&p.chords[edSel.c]};};
-  const insertAt=(arr)=>edit(()=>{const {p}=cur();if(!p)return;const at=p.chords.length?edSel.c+1:0;p.chords.splice(at,0,...arr);edSel.c=at+arr.length-1;revealSel=true;});
-  const B=(ico,txt,fn,opt={})=>h('button',{title:opt.title||txt,class:opt.cl||'',disabled:opt.off||null,onclick:fn},ic(ico),txt);
-  const sep=()=>h('span',{class:'sepv'});
-  return h('div',{class:'tbar'},
-    B('undo','Deshacer',undo,{off:!hist.u.length}),B('redo','Rehacer',redo,{off:!hist.r.length}),sep(),
-    B('play','Escuchar',()=>{const {c}=cur();if(c)audition(c,s);}),B('stop','Parar',()=>cmd('stop')),sep(),
-    B('plus','Acorde',()=>{const {c}=cur();insertAt([{notes:c&&c.notes.length?[...c.notes]:buildChord(0,4,0,0)}]);},{title:'Agregar un acorde después del seleccionado'}),
-    B('minus','Silencio',()=>insertAt([{notes:[]}]),{title:'Agregar un silencio después del seleccionado'}),sep(),
-    B('copy','Copiar',()=>{const sel=selChords(s);if(!sel.length)return toast('Selecciona un acorde');clip={kind:'chords',data:copy(sel)};toast(sel.length+' acorde(s) copiados');renderAll();}),
-    B('paste','Pegar',()=>{if(!clip)return;if(clip.kind==='chords')insertAt(copy(clip.data));else edit(()=>{const d=copy(clip.data);s.phrases.push(d);s.form.push({p:s.phrases.length-1,r:1});});},{off:!clip,title:clip&&clip.kind==='phrase'?'Pegar la frase copiada':'Pegar después del seleccionado'}),
-    B('dup','Duplicar',()=>{const {c}=cur();if(c)insertAt([copy(c)]);}),sep(),
-    B('left','Mover',()=>{const {p}=cur();if(p&&edSel.c>0)edit(()=>{moveArr(p.chords,edSel.c,edSel.c-1);edSel.c--;revealSel=true;});},{title:'Mover el acorde a la izquierda'}),
-    B('right','Mover',()=>{const {p}=cur();if(p&&edSel.c<p.chords.length-1)edit(()=>{moveArr(p.chords,edSel.c,edSel.c+1);edSel.c++;revealSel=true;});},{title:'Mover el acorde a la derecha'}),sep(),
-    B('trash','Borrar',()=>edit(()=>{if(multiMode&&multi.size){const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();}else{const {p}=cur();if(p&&p.chords.length)p.chords.splice(edSel.c,1);}fixSel();}),{title:'Borrar el acorde seleccionado',cl:'del'}));}
 
 /* Controles del MiniNova de la canción: se agregan solo si se necesitan */
 function songCtlBlock(s){
@@ -884,30 +984,23 @@ function irow(title,expl,sel,key,songTxt,songVal,control){
     h('div',{class:'sc'},sw),own?h('div',{class:'own'},control(cur)):null);}
 const transExpl=(t,ms,bend)=>t===1?`Entra antes de soltar el anterior: el MiniNova desliza sin re-atacar, en ${ms} ms.`:t===2?`No toca notas nuevas: mueve la rueda de pitch ${bend>0?'+':''}${bend} semitonos en ${ms} ms.`:'Suelta el acorde anterior y toca este (con Ligado, las notas repetidas no se re-atacan).';
 
-let bRoot=0,bOct=4,bType=0,bInv=0,pianoBase=48;
+let bRoot=0,bOct=4,bType=0,bInv=0,pianoBase=48,fSel=0;
 function chordEditor(s){
   const sel=selChords(s);const card=h('div',{class:'card',id:'ceditor'});
   if(!sel.length){card.append(h('p',{class:'mu'},multiMode?'Toca varios acordes para seleccionarlos.':'Selecciona un acorde.'));return card;}
   const one=sel.length===1?sel[0]:null,p=s.phrases[edSel.p];
-  const title=one?`Acorde ${edSel.c+1} de "${p.name}": ${stepLabel(one)}`:`${sel.length} acordes seleccionados`;
-  card.append(h('div',{class:'row'},h('h2',{class:'grow',style:'margin:0'},title),
-    h('button',{class:'er',onclick:()=>edit(()=>{if(multiMode){const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();}else p.chords.splice(edSel.c,1);fixSel();})},ic('trash'),'Borrar')));
+  card.append(panelHead(one?'Acorde '+(edSel.c+1):'Acordes elegidos',one?[stepLabel(one),PCOL[p.color%8]]:[sel.length+''],one?[
+    tb('play','Escuchar',()=>audition(one,s)),tb('stop','Parar',()=>cmd('stop')),
+    tb('piano','Armar ▾',e=>armarPop(e.currentTarget,one,s),{title:'Armar rápido: nota, tipo, inversión y octava'}),
+    tb('rec','Capturar',()=>{cmd('cap',1);toast('Toca el acorde en tu teclado MIDI…');},{title:'Toca el acorde en tu teclado MIDI y reemplaza a este'}),
+    tb('minus','Hacer silencio',()=>edit(()=>one.notes=[]),{off:!one.notes.length,title:'Convertir este acorde en silencio'})]:[]));
   const sGl=s.glide!=null?s.glide:150,sTr=s.trans||0;
   const rTr=one?(one.trans!=null?one.trans:sTr):sTr,rGl=one?(one.glide!=null?one.glide:sGl):sGl,rBend=one&&one.bend!=null?one.bend:0;
   const diffs=c=>[c.hold!=null?(c.hold?'Mantener':'Latch'):null,c.tie!=null?(c.tie?'ligado':'sin ligar'):null,c.bpm!=null?c.bpm+' BPM':null,c.vel!=null?'velocity '+c.vel:null].filter(Boolean);
   // 1. Notas
   if(one)card.append(sec('c:notas','piano','Notas',one.notes.length?one.notes.map(noteName).join(' '):'Silencio',()=>[
-    srow('Armar rápido','Elige la nota, el tipo, la inversión y la octava, y toca "Aplicar".',[
-      h('select',{onchange:e=>bRoot=+e.target.value},NN.map((n,i)=>h('option',{value:i,selected:i===bRoot?'':null},n))),
-      h('select',{onchange:e=>bType=+e.target.value},TYPES.map((t,i)=>h('option',{value:i,selected:i===bType?'':null},t[2]))),
-      h('select',{onchange:e=>bInv=+e.target.value},['Fundamental','1ª inversión','2ª inversión','3ª inversión'].map((t,i)=>h('option',{value:i,selected:i===bInv?'':null},t))),
-      h('select',{onchange:e=>bOct=+e.target.value},[2,3,4,5].map(o=>h('option',{value:o,selected:o===bOct?'':null},'Octava '+o))),
-      h('button',{class:'ac',onclick:()=>edit(()=>{one.notes=buildChord(bRoot,bOct,bType,bInv);audition(one,s);})},'Aplicar')]),
-    h('div',{class:'srow',style:'display:block'},h('div',{class:'sl'},h('b',null,'Nota por nota'),h('small',null,'Toca las teclas para agregar o quitar notas (máximo 7).')),
-      h('div',{class:'row',style:'margin-top:8px'},h('button',{onclick:()=>{pianoBase=clamp(pianoBase-12,0,96);renderAll();}},ic('left'),'Oct'),h('span',{class:'mu sm grow',style:'text-align:center'},`${noteName(pianoBase)} – ${noteName(pianoBase+35)}`),h('button',{onclick:()=>{pianoBase=clamp(pianoBase+12,0,96);renderAll();}},'Oct',ic('right'))),piano(one,s),
-      h('div',{class:'row'},h('button',{onclick:()=>audition(one,s)},ic('play'),'Escuchar'),h('button',{onclick:()=>cmd('stop')},ic('stop'),'Parar'),
-        h('button',{title:'Toca el acorde en tu teclado MIDI y reemplaza a este',onclick:()=>{cmd('cap',1);toast('Toca el acorde en tu teclado MIDI…');}},ic('piano'),'Capturar desde teclado'),
-        h('button',{onclick:()=>edit(()=>one.notes=[])},ic('minus'),'Hacer silencio'),h('span',{class:'mu sm'},one.notes.length+'/7 notas'))),
+    h('div',{class:'row',style:'margin-top:8px'},h('button',{onclick:()=>{pianoBase=clamp(pianoBase-12,0,96);renderAll();}},ic('left'),'Oct'),h('span',{class:'mu sm grow',style:'text-align:center'},`${noteName(pianoBase)} – ${noteName(pianoBase+35)} · ${one.notes.length}/7 notas`),h('button',{onclick:()=>{pianoBase=clamp(pianoBase+12,0,96);renderAll();}},'Oct',ic('right'))),piano(one,s),
+    h('p',{class:'mu sm',style:'margin:0 0 6px'},'Toca las teclas para agregar o quitar notas.'),
     prefs.lyrics?srow('Letra','Fragmento que se ve bajo el acorde en el Modo Performance.',h('textarea',{rows:2,style:'min-width:16em',value:one.lyr||'',onchange:e=>edit(()=>{one.lyr=e.target.value;if(!one.lyr)delete one.lyr;},false)})):null]));
   // 2. Cómo suena
   const d=one?diffs(one):[...new Set(sel.flatMap(diffs))];
@@ -1069,7 +1162,7 @@ function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set
   if(prefs.view==='tele'){
     const cn=cur?chordName(cur.c.notes,tr):'▶';
     pfEl.append(h('div',{class:'tele'},h('div',{class:'prev'},pv?chordName(pv.c.notes,tr):''),
-      h('div',null,h('div',{class:'ph'},cur?s.phrases[cur.p].name+(F[cur.st].r>1?` · ${cur.r+1}/${F[cur.st].r}`:'')+(s.phrases[cur.p].sound?' · sonido '+sndLabel(s.phrases[cur.p].sound):''):'Listo'),h('div',{class:'cur'+(cur&&!cur.c.notes.length?' sil':'')},cn),prefs.lyrics&&cur&&cur.c.lyr?h('div',{class:'ly'},cur.c.lyr):null,prefs.lyrics&&nx&&nx.c.lyr?h('div',{class:'lyn'},'→ '+nx.c.lyr):null),
+      h('div',null,h('div',{class:'pnh'},cur?s.phrases[cur.p].name+(F[cur.st].r>1?` · ${cur.r+1}/${F[cur.st].r}`:'')+(s.phrases[cur.p].sound?' · sonido '+sndLabel(s.phrases[cur.p].sound):''):'Listo'),h('div',{class:'cur'+(cur&&!cur.c.notes.length?' sil':'')},cn),prefs.lyrics&&cur&&cur.c.lyr?h('div',{class:'ly'},cur.c.lyr):null,prefs.lyrics&&nx&&nx.c.lyr?h('div',{class:'lyn'},'→ '+nx.c.lyr):null),
       h('div',{class:'next'},nx?chordName(nx.c.notes,tr):'')));
     const fsx=h('div',{class:'fstrip'});const tot=seq.length||1;
     F.forEach((f,sti)=>{const p=s.phrases[f.p];if(!p||!p.chords.length)return;const n=p.chords.length*f.r;const d=h('div',{class:cur&&sti<cur.st||(!cur&&sti<st.st)?'dim':'',style:`flex:${n} 1 0;background:${PCOL[p.color%8]}`,onclick:()=>jump(sti)},p.name+(f.r>1?' ×'+f.r:''));
