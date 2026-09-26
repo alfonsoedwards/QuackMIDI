@@ -81,7 +81,7 @@ main{padding:8px 16px;max-width:1200px;margin:0 auto}
 .grip{color:var(--mu);font-size:1.1rem;cursor:grab;padding:0 .2em}
 /* ---- Perillas ---- */
 .knob{display:inline-flex;flex-direction:column;align-items:center;gap:2px;min-width:74px}
-.knob svg{width:56px;height:56px;touch-action:none;cursor:ns-resize}
+.knob svg{width:56px;height:56px;touch-action:pan-y;cursor:ew-resize}
 .knob .kl{font-size:.75rem;color:var(--mu);font-weight:800;text-transform:uppercase;letter-spacing:.4px}
 .knob input{width:68px;text-align:center;padding:.2em}
 .knob.inh svg{opacity:.35}
@@ -223,6 +223,11 @@ html{background:var(--bar)}
 body{background:var(--bg)}
 .hdr{padding-top:calc(.55em + env(safe-area-inset-top,0px))}
 .tabs{top:calc(54px + env(safe-area-inset-top,0px))}
+/* Filas de ajustes: etiqueta arriba (mismo estilo y altura), control debajo, todo alineado arriba */
+.row.fields{align-items:flex-start;gap:18px 22px}
+.row.fields>.col,.row.fields>.knob{gap:6px}
+.row.fields>.col>span.mu.sm:first-child,.knob .kl{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--mu);line-height:1.2;min-height:1.2em}
+.row.fields .knob{align-items:center}
 /* Al entrar, al pato de la barra le bajan los anteojos "like a boss"; después se los saca */
 .hduck{position:relative;display:inline-block;width:34px;height:34px;flex:0 0 auto}
 .hduck .duck{position:absolute;inset:0;width:34px;height:34px}
@@ -363,7 +368,7 @@ function dec(b){let i=0;const unpackX=(d,keys)=>{const f=u8();keys.forEach((k,j)
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.25-2156';
+const QM_VERSION='2026.09.25-2204';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -507,10 +512,15 @@ function knob({label,value,min,max,step=1,onInput,inherit=false}){
   const w=h('div',{class:'knob'+(inherit?' inh':'')},h('div',{class:'kl'},label),svg,inp);
   let v=value;const draw=()=>{const f=(v-min)/(max-min);fg.setAttribute('d',arc(A0,A0+Math.max(.5,f*(A1-A0))));};draw();
   const set=(nv,fire)=>{nv=clamp(Math.round(nv/step)*step,min,max);if(nv===v&&!fire)return;v=nv;inp.value=v;draw();w.classList.remove('inh');if(fire)onInput(v);};
-  let sy=0,sv=0,drag=false;
-  svg.addEventListener('pointerdown',e=>{drag=true;sy=e.clientY;sv=v;svg.setPointerCapture(e.pointerId);e.preventDefault();});
-  svg.addEventListener('pointermove',e=>{if(!drag)return;const range=max-min;set(sv+(sy-e.clientY)*range/(e.shiftKey?600:180),false);});
-  svg.addEventListener('pointerup',()=>{if(drag){drag=false;onInput(v);}});
+  // Se gira arrastrando hacia los LADOS (izquierda = menos, derecha = más). El scroll vertical pasa de largo,
+  // así no se cambia un valor sin querer al recorrer la página en la tablet.
+  let sx=0,sy=0,sv=0,down=false,drag=false;
+  svg.addEventListener('pointerdown',e=>{down=true;drag=false;sx=e.clientX;sy=e.clientY;sv=v;});
+  svg.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-sx,dy=e.clientY-sy;
+    if(!drag){if(Math.abs(dx)>6&&Math.abs(dx)>Math.abs(dy)){drag=true;try{svg.setPointerCapture(e.pointerId);}catch(_){}}else if(Math.abs(dy)>10){down=false;}return;}
+    e.preventDefault();set(sv+dx*(max-min)/(e.shiftKey?600:220),false);});
+  svg.addEventListener('pointerup',()=>{if(drag&&v!==sv)onInput(v);down=drag=false;});
+  svg.addEventListener('pointercancel',()=>{if(drag)set(sv,false);down=drag=false;});
   svg.addEventListener('wheel',e=>{e.preventDefault();set(v+(e.deltaY<0?step:-step),true);},{passive:false});
   inp.addEventListener('change',()=>set(+inp.value,true));
   return w;}
@@ -653,14 +663,14 @@ function vEdit(m){
     h('div',{class:'row'},pickS,h('span',{class:'sp'}),h('button',{title:'Deshacer',disabled:!hist.u.length,onclick:undo},'↶'),h('button',{title:'Rehacer',disabled:!hist.r.length,onclick:redo},'↷'),h('button',{onclick:()=>cmd('song',edSong)},'▶ Tocar en vivo')),
     h('div',{class:'row',style:'margin-top:10px'},h('input',{type:'text',class:'grow',value:s.name,maxlength:24,onchange:e=>edit(()=>s.name=e.target.value)})),
     h('h3',null,'Ajustes de la canción (todos los acordes los usan salvo excepción)'),
-    h('div',{class:'row',style:'gap:14px;align-items:flex-end'},
+    h('div',{class:'row fields'},
       knob({label:'Tempo',value:s.bpm,min:20,max:300,onInput:v=>edit(()=>s.bpm=v,false)}),
       knob({label:'Velocity',value:s.vel,min:1,max:127,onInput:v=>edit(()=>s.vel=v,false)}),
       h('div',{class:'col'},h('span',{class:'kl mu sm'},'SOSTÉN'),seg([[false,'Latch'],[true,'Mantener']],s.hold,v=>edit(()=>s.hold=v))),
       h('div',{class:'col'},toggle('Ligado',s.tie,v=>edit(()=>s.tie=v)),toggle('Repetir desde el inicio',s.repeat,v=>edit(()=>s.repeat=v))),
       h('div',{class:'col'},toggle('Cambiar sonido del MiniNova',s.sendPC,v=>edit(()=>s.sendPC=v)),s.sendPC?h('div',{class:'row',style:'align-items:flex-end'},h('div',{class:'col'},h('span',{class:'mu sm'},'Banco'),seg([[0,'Actual'],[1,'A'],[2,'B'],[3,'C']],s.bank||0,v=>edit(()=>s.bank=v))),knob({label:'Programa',value:s.pc+1,min:1,max:128,onInput:v=>edit(()=>s.pc=v-1,false)})):null)),
     h('h3',null,'Transiciones y sonido del MiniNova'),
-    h('div',{class:'row',style:'gap:14px;align-items:flex-end'},
+    h('div',{class:'row fields'},
       h('div',{class:'col'},h('span',{class:'mu sm'},'Transición entre acordes'),seg(TRANS_OPTS.map(([v,t])=>[v,t]),s.trans||0,v=>edit(()=>{s.trans=v||undefined;if(v===2&&s.bendRange==null)s.bendRange=12;}))),
       knob({label:'Deslizar (ms)',value:s.glide!=null?s.glide:150,min:0,max:2550,step:10,inherit:s.glide==null,onInput:v=>edit(()=>s.glide=v,false)}),
       h('div',{class:'col'},h('span',{class:'mu sm'},'Modo de voz (al empezar)'),seg([[undefined,'No tocar'],[0,'Mono'],[1,'Mono AG'],[2,'Poly']],s.voice,v=>edit(()=>{if(v==null)delete s.voice;else s.voice=v;}))),
@@ -746,7 +756,7 @@ function songCtlBlock(s){
   return h('div',null,h('h3',null,'Controles del MiniNova'),
     ids.length?h('p',{class:'mu sm',style:'margin-top:0'},'Se mandan al empezar la canción. Cada acorde puede cambiarlos (en su panel) y el valor se queda hasta que otro acorde lo cambie.')
       :h('p',{class:'mu sm',style:'margin-top:0'},'Agrega solo los que necesites (filtro, ataque…). Después cada acorde puede cambiarlos.'),
-    h('div',{class:'row',style:'gap:14px;align-items:flex-end'},
+    h('div',{class:'row fields'},
       ids.map(id=>h('div',{class:'col',style:'align-items:center'},knob({label:CTRL[id][0],value:s.ctl[id],min:0,max:127,onInput:v=>edit(()=>s.ctl[id]=v,false)}),
         h('button',{class:'gh sm',title:'Quitar este control',onclick:()=>edit(()=>{delete s.ctl[id];if(!Object.keys(s.ctl).length)delete s.ctl;
           for(const p of s.phrases)for(const c of p.chords)if(c.ctl){delete c.ctl[id];if(!Object.keys(c.ctl).length)delete c.ctl;}})},'✕ quitar'))),
@@ -756,7 +766,7 @@ function chordCtlBlock(s,sel){
   if(!ids.length)return h('p',{class:'mu sm'},'Para cambiar el filtro, el ataque u otras perillas en este acorde, primero agrégalas en "Controles del MiniNova" de la canción (arriba).');
   const val=id=>{const v=sel.map(c=>c.ctl&&c.ctl[id]);return v.every(x=>x===v[0])?v[0]:'mix';};
   const setC=(id,v)=>edit(()=>{for(const c of sel){if(v==null){if(c.ctl){delete c.ctl[id];if(!Object.keys(c.ctl).length)delete c.ctl;}}else{c.ctl=c.ctl||{};c.ctl[id]=v;}}});
-  return h('div',{class:'row',style:'gap:16px;align-items:flex-end'},ids.map(id=>{const v=val(id),set=typeof v==='number';
+  return h('div',{class:'row fields'},ids.map(id=>{const v=val(id),set=typeof v==='number';
     return h('div',{class:'col',style:'align-items:center'},knob({label:CTRL[id][0],value:set?v:s.ctl[id],min:0,max:127,inherit:!set,onInput:x=>setC(id,x)}),
       set?h('button',{class:'gh sm',onclick:()=>setC(id,null)},'↺ sin cambio'):h('span',{class:'mu sm'},'sin cambio'));}));}
 
@@ -801,13 +811,13 @@ function chordEditor(s){
   const setAll=(k,v)=>edit(()=>{for(const c of sel){if(v==null)delete c[k];else c[k]=v;}});
   const hv=val('hold'),tv=val('tie'),bv=val('bpm'),vv=val('vel'),trv=val('trans'),gv=val('glide'),bnv=val('bend'),mv=val('mod');
   const sTr=TRANS_OPTS[s.trans||0][1];
-  card.append(h('h3',null,'Excepciones (solo si quieres que sea distinto a la canción)'),h('div',{class:'row',style:'gap:16px;align-items:flex-end'},
+  card.append(h('h3',null,'Excepciones (solo si quieres que sea distinto a la canción)'),h('div',{class:'row fields'},
     h('div',{class:'col'},h('span',{class:'mu sm'},'Sostén'),seg([[undefined,`Canción (${s.hold?'Mantener':'Latch'})`],[false,'Latch'],[true,'Mantener']],hv,v=>setAll('hold',v))),
     h('div',{class:'col'},h('span',{class:'mu sm'},'Ligado al siguiente'),seg([[undefined,`Canción (${s.tie?'sí':'no'})`],[false,'No'],[true,'Sí']],tv,v=>setAll('tie',v))),
     h('div',{class:'col'},knob({label:'Tempo',value:typeof bv==='number'?bv:s.bpm,min:20,max:300,inherit:bv==null||bv==='mix',onInput:v=>setAll('bpm',v)}),bv!=null&&bv!=='mix'?h('button',{class:'gh sm',onclick:()=>setAll('bpm',null)},'↺ heredar'):h('span',{class:'mu sm'},'hereda')),
     h('div',{class:'col'},knob({label:'Velocity',value:typeof vv==='number'?vv:s.vel,min:1,max:127,inherit:vv==null||vv==='mix',onInput:v=>setAll('vel',v)}),vv!=null&&vv!=='mix'?h('button',{class:'gh sm',onclick:()=>setAll('vel',null)},'↺ heredar'):h('span',{class:'mu sm'},'hereda'))),
     h('h3',null,'Transición y controles'),
-    h('div',{class:'row',style:'gap:16px;align-items:flex-end'},
+    h('div',{class:'row fields'},
       h('div',{class:'col'},h('span',{class:'mu sm'},'Cómo llega a este acorde'),seg([[undefined,`Canción (${sTr})`],...TRANS_OPTS],trv,v=>edit(()=>{for(const c of sel){if(v==null)delete c.trans;else c.trans=v;if(v===2&&c.bend==null)c.bend=2;}if(v===2&&s.bendRange==null)s.bendRange=12;}))),
       h('div',{class:'col'},knob({label:'Deslizar (ms)',value:typeof gv==='number'?gv:(s.glide!=null?s.glide:150),min:0,max:2550,step:10,inherit:gv==null||gv==='mix',onInput:v=>setAll('glide',v)}),gv!=null&&gv!=='mix'?h('button',{class:'gh sm',onclick:()=>setAll('glide',null)},'↺ heredar'):h('span',{class:'mu sm'},'hereda')),
       (trv===2||(trv==null&&s.trans===2))?h('div',{class:'col'},knob({label:'Pitch (semitonos)',value:typeof bnv==='number'?bnv:0,min:-(s.bendRange||12),max:s.bendRange||12,onInput:v=>setAll('bend',v)}),h('span',{class:'mu sm'},'rango ±'+(s.bendRange||12))):null,
