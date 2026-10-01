@@ -509,7 +509,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.09.26-1220';
+const QM_VERSION='2026.10.01-1415';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -804,7 +804,7 @@ function vSetEdit(m,S){
   c.append(h('div',{class:'row',style:'margin-top:8px'},pick,h('button',{onclick:()=>edit(()=>S.entries.push({k:1,label:'Intermedio'}))},'+ Separador')));
   m.append(c);}
 function printSet(S){let n=0;const rows=S.entries.map(e=>{if(e.k===1)return`<tr><td colspan=5 style="padding:10px 4px;font-weight:800;border-top:2px dashed #999">— ${esc(e.label)} —</td></tr>`;const s=M.songs[e.s];if(!s)return'';n++;const f=flatten(s).find(x=>x.c.notes.length);
-  return`<tr><td>${n}</td><td><b>${esc(s.name)}</b>${e.note?`<br><i>${esc(e.note)}</i>`:''}</td><td>${f?chordName(f.c.notes,e.t):'—'}${e.t?` (${e.t>0?'+':''}${e.t})`:''}</td><td>${s.bpm}</td><td>${s.sendPC?(s.bank?'ABC'[s.bank-1]:'')+(s.pc+1):''}</td></tr>`;}).join('');
+  return`<tr><td>${n}</td><td><b>${esc(s.name)}</b>${e.note?`<br><i>${esc(e.note)}</i>`:''}</td><td>${f?chordName(f.c.notes,e.t):'—'}${e.t?` (${e.t>0?'+':''}${e.t})`:''}</td><td>${s.bpm}</td><td>${s.sendPC?sndLabel({bank:s.bank||0,pc:s.pc}):''}</td></tr>`;}).join('');
   const w=window.open('','_blank');if(!w)return toast('Permite ventanas emergentes para imprimir');
   w.document.write(`<html><head><meta charset=utf-8><title>${esc(S.name)}</title><style>body{font-family:system-ui,sans-serif;padding:20px}td,th{padding:6px 4px;text-align:left;border-bottom:1px solid #ddd}table{border-collapse:collapse;width:100%}</style></head><body><h1>${esc(S.name)}</h1><table><tr><th>#</th><th>Canción</th><th>Primer acorde</th><th>BPM</th><th>Sonido</th></tr>${rows}</table><script>print()<\/script></body></html>`);w.document.close();}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -852,7 +852,7 @@ function vEdit(m){
       srow('Repetir desde el inicio','Al terminar la canción vuelve al primer acorde. Apagado: se queda al final.',toggle('',s.repeat,v=>edit(()=>s.repeat=v)))]),
     sec('s:sonido','piano','Sonido del MiniNova',[s.sendPC?'Sonido '+sndLabel({bank:s.bank||0,pc:s.pc}):'No cambia el sonido',s.voice!=null?['Mono','Mono AG','Poly'][s.voice]||'':null,s.bendRange!=null?'rueda ±'+s.bendRange:null].filter(Boolean).join(' · '),()=>[
       srow('Cambiar el sonido al empezar','Al elegir esta canción, el MiniNova cambia a este banco y programa.',toggle('',s.sendPC,v=>edit(()=>s.sendPC=v))),
-      s.sendPC?srow('Banco y programa','"Actual" deja el banco que tenga el MiniNova.',[seg([[0,'Actual'],[1,'A'],[2,'B'],[3,'C']],s.bank||0,v=>edit(()=>s.bank=v)),knob({label:'Programa',value:s.pc+1,min:1,max:128,onInput:v=>edit(()=>s.pc=v-1)})]):null,
+      s.sendPC?srow('Banco y programa','"Actual" deja el banco que tenga el MiniNova.',[seg([[0,'Actual'],[1,'A'],[2,'B'],[3,'C']],s.bank||0,v=>edit(()=>s.bank=v)),knob({label:'Programa',value:s.pc||0,min:0,max:127,onInput:v=>edit(()=>s.pc=v)})]):null,
       srow('Modo de voz','Mono toca una nota a la vez (ideal para melodías con glide). Poly permite acordes.',seg([[undefined,'No tocar'],[0,'Mono'],[1,'Mono AG'],[2,'Poly']],s.voice,v=>edit(()=>{if(v==null)delete s.voice;else s.voice=v;}))),
       srow('Rango de la rueda de pitch','Cuántos semitonos sube o baja la rueda. Necesario para "Pitch bend".',[seg([[undefined,'No tocar'],[12,'Fijar']],s.bendRange==null?undefined:12,v=>edit(()=>{if(v==null)delete s.bendRange;else s.bendRange=12;})),
         s.bendRange!=null?knob({label:'±',value:s.bendRange,min:1,max:12,onInput:v=>edit(()=>s.bendRange=v)}):null])]),
@@ -1080,12 +1080,13 @@ function chordCtlBlock(s,sel){
       set?h('button',{class:'gh sm',onclick:()=>setC(id,null)},'↺ sin cambio'):h('span',{class:'mu sm'},'sin cambio'));}));}
 
 /* Sonido del MiniNova por frase (opcional; si no tiene, usa el de la canción) */
-const sndLabel=x=>(x.bank?'ABC'[x.bank-1]:'')+(x.pc+1);
+// Como lo muestra el MiniNova: banco + programa de 000 a 127 (p. ej. C011)
+const sndLabel=x=>(x.bank?'ABC'[x.bank-1]:'')+String(x.pc||0).padStart(3,'0');
 function phraseSoundDlg(s,p){const cur=p.sound?copy(p.sound):{bank:s.bank||0,pc:s.pc||0};
   const body=h('div',null,
     h('p',{class:'mu sm',style:'margin-top:0'},'Al llegar a esta frase el MiniNova cambia a este sonido. Ojo: el cambio corta las notas que estén sonando (no hay legato entre frases con distinto sonido). Después se reenvían los ajustes de la canción (modo de voz, rango de pitch y controles).'),
     h('div',{class:'row',style:'align-items:flex-end;gap:14px'},h('div',{class:'col'},h('span',{class:'mu sm'},'Banco'),seg([[0,'Actual'],[1,'A'],[2,'B'],[3,'C']],cur.bank,v=>{cur.bank=v;[...body.querySelectorAll('.seg button')].forEach((b,i)=>b.classList.toggle('on',i===v));})),
-      knob({label:'Programa',value:cur.pc+1,min:1,max:128,onInput:v=>cur.pc=v-1})),
+      knob({label:'Programa',value:cur.pc,min:0,max:127,onInput:v=>cur.pc=v})),
     s.sendPC?h('p',{class:'mu sm'},'Sonido de la canción: '+sndLabel({bank:s.bank||0,pc:s.pc})+'.'):h('p',{class:'mu sm'},'La canción no tiene sonido propio: las frases sin sonido dejan el que esté.'));
   modal('Sonido de "'+p.name+'"',body,[p.sound?['Quitar (usar el de la canción)',()=>edit(()=>{delete p.sound;}),'er']:['Cancelar'],['Usar este sonido',()=>edit(()=>{p.sound={bank:cur.bank,pc:cur.pc};}),'ac']]);}
 
