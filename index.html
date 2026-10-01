@@ -517,7 +517,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.01-1923';
+const QM_VERSION='2026.10.01-1927';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -1118,12 +1118,15 @@ function saveSndNames(){try{localStorage.setItem('qm_sndnames',JSON.stringify(sn
 async function studio(path,body){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),body?3000:900);
   try{const r=await fetch(STUDIO_URL+'/api/'+path,body?{method:'POST',body:JSON.stringify(body),headers:{'Content-Type':'text/plain'},signal:ctl.signal}:{signal:ctl.signal,cache:'no-store'});return await r.json();}
   finally{clearTimeout(to);}}
-async function buscarStudio(){const antes=STUDIO.ok;try{const r=await studio('ping');STUDIO.ok=!!(r&&r.app==='Quack Studio');}catch(e){STUDIO.ok=false;}
+async function buscarStudio(){const antes=STUDIO.ok;try{const r=await studio('ping');STUDIO.ok=!!(r&&r.app==='Quack Studio');STUDIO.sync=!!(r&&r.sync);}catch(e){STUDIO.ok=false;STUDIO.sync=false;}
+  if(!antes&&STUDIO.ok&&syncLocal()&&M)setTimeout(()=>syncNow(false),300);   // recién encontrado: sincronizar sin Google
   if(STUDIO.ok){try{const n=await studio('quack/sonidos');if(n.ok&&hash(n.slots)!==hash(sndNames.slots)){sndNames={t:Date.now(),slots:n.slots};saveSndNames();scheduleSync(3000);}}catch(e){}}
   const b=$('#btnStudio');if(b)b.hidden=!STUDIO.ok;   // el botón "Studio" arriba: solo en el PC donde está abierto
   if(antes!==STUDIO.ok&&(tab==='cfg'||tab==='edit'))renderAll();}
 setTimeout(buscarStudio,800);setInterval(buscarStudio,15000);
 // Con el Arduino conectado suena por él (cable MIDI); sin Arduino, por Quack Studio (USB). Nunca por los dos.
+// En el PC con Quack Studio: se sincroniza por la carpeta local de Google Drive (sin permisos de Google que venzan)
+const syncLocal=()=>!!(window.APPMODE&&STUDIO.ok&&STUDIO.sync);
 const usarStudio=()=>STUDIO.ok&&prefs.studioSnd!==false&&(window.APPMODE||!online);
 const slotDe=x=>x&&x.bank?'ABC'[x.bank-1]+String(x.pc||0).padStart(3,'0'):null;
 const sndNombre=x=>{const s=slotDe(x),n=s&&sndNames.slots[s];return n?n.replace(/^\|nit /,'Init ').trim():'';};
@@ -1581,8 +1584,10 @@ const strip=x=>{const c=copy(x);delete c._t;return c;};
 async function syncNow(interactive){if(!window.APPMODE||syncBusy||!M)return;
   if(!navigator.onLine){syncState='offline';syncMsg='Sin internet: se sincroniza cuando vuelva la conexión.';updCloud();return;}
   syncBusy=true;syncState='busy';updCloud();
-  try{const tok=await getToken(interactive);const fid=await driveFile(tok);
-    const txt=await (await gd(tok,`https://www.googleapis.com/drive/v3/files/${fid}?alt=media`)).text();
+  const local=syncLocal();
+  try{let tok=null,fid=null,txt='';
+    if(local){const r=await studio('quack/sync');if(!r.ok)throw Error(r.error);txt=r.texto||'';}
+    else{tok=await getToken(interactive);fid=await driveFile(tok);txt=await (await gd(tok,`https://www.googleapis.com/drive/v3/files/${fid}?alt=media`)).text();}
     let R={};try{R=txt?JSON.parse(txt):{};}catch(e){R={};}
     if(pendingUp||uploading)await upload();
     const mg=mergeWith(R);
@@ -1598,18 +1603,19 @@ async function syncNow(interactive){if(!window.APPMODE||syncBusy||!M)return;
     // Subir la versión combinada
     const body={app:'QuackMIDI',v:1,t:Date.now(),settings:M.settings,settingsT:m.settingsT,order:M.songs.map(x=>x.id),orderT:m.orderT,
       sets:setsById(),setsT:m.setsT,deleted:m.deleted,sndNames,songs:M.songs.map(so=>Object.assign(copy(so),{_t:m.t[so.id]||0}))};
-    await gd(tok,`https://www.googleapis.com/upload/drive/v3/files/${fid}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    syncState='ok';syncMsg='Sincronizado '+new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+'.';
+    if(local){const w=await studio('quack/sync',{texto:JSON.stringify(body)});if(!w.ok)throw Error(w.error);}
+    else await gd(tok,`https://www.googleapis.com/upload/drive/v3/files/${fid}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    syncState='ok';syncMsg='Sincronizado '+new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+(local?' por Quack Studio (sin pedir permiso a Google).':'.');
     if(mg.conflicts.length)toast('Se editó en dos lugares: '+mg.conflicts.join(', ')+'. Quedó lo más nuevo; lo anterior está en Copias automáticas.');
   }catch(e){const login=String(e.message)==='login';syncState=login?'login':'error';
     syncMsg=login?'Toca la nube para volver a conectar con Google (la sesión dura una hora).':'No se pudo sincronizar: '+e.message;}
   finally{syncBusy=false;updCloud();if(tab==='cfg'&&!document.activeElement.matches('input,textarea'))renderAll();}}
-function scheduleSync(ms){if(!window.APPMODE||!syncMeta().connected)return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>{if(tokenOk())syncNow(false);else{syncState='login';updCloud();}},ms);}
+function scheduleSync(ms){if(!window.APPMODE||!(syncMeta().connected||syncLocal()))return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>{if(syncLocal()||tokenOk())syncNow(false);else{syncState='login';updCloud();}},ms);}
 // Ícono plano de nube: gris = sin conectar, calipso = al día, naranjo = hay que tocar, rojo = error
 function updCloud(){const b=$('#btnCloud');if(!b||!window.APPMODE)return;b.hidden=false;
   const dot={ok:'#5BD6A0',login:'#F2A541',error:'#E05B4B'}[syncState];
   b.innerHTML=`<svg viewBox="0 0 24 24" width="24" height="24" class="${syncState==='busy'?'spin':''}" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" opacity="${syncState==='off'||syncState==='offline'?.7:1}"><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 9.1 4.5 4.5 0 0 0 7 18z"/>${syncState==='ok'?'<path d="M9.5 13.5l2 2 3.5-3.5" stroke-linecap="round"/>':''}</svg>`+(dot&&syncState!=='ok'?`<span class="cloudbadge" style="background:${dot}"></span>`:'');
-  b.title=syncState==='off'?'Conectar con Google Drive para sincronizar':syncMsg;}
+  b.title=syncState==='off'&&!syncLocal()?'Conectar con Google Drive para sincronizar':syncMsg;}
 function cloudCard(){const m=syncMeta();
   return h('div',{class:'card'},h('h2',null,'Sincronización entre dispositivos'),
     m.connected?h('div',null,h('p',{class:'sm',style:'margin-top:0'},(syncMsg||'Conectado con Google Drive.')+(m.email?' Cuenta: '+m.email+'.':'')),
