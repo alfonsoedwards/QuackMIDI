@@ -375,6 +375,11 @@ button.er,button.er:hover,.pf-bot button.mute{background:var(--sf);color:var(--a
 .lynav button{background:var(--acl);color:var(--ack)}
 .cc .ly.cont{opacity:.55}
 .lyr button.on{background:var(--ac);color:var(--aci)}.lyr.cut textarea{opacity:.5}
+.sndlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px;max-height:52vh;overflow:auto;margin-top:10px}
+.sndit{display:flex;gap:6px;align-items:baseline;justify-content:flex-start;text-align:left;padding:.4em .6em;border-radius:9px;background:var(--sf2);font-size:.85rem;min-width:0}
+.sndit b{color:var(--ack);flex:0 0 auto}.sndit span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sndit.libre{opacity:.55}.sndit.on{background:var(--ac);color:var(--aci)}.sndit.on b{color:var(--aci)}
+a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-radius:12px;background:var(--acl);color:var(--ack);font-weight:800;text-decoration:none}
 /* Paletitas y menús emergentes */
 .pop{position:fixed;z-index:55;background:var(--sf);border:1px solid var(--ln);border-radius:14px;box-shadow:var(--sh);padding:10px}
 .pal{display:grid;grid-template-columns:repeat(4,36px);gap:8px}
@@ -509,7 +514,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.01-1415';
+const QM_VERSION='2026.10.01-1758';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -576,7 +581,7 @@ const hist={u:[],r:[]};
 
 /* ---------- Red ---------- */
 async function api(path,opt={}){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),opt.timeout||4000);try{const r=await fetch(path,Object.assign({signal:ctl.signal,cache:'no-store'},opt));if(!r.ok)throw Error('HTTP '+r.status);return r;}finally{clearTimeout(to);}}
-const cmd=(x,a,extra='')=>((x==='stop'||x==='mute'||x==='restart')&&synthStop(),api('/api/c?x='+x+(a!=null?'&a='+a:'')+extra).then(r=>r.json()).then(j=>{if(j&&j.ok===0)toast(j.e||'Error');return j;}).catch(()=>toast('Sin conexión con Quack MIDI')));
+const cmd=(x,a,extra='')=>((x==='stop'||x==='mute'||x==='restart')&&(synthStop(),usarStudio()&&studio('quack/parar',{}).catch(()=>{})),api('/api/c?x='+x+(a!=null?'&a='+a:'')+extra).then(r=>r.json()).then(j=>{if(j&&j.ok===0)toast(j.e||'Error');return j;}).catch(()=>toast('Sin conexión con Quack MIDI')));
 
 // Las letras no van al Arduino: al releer sus datos se conservan las que ya tenemos (lo más nuevo es lo que está en pantalla)
 async function loadBlob(){const r=await api('/api/blob');const b=new Uint8Array(await r.arrayBuffer());if(M)lyrDoc=collectLyrics();M=dec(b);attachLyrics();knownBv=+(r.headers.get('X-Bv')||0);}
@@ -830,7 +835,12 @@ function perform(i){cmd('set',i).then(()=>openPerf());}
 function fixSel(){if(!M.songs.length)return;edSong=clamp(edSong,0,M.songs.length-1);const s=M.songs[edSong];if(!s.phrases.length){edSel={p:0,c:0};return;}edSel.p=clamp(edSel.p,0,s.phrases.length-1);edSel.c=clamp(edSel.c,0,Math.max(0,s.phrases[edSel.p].chords.length-1));}
 function selChords(s){if(multiMode&&multi.size)return[...multi].map(k=>k.split('.').map(Number)).filter(([p,c])=>s.phrases[p]&&s.phrases[p].chords[c]).map(([p,c])=>s.phrases[p].chords[c]);const p=s.phrases[edSel.p];return p&&p.chords[edSel.c]?[p.chords[edSel.c]]:[];}
 const nvShift=(c,tr)=>{if(!c.nv)return null;const o={};for(const k in c.nv)o[+k+tr]=c.nv[k];return o;};
-function audition(c,s){if(!prefs.audition)return;const v=c.vel!=null?c.vel:s.vel;synthPlay(c.notes,v,{trans:c.trans!=null?c.trans:(s.trans||0),glide:c.glide!=null?c.glide:s.glide,bend:c.bend,nv:c.nv});if(c.trans===2)return;if(window.SIM)return;if(!c.notes.length)return cmd('stop');cmd('play',null,'&n='+c.notes.join('.')+'&v='+v+(c.nv?'&w='+c.notes.map(n=>c.nv[n]||0).join('.'):''));}
+function audition(c,s){if(!prefs.audition)return;const v=c.vel!=null?c.vel:s.vel;synthPlay(c.notes,v,{trans:c.trans!=null?c.trans:(s.trans||0),glide:c.glide!=null?c.glide:s.glide,bend:c.bend,nv:c.nv});if(c.trans===2)return;
+  if(usarStudio()){const p=s.phrases.find(q=>q.chords.includes(c)),snd=(p&&p.sound)||(s.sendPC?{bank:s.bank||0,pc:s.pc}:null);
+    if(!c.notes.length)studio('quack/parar',{}).catch(()=>{});
+    else studio('quack/tocar',{notas:c.notes,vel:v,nv:c.nv||null,slot:slotDe(snd),modo:prefs.sound==='latch'?'latch':'fade'}).catch(()=>{});
+    return;}
+  if(window.SIM)return;if(!c.notes.length)return cmd('stop');cmd('play',null,'&n='+c.notes.join('.')+'&v='+v+(c.nv?'&w='+c.notes.map(n=>c.nv[n]||0).join('.'):''));}
 function vEdit(m){
   if(!M.songs.length){m.append(h('div',{class:'card'},'No hay canciones.'));return;}
   fixSel();const s=M.songs[edSong];
@@ -852,7 +862,9 @@ function vEdit(m){
       srow('Repetir desde el inicio','Al terminar la canción vuelve al primer acorde. Apagado: se queda al final.',toggle('',s.repeat,v=>edit(()=>s.repeat=v)))]),
     sec('s:sonido','piano','Sonido del MiniNova',[s.sendPC?'Sonido '+sndLabel({bank:s.bank||0,pc:s.pc}):'No cambia el sonido',s.voice!=null?['Mono','Mono AG','Poly'][s.voice]||'':null,s.bendRange!=null?'rueda ±'+s.bendRange:null].filter(Boolean).join(' · '),()=>[
       srow('Cambiar el sonido al empezar','Al elegir esta canción, el MiniNova cambia a este banco y programa.',toggle('',s.sendPC,v=>edit(()=>s.sendPC=v))),
-      s.sendPC?srow('Banco y programa','"Actual" deja el banco que tenga el MiniNova.',[seg([[0,'Actual'],[1,'A'],[2,'B'],[3,'C']],s.bank||0,v=>edit(()=>s.bank=v)),knob({label:'Programa',value:s.pc||0,min:0,max:127,onInput:v=>edit(()=>s.pc=v)})]):null,
+      s.sendPC?srow('Banco y programa','"Actual" deja el banco que tenga el MiniNova.',[seg([[0,'Actual'],[1,'A'],[2,'B'],[3,'C']],s.bank||0,v=>edit(()=>s.bank=v)),knob({label:'Programa',value:s.pc||0,min:0,max:127,onInput:v=>edit(()=>s.pc=v)}),
+        h('button',{onclick:()=>elegirSonidoDlg({bank:s.bank||0,pc:s.pc||0},x=>edit(()=>{s.bank=x.bank;s.pc=x.pc;}))},'Elegir por nombre…'),
+        sndNombre({bank:s.bank||0,pc:s.pc||0})?h('span',{class:'mu sm'},sndNombre({bank:s.bank||0,pc:s.pc||0})):null]):null,
       srow('Modo de voz','Mono toca una nota a la vez (ideal para melodías con glide). Poly permite acordes.',seg([[undefined,'No tocar'],[0,'Mono'],[1,'Mono AG'],[2,'Poly']],s.voice,v=>edit(()=>{if(v==null)delete s.voice;else s.voice=v;}))),
       srow('Rango de la rueda de pitch','Cuántos semitonos sube o baja la rueda. Necesario para "Pitch bend".',[seg([[undefined,'No tocar'],[12,'Fijar']],s.bendRange==null?undefined:12,v=>edit(()=>{if(v==null)delete s.bendRange;else s.bendRange=12;})),
         s.bendRange!=null?knob({label:'±',value:s.bendRange,min:1,max:12,onInput:v=>edit(()=>s.bendRange=v)}):null])]),
@@ -1080,15 +1092,55 @@ function chordCtlBlock(s,sel){
       set?h('button',{class:'gh sm',onclick:()=>setC(id,null)},'↺ sin cambio'):h('span',{class:'mu sm'},'sin cambio'));}));}
 
 /* Sonido del MiniNova por frase (opcional; si no tiene, usa el de la canción) */
-// Como lo muestra el MiniNova: banco + programa de 000 a 127 (p. ej. C011)
-const sndLabel=x=>(x.bank?'ABC'[x.bank-1]:'')+String(x.pc||0).padStart(3,'0');
+/* ---------- Quack Studio (en el mismo PC) ----------
+   Si Quack Studio está abierto en este computador: los sonidos se eligen por nombre y los acordes que editas suenan
+   en el Mininova por USB. Los nombres se guardan en este dispositivo y viajan a los demás con la sincronización. */
+const STUDIO_URL='http://127.0.0.1:8770';
+const STUDIO={ok:false};
+let sndNames={t:0,slots:{}};try{sndNames=JSON.parse(localStorage.getItem('qm_sndnames'))||sndNames;}catch(e){}
+function saveSndNames(){try{localStorage.setItem('qm_sndnames',JSON.stringify(sndNames));}catch(e){}}
+async function studio(path,body){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),body?3000:900);
+  try{const r=await fetch(STUDIO_URL+'/api/'+path,body?{method:'POST',body:JSON.stringify(body),headers:{'Content-Type':'text/plain'},signal:ctl.signal}:{signal:ctl.signal,cache:'no-store'});return await r.json();}
+  finally{clearTimeout(to);}}
+async function buscarStudio(){const antes=STUDIO.ok;try{const r=await studio('ping');STUDIO.ok=!!(r&&r.app==='Quack Studio');}catch(e){STUDIO.ok=false;}
+  if(STUDIO.ok){try{const n=await studio('quack/sonidos');if(n.ok&&hash(n.slots)!==hash(sndNames.slots)){sndNames={t:Date.now(),slots:n.slots};saveSndNames();scheduleSync(3000);}}catch(e){}}
+  if(antes!==STUDIO.ok&&(tab==='cfg'||tab==='edit'))renderAll();}
+setTimeout(buscarStudio,800);setInterval(buscarStudio,15000);
+// Con el Arduino conectado suena por él (cable MIDI); sin Arduino, por Quack Studio (USB). Nunca por los dos.
+const usarStudio=()=>STUDIO.ok&&prefs.studioSnd!==false&&(window.APPMODE||!online);
+const slotDe=x=>x&&x.bank?'ABC'[x.bank-1]+String(x.pc||0).padStart(3,'0'):null;
+const sndNombre=x=>{const s=slotDe(x),n=s&&sndNames.slots[s];return n?n.replace(/^\|nit /,'Init ').trim():'';};
+// Como lo muestra el MiniNova: banco + programa de 000 a 127 (p. ej. C011), y su nombre si lo conocemos
+const sndLabel=x=>{const b=(x.bank?'ABC'[x.bank-1]:'')+String(x.pc||0).padStart(3,'0'),n=sndNombre(x);return n?b+' · '+n:b;};
+/* Elegir un sonido por nombre. Con Quack Studio abierto, tocar uno lo carga en el Mininova para escucharlo. */
+function elegirSonidoDlg(actual,onPick){let banco=actual&&actual.bank?actual.bank:3,filtro='',sel=actual&&actual.bank?{bank:actual.bank,pc:actual.pc||0}:null;
+  const hay=Object.keys(sndNames.slots).length;
+  const lista=h('div',{class:'sndlist'}),tabs=h('div',{class:'seg'});
+  const libre=n=>/nit Patch$/.test(n||'');
+  function draw(){tabs.innerHTML='';[1,2,3].forEach(b=>tabs.append(h('button',{class:b===banco&&!filtro?'on':'',onclick:()=>{banco=b;filtro='';inp.value='';draw();}},'Banco '+'ABC'[b-1])));
+    lista.innerHTML='';const bancos=filtro?[1,2,3]:[banco];let n=0;
+    for(const b of bancos)for(let pc=0;pc<128;pc++){const sl='ABC'[b-1]+String(pc).padStart(3,'0'),nom=(sndNames.slots[sl]||'').replace(/^\|nit /,'Init ').trim();
+      if(filtro&&!(nom.toLowerCase().includes(filtro)||sl.toLowerCase().includes(filtro)))continue;n++;
+      const on=sel&&sel.bank===b&&sel.pc===pc;
+      lista.append(h('button',{class:'sndit'+(on?' on':'')+(libre(nom)?' libre':''),onclick:()=>{sel={bank:b,pc};if(usarStudio())studio('quack/elegir',{slot:sl}).catch(()=>{});draw();}},
+        h('b',null,sl),h('span',null,libre(nom)?'libre':nom||'—')));}
+    if(!n)lista.append(h('p',{class:'mu'},'Nada con ese nombre.'));}
+  const inp=h('input',{type:'text',placeholder:'Buscar por nombre…',oninput:e=>{filtro=e.target.value.trim().toLowerCase();draw();}});
+  const body=h('div',null,
+    hay?h('p',{class:'mu sm',style:'margin-top:0'},STUDIO.ok&&usarStudio()?'Toca un sonido para escucharlo en el Mininova (por Quack Studio).':'Los nombres vienen de Quack Studio.'+(STUDIO.ok?'':' Ábrelo en el PC para escucharlos al elegir.'))
+       :h('p',{class:'mu sm',style:'margin-top:0'},'Todavía no conozco los nombres: abre Quack Studio en el PC con el Mininova conectado (en Sonidos, "Leer y respaldar"). Mientras, eliges por número.'),
+    h('div',{class:'row',style:'gap:8px;align-items:center'},tabs,inp),lista,
+    STUDIO.ok?h('p',{class:'sm',style:'margin:8px 0 0'},h('a',{href:STUDIO_URL,target:'_blank',rel:'noopener'},'Abrir Quack Studio ↗')):null);
+  draw();
+  modal('Elegir sonido',body,[['Cancelar'],['Usar este sonido',()=>{if(!sel){toast('Elige un sonido');return false;}onPick(sel);},'ac']]);}
 function phraseSoundDlg(s,p){const cur=p.sound?copy(p.sound):{bank:s.bank||0,pc:s.pc||0};
   const body=h('div',null,
     h('p',{class:'mu sm',style:'margin-top:0'},'Al llegar a esta frase el MiniNova cambia a este sonido. Ojo: el cambio corta las notas que estén sonando (no hay legato entre frases con distinto sonido). Después se reenvían los ajustes de la canción (modo de voz, rango de pitch y controles).'),
     h('div',{class:'row',style:'align-items:flex-end;gap:14px'},h('div',{class:'col'},h('span',{class:'mu sm'},'Banco'),seg([[0,'Actual'],[1,'A'],[2,'B'],[3,'C']],cur.bank,v=>{cur.bank=v;[...body.querySelectorAll('.seg button')].forEach((b,i)=>b.classList.toggle('on',i===v));})),
-      knob({label:'Programa',value:cur.pc,min:0,max:127,onInput:v=>cur.pc=v})),
+      knob({label:'Programa',value:cur.pc,min:0,max:127,onInput:v=>cur.pc=v}),
+      h('button',{onclick:()=>elegirSonidoDlg(cur,x=>{dlg.remove();edit(()=>{p.sound={bank:x.bank,pc:x.pc};});})},'Elegir por nombre…')),
     s.sendPC?h('p',{class:'mu sm'},'Sonido de la canción: '+sndLabel({bank:s.bank||0,pc:s.pc})+'.'):h('p',{class:'mu sm'},'La canción no tiene sonido propio: las frases sin sonido dejan el que esté.'));
-  modal('Sonido de "'+p.name+'"',body,[p.sound?['Quitar (usar el de la canción)',()=>edit(()=>{delete p.sound;}),'er']:['Cancelar'],['Usar este sonido',()=>edit(()=>{p.sound={bank:cur.bank,pc:cur.pc};}),'ac']]);}
+  const dlg=modal('Sonido de "'+p.name+'"',body,[p.sound?['Quitar (usar el de la canción)',()=>edit(()=>{delete p.sound;}),'er']:['Cancelar'],['Usar este sonido',()=>edit(()=>{p.sound={bank:cur.bank,pc:cur.pc};}),'ac']]);}
 
 /* ---- Grupos desplegables y filas de ajustes (con explicación) ---- */
 let openSecs=new Set(['c:notas']);try{openSecs=new Set(JSON.parse(localStorage.getItem('qm_open')||'["c:notas"]'));}catch(e){}
@@ -1265,6 +1317,11 @@ function vCfg(m0){const S=M.settings;const m=h('div');
     h('div',{class:'col'},toggle('Enviar MIDI Clock (tempo) al MiniNova',S.clock,v=>edit(()=>S.clock=v)),toggle('MIDI Thru (pasar todo directo)',!!st.thru,v=>cmd('thru',v?1:0)),toggle('Sonar al tocar un acorde en el editor',prefs.audition,v=>{prefs.audition=v;savePrefs();}))),
     h('div',{class:'col',style:'margin-top:12px'},h('span',{class:'mu sm'},'Sonido simple en este dispositivo (también en el botón del parlante, arriba)'),seg(SND_OPTS.map(([v,t])=>[v,t.split(' (')[0]]),prefs.sound,v=>setSound(v)),
       h('span',{class:'mu sm'},'Un tono básico del navegador para reconocer el acorde sin el MiniNova. "Corto" se apaga solo en ~2 s; "Sostenido" suena hasta el siguiente acorde y respeta Ligado y Mantener.'))));
+  m.append(h('div',{class:'card'},h('h2',null,'Quack Studio (en el PC)'),
+    h('p',{class:'mu sm',style:'margin-top:0'},STUDIO.ok?'Quack Studio está abierto en este computador.':'No encuentro Quack Studio en este dispositivo (solo funciona en el PC donde está conectado el Mininova por USB).'),
+    STUDIO.ok?h('div',{class:'row',style:'gap:14px;align-items:center'},toggle('Escuchar los acordes en el Mininova mientras edito',prefs.studioSnd!==false,v=>{prefs.studioSnd=v;savePrefs();}),
+      h('a',{class:'btn',href:STUDIO_URL,target:'_blank',rel:'noopener'},'Abrir Quack Studio ↗')):null,
+    h('p',{class:'mu sm'},`Nombres de sonidos conocidos: ${Object.keys(sndNames.slots).length}${sndNames.t?' (actualizados '+new Date(sndNames.t).toLocaleDateString('es-CL')+')':''}. Con el Arduino conectado, los acordes suenan por él y no por Quack Studio.`)));
   m.append(h('div',{class:'card'},h('h2',null,'Letras (opcional)'),h('p',{class:'mu sm',style:'margin-top:0'},'Cada canción activa su letra en Editar → Canción → Letra. Aquí eliges dónde se guardan y qué tan grande se ve.'),
     h('div',{class:'row',style:'margin:6px 0 10px;gap:14px'},knob({label:'Tamaño mínimo',value:prefs.lyrMin||5,min:2,max:10,step:.5,onInput:v=>{prefs.lyrMin=v;savePrefs();}}),
       knob({label:'Tamaño máximo',value:prefs.lyrMax||25,min:6,max:40,step:1,onInput:v=>{prefs.lyrMax=v;savePrefs();}}),
@@ -1279,7 +1336,7 @@ function vCfg(m0){const S=M.settings;const m=h('div');
   const lg=h('div',{class:'col'},h('span',{class:'mu'},'Cargando…'));
   m.append(h('div',{class:'card'},h('h2',null,'Registro'),lg,h('div',{class:'row',style:'margin-top:8px'},h('button',{onclick:()=>api('/api/c?x=clrlog').then(()=>renderAll())},'Borrar registro'))));
   // cada tarjeta (menos la de guardar) se vuelve un grupo desplegable, con su primer párrafo como resumen
-  const ICS={'Sincronización entre dispositivos':'cloud','Switches del Ampero':'right','Red WiFi del Arduino':'send','MIDI':'music','Letras (opcional)':'paste','Memoria y respaldo':'save','Copias automáticas':'restart','Apariencia':'info','Registro':'info'};
+  const ICS={'Sincronización entre dispositivos':'cloud','Switches del Ampero':'right','Red WiFi del Arduino':'send','MIDI':'music','Quack Studio (en el PC)':'piano','Letras (opcional)':'paste','Memoria y respaldo':'save','Copias automáticas':'restart','Apariencia':'info','Registro':'info'};
   [...m.children].forEach((c,k)=>{const h2=c.querySelector(':scope>h2');if(k===0||!h2){m0.append(c);return;}
     const t=h2.textContent;h2.remove();c.classList.remove('card');const body=[...c.childNodes];
     m0.append(sec('a:'+t,ICS[t]||'info',t,'',()=>body));});
@@ -1510,6 +1567,7 @@ async function syncNow(interactive){if(!window.APPMODE||syncBusy||!M)return;
     if(pendingUp||uploading)await upload();
     const mg=mergeWith(R);
     if(mg.conflicts.length)takeSnap(true);                                // guardar lo de antes por si acaso
+    if(R.sndNames&&sane(R.sndNames.t)>sane(sndNames.t)){sndNames={t:R.sndNames.t,slots:R.sndNames.slots||{}};saveSndNames();}   // nombres de sonidos: gana lo más nuevo
     const changedHere=hash(mg.model.songs)!==hash(M.songs)||hash(mg.model.sets)!==hash(M.sets)||hash(mg.model.settings)!==hash(M.settings);
     // Actualizar lo local sin que cuente como edición nueva
     const m=syncMeta();m.hash={};m.t={};for(const so of mg.model.songs){m.hash[so.id]=hash(so);m.t[so.id]=mg.times[so.id]||0;}
@@ -1519,7 +1577,7 @@ async function syncNow(interactive){if(!window.APPMODE||syncBusy||!M)return;
     if(changedHere){pendingUp=true;clearTimeout(upTimer);upTimer=setTimeout(upload,50);saveLyricsSoon();renderAll();}
     // Subir la versión combinada
     const body={app:'QuackMIDI',v:1,t:Date.now(),settings:M.settings,settingsT:m.settingsT,order:M.songs.map(x=>x.id),orderT:m.orderT,
-      sets:setsById(),setsT:m.setsT,deleted:m.deleted,songs:M.songs.map(so=>Object.assign(copy(so),{_t:m.t[so.id]||0}))};
+      sets:setsById(),setsT:m.setsT,deleted:m.deleted,sndNames,songs:M.songs.map(so=>Object.assign(copy(so),{_t:m.t[so.id]||0}))};
     await gd(tok,`https://www.googleapis.com/upload/drive/v3/files/${fid}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     syncState='ok';syncMsg='Sincronizado '+new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+'.';
     if(mg.conflicts.length)toast('Se editó en dos lugares: '+mg.conflicts.join(', ')+'. Quedó lo más nuevo; lo anterior está en Copias automáticas.');
