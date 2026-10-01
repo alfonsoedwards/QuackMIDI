@@ -380,6 +380,8 @@ button.er,button.er:hover,.pf-bot button.mute{background:var(--sf);color:var(--a
 .sndit b{color:var(--ack);flex:0 0 auto}.sndit span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sndit.libre{opacity:.55}.sndit.on{background:var(--ac);color:var(--aci)}.sndit.on b{color:var(--aci)}
 a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-radius:12px;background:var(--acl);color:var(--ack);font-weight:800;text-decoration:none}
+.hstudio{display:inline-flex;align-items:center;color:#fff;font-weight:800;font-size:.85rem;text-decoration:none;border:1.5px solid #ffffffa0;border-radius:9px;padding:.2em .55em;margin:0 2px}
+.hstudio:hover{background:#ffffff26}.hstudio[hidden]{display:none}
 /* Paletitas y menús emergentes */
 .pop{position:fixed;z-index:55;background:var(--sf);border:1px solid var(--ln);border-radius:14px;box-shadow:var(--sh);padding:10px}
 .pal{display:grid;grid-template-columns:repeat(4,36px);gap:8px}
@@ -412,6 +414,7 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
   <span class="sp"></span>
   <span class="htools" id="htools"></span>
   <span id="pill" class="pill off"><i></i><span>Conectando…</span></span>
+  <a class="gh hstudio" id="btnStudio" href="http://127.0.0.1:8770/" target="quackstudio" rel="noopener" title="Abrir Quack Studio (editor de sonidos, en este PC)" hidden>Studio</a>
   <button class="gh" id="btnCloud" title="Sincronizar con Google Drive" hidden></button>
   <button class="gh" id="btnSnd" title="Sonido en este dispositivo"></button>
   <button class="gh" id="btnHelp" title="Ayuda"></button>
@@ -514,7 +517,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.01-1912';
+const QM_VERSION='2026.10.01-1923';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -526,7 +529,7 @@ applyTheme();
    prefs.sound: false = apagado · 'fade' = corto (se apaga solo en ~2 s) · 'latch' = sostenido
    hasta el siguiente acorde. Con Ligado, las notas repetidas siguen sonando sin re-atacarse. */
 let actx=null;let voices=[];   // {note,o,g,until}
-const sndOn=()=>prefs.sound==='fade'||prefs.sound==='latch';
+const sndOn=()=>(prefs.sound==='fade'||prefs.sound==='latch')&&!(typeof usarStudio==='function'&&usarStudio());   // con Quack Studio suena el Mininova, no el navegador
 const localSound=sndOn;
 const hz=n=>440*Math.pow(2,(n-69)/12);
 function relVoice(v,t){try{v.g.gain.cancelScheduledValues(t);v.g.gain.setValueAtTime(v.g.gain.value,t);v.g.gain.linearRampToValueAtTime(0,t+.08);v.o.stop(t+.1);}catch(e){}}
@@ -637,15 +640,28 @@ async function tick(){let wait=perfOn?200:400;
         synthPlay(c.notes.map(n=>n+tr),c.vel!=null?c.vel:so.vel,{tie,trans,glide:c.glide!=null?c.glide:so.glide,bend:c.bend,nv:nvShift(c,tr)});}
       else synthStop();
       lastIt=it;lastSongIdx=s.s;}
+    if(M&&window.SIM&&usarStudio()&&pos!==lastPosStudio)tocarEnStudio(s,pos);
     const sig=[s.s,s.st,s.r,s.c,s.set,s.se,s.thru,s.warn,s.cap,s.end,s.dirty].join();
     if(sig!==lastSig||!was){lastSig=sig;renderLive();}
     if(perfOn)renderPerf();
   }catch(e){online=false;wait=1200;}
   updPill();return wait;}
 async function poll(){setTimeout(poll,await tick());}
+/* Sin Arduino (app o simulador) y con Quack Studio abierto: las canciones suenan en el Mininova por USB.
+   Respeta el sonido de la canción y de cada frase, el ligado, los silencios y "Mantener" (al soltar el pedal). */
+let lastPosStudio='',lastItStudio=null,lastSongStudio=-1;
+function tocarEnStudio(s,pos){lastPosStudio=pos;const so=M.songs[s.s];if(!so){lastItStudio=null;return;}
+  const it=s.c>=0?flatten(so).find(x=>x.st===s.st&&x.r===s.r&&x.ci===s.c):null;
+  const p=it?so.phrases[it.p]:null,snd=(p&&p.sound)||(so.sendPC?{bank:so.bank||0,pc:so.pc}:null),slot=slotDe(snd);
+  if(!it){studio('quack/parar',{}).catch(()=>{});if(lastSongStudio!==s.s&&slot)studio('quack/elegir',{slot}).catch(()=>{});}
+  else if(!it.c.notes.length)studio('quack/parar',{}).catch(()=>{});
+  else{const same=lastItStudio&&lastSongStudio===s.s,tie=same?(lastItStudio.c.tie!=null?lastItStudio.c.tie:so.tie):false,tr=liveTr(),c=it.c;
+    studio('quack/tocar',{notas:c.notes.map(n=>n+tr),vel:c.vel!=null?c.vel:so.vel,nv:nvShift(c,tr),slot,modo:'latch',ligado:!!tie}).catch(()=>{});}
+  lastItStudio=it;lastSongStudio=s.s;}
 window.qmTick=tick;
 // Pedal (virtual) suelto: en "Mantener" sin Ligado, el acorde se apaga
-window.qmPedalUp=k=>{if(k>1||!lastIt||!M)return;const so=M.songs[st.s];if(!so)return;const hold=lastIt.c.hold!=null?lastIt.c.hold:so.hold,tie=lastIt.c.tie!=null?lastIt.c.tie:so.tie;if(hold&&!tie)synthStop();};
+window.qmPedalUp=k=>{const it=lastIt||lastItStudio;if(k>1||!it||!M)return;const so=M.songs[st.s];if(!so)return;const hold=it.c.hold!=null?it.c.hold:so.hold,tie=it.c.tie!=null?it.c.tie:so.tie;
+  if(hold&&!tie){synthStop();if(usarStudio())studio('quack/parar',{}).catch(()=>{});}};
 
 /* ---------- Utilidades de UI ---------- */
 function toast(m){const t=h('div',{class:'toast'},m);document.body.append(t);setTimeout(()=>t.remove(),2600);}
@@ -1104,6 +1120,7 @@ async function studio(path,body){const ctl=new AbortController();const to=setTim
   finally{clearTimeout(to);}}
 async function buscarStudio(){const antes=STUDIO.ok;try{const r=await studio('ping');STUDIO.ok=!!(r&&r.app==='Quack Studio');}catch(e){STUDIO.ok=false;}
   if(STUDIO.ok){try{const n=await studio('quack/sonidos');if(n.ok&&hash(n.slots)!==hash(sndNames.slots)){sndNames={t:Date.now(),slots:n.slots};saveSndNames();scheduleSync(3000);}}catch(e){}}
+  const b=$('#btnStudio');if(b)b.hidden=!STUDIO.ok;   // el botón "Studio" arriba: solo en el PC donde está abierto
   if(antes!==STUDIO.ok&&(tab==='cfg'||tab==='edit'))renderAll();}
 setTimeout(buscarStudio,800);setInterval(buscarStudio,15000);
 // Con el Arduino conectado suena por él (cable MIDI); sin Arduino, por Quack Studio (USB). Nunca por los dos.
