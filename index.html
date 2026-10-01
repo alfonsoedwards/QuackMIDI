@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#4EC6DF">
 <title>Quack MIDI</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon5a-192.png">
-<link rel="apple-touch-icon" href="icon5a-192.png">
+<link rel="icon" href="icon6a-192.png">
+<link rel="apple-touch-icon" href="icon6a-192.png">
 <style>
 @font-face{font-family:Nunito;src:url(nunito.woff2) format('woff2');font-weight:200 1000;font-display:swap}
 /* Paleta Quack (igual que Quack Notes): calipso, blanco, crema de las hojas y el gris cálido del navegador */
@@ -517,7 +517,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.01-1927';
+const QM_VERSION='2026.10.01-2009';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -654,9 +654,9 @@ function tocarEnStudio(s,pos){lastPosStudio=pos;const so=M.songs[s.s];if(!so){la
   const it=s.c>=0?flatten(so).find(x=>x.st===s.st&&x.r===s.r&&x.ci===s.c):null;
   const p=it?so.phrases[it.p]:null,snd=(p&&p.sound)||(so.sendPC?{bank:so.bank||0,pc:so.pc}:null),slot=slotDe(snd);
   if(!it){studio('quack/parar',{}).catch(()=>{});if(lastSongStudio!==s.s&&slot)studio('quack/elegir',{slot}).catch(()=>{});}
-  else if(!it.c.notes.length)studio('quack/parar',{}).catch(()=>{});
-  else{const same=lastItStudio&&lastSongStudio===s.s,tie=same?(lastItStudio.c.tie!=null?lastItStudio.c.tie:so.tie):false,tr=liveTr(),c=it.c;
-    studio('quack/tocar',{notas:c.notes.map(n=>n+tr),vel:c.vel!=null?c.vel:so.vel,nv:nvShift(c,tr),slot,modo:'latch',ligado:!!tie}).catch(()=>{});}
+  else{const same=lastItStudio&&lastSongStudio===s.s,c=it.c,tie=same?(lastItStudio.c.tie!=null?lastItStudio.c.tie:so.tie):false;
+    const trans=same?(c.trans!=null?c.trans:(so.trans||0)):0;
+    studio('quack/paso',pasoStudio(so,c,p,{ligado:!!tie,trans,tr:liveTr()})).catch(()=>{});}
   lastItStudio=it;lastSongStudio=s.s;}
 window.qmTick=tick;
 // Pedal (virtual) suelto: en "Mantener" sin Ligado, el acorde se apaga
@@ -854,7 +854,7 @@ const nvShift=(c,tr)=>{if(!c.nv)return null;const o={};for(const k in c.nv)o[+k+
 function audition(c,s){if(!prefs.audition)return;const v=c.vel!=null?c.vel:s.vel;synthPlay(c.notes,v,{trans:c.trans!=null?c.trans:(s.trans||0),glide:c.glide!=null?c.glide:s.glide,bend:c.bend,nv:c.nv});if(c.trans===2)return;
   if(usarStudio()){const p=s.phrases.find(q=>q.chords.includes(c)),snd=(p&&p.sound)||(s.sendPC?{bank:s.bank||0,pc:s.pc}:null);
     if(!c.notes.length)studio('quack/parar',{}).catch(()=>{});
-    else studio('quack/tocar',{notas:c.notes,vel:v,nv:c.nv||null,slot:slotDe(snd),modo:prefs.sound==='latch'?'latch':'fade'}).catch(()=>{});
+    else studio('quack/paso',pasoStudio(s,c,p,{modo:prefs.sound==='latch'?'latch':'fade'})).catch(()=>{});
     return;}
   if(window.SIM)return;if(!c.notes.length)return cmd('stop');cmd('play',null,'&n='+c.notes.join('.')+'&v='+v+(c.nv?'&w='+c.notes.map(n=>c.nv[n]||0).join('.'):''));}
 function vEdit(m){
@@ -1132,6 +1132,13 @@ const slotDe=x=>x&&x.bank?'ABC'[x.bank-1]+String(x.pc||0).padStart(3,'0'):null;
 const sndNombre=x=>{const s=slotDe(x),n=s&&sndNames.slots[s];return n?n.replace(/^\|nit /,'Init ').trim():'';};
 // Como lo muestra el MiniNova: banco + programa de 000 a 127 (p. ej. C011), y su nombre si lo conocemos
 const sndLabel=x=>{const b=(x.bank?'ABC'[x.bank-1]:'')+String(x.pc||0).padStart(3,'0'),n=sndNombre(x);return n?b+' · '+n:b;};
+/* Un paso para Quack Studio: acorde + perillas (con su transición) + ajustes de la canción, como lo haría el Arduino */
+function pasoStudio(so,c,p,{ligado=false,trans=0,tr=0,modo='latch'}={}){
+  const snd=(p&&p.sound)||(so.sendPC?{bank:so.bank||0,pc:so.pc}:null),bpm=c.bpm||so.bpm||120,glide=c.glide!=null?c.glide:(so.glide!=null?so.glide:150);
+  const ctls=Object.entries(c.ctl||{}).map(([id,v])=>{const T=c.ctlT&&c.ctlT[id],ms=x=>Math.round(T.b?x*60000/bpm:x*1000);
+    return T?{id:+id,val:v,own:true,dur:ms(T.d),wait:ms(T.w)}:{id:+id,val:v,own:false,dur:glide,wait:0};});
+  return{cancion:so.id,slot:slotDe(snd),voz:so.voice!=null?so.voice:null,bendRange:so.bendRange||0,ctlCancion:so.ctl||{},
+    notas:c.notes.map(n=>n+tr),vel:c.vel!=null?c.vel:so.vel,nv:nvShift(c,tr),ligado,trans,glide,bend:c.bend||0,ctls,modo};}
 /* Elegir un sonido por nombre. Con Quack Studio abierto, tocar uno lo carga en el Mininova para escucharlo. */
 function elegirSonidoDlg(actual,onPick){let banco=actual&&actual.bank?actual.bank:3,filtro='',sel=actual&&actual.bank?{bank:actual.bank,pc:actual.pc||0}:null;
   const hay=Object.keys(sndNames.slots).length;
