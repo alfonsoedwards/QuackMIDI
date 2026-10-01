@@ -514,7 +514,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.01-1758';
+const QM_VERSION='2026.10.01-1912';
 const PREF_DEF={theme:'light',sound:false,audition:true,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.sound===true)prefs.sound='fade';}catch(e){}
@@ -1519,7 +1519,10 @@ function tokenOk(){const m=syncMeta();return m.token&&m.exp>Date.now()+60e3;}
 function getToken(interactive){return new Promise(async(ok,no)=>{if(tokenOk())return ok(syncMeta().token);if(!interactive)return no(Error('login'));
   try{await loadGis();}catch(e){return no(e);}
   tokenClient=google.accounts.oauth2.initTokenClient({client_id:GCLIENT,scope:GSCOPE,
-    callback:r=>{if(r.error)return no(Error(r.error));const m=syncMeta();m.token=r.access_token;m.exp=Date.now()+(r.expires_in||3600)*1000;m.connected=true;setSyncMeta(m);ok(r.access_token);},
+    callback:r=>{if(r.error)return no(Error(r.error));const m=syncMeta();m.token=r.access_token;m.exp=Date.now()+(r.expires_in||3600)*1000;m.connected=true;setSyncMeta(m);ok(r.access_token);
+      // Recordar la cuenta: la próxima vez Google la usa directo (sin elegir cuenta), y la ventanita se cierra sola
+      if(!m.email)fetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)',{headers:{Authorization:'Bearer '+r.access_token}})
+        .then(x=>x.json()).then(j=>{const e=j&&j.user&&j.user.emailAddress;if(e){const k=syncMeta();k.email=e;setSyncMeta(k);}}).catch(()=>{});},
     error_callback:e=>no(Error(e&&e.type||'cancelado'))});
   const m=syncMeta();tokenClient.requestAccessToken({prompt:m.connected?'':'consent',login_hint:m.email||undefined});});}
 async function gd(tok,url,opt={}){const r=await fetch(url,Object.assign({},opt,{headers:Object.assign({Authorization:'Bearer '+tok},opt.headers||{})}));
@@ -1592,10 +1595,10 @@ function updCloud(){const b=$('#btnCloud');if(!b||!window.APPMODE)return;b.hidde
   b.title=syncState==='off'?'Conectar con Google Drive para sincronizar':syncMsg;}
 function cloudCard(){const m=syncMeta();
   return h('div',{class:'card'},h('h2',null,'Sincronización entre dispositivos'),
-    m.connected?h('div',null,h('p',{class:'sm',style:'margin-top:0'},syncMsg||'Conectado con Google Drive.'),
+    m.connected?h('div',null,h('p',{class:'sm',style:'margin-top:0'},(syncMsg||'Conectado con Google Drive.')+(m.email?' Cuenta: '+m.email+'.':'')),
         m.lastSync?h('p',{class:'mu sm'},'Última sincronización: '+new Date(m.lastSync).toLocaleString('es-CL')):null,
         h('div',{class:'row'},h('button',{class:'ac',onclick:()=>syncNow(true)},ic('cloud'),'Sincronizar ahora'),
-          h('button',{onclick:()=>modal('¿Desconectar de Google Drive?',h('p',null,'Este dispositivo deja de sincronizar. Tus canciones se quedan aquí y en el Drive.'),[['Cancelar'],['Desconectar',()=>{const x=syncMeta();x.connected=false;x.token=null;setSyncMeta(x);syncState='off';updCloud();renderAll();},'er']])},'Desconectar')))
+          h('button',{onclick:()=>modal('¿Desconectar de Google Drive?',h('p',null,'Este dispositivo deja de sincronizar. Tus canciones se quedan aquí y en el Drive.'),[['Cancelar'],['Desconectar',()=>{const x=syncMeta();x.connected=false;x.token=null;x.email=null;setSyncMeta(x);syncState='off';updCloud();renderAll();},'er']])},'Desconectar')))
       :h('div',null,h('p',{class:'mu sm',style:'margin-top:0'},'Conecta tu cuenta de Google y tus canciones quedan en una carpeta "Quack MIDI" de tu Drive, iguales en la tablet, el celular y el PC. También sirve de respaldo en la nube.'),
         h('button',{class:'ac',onclick:()=>syncNow(true)},ic('cloud'),'Conectar con Google Drive')));}
 if(window.APPMODE){
