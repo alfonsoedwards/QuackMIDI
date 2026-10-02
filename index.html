@@ -400,6 +400,47 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
 .pop select{width:100%}
 /* Celular: la barra de arriba no puede ser más ancha que la pantalla (si no, los botones quedan afuera y la página se corre) */
 @media (max-width:560px){.brand>span:last-child{display:none}.hdr{gap:.15em}.hdr button.gh,.hdr .hstudio{padding:.35em .38em}.htools{display:flex;gap:0}.pill{padding:.45em}.pill>span{display:none}}
+/* ===== Sin pestañas: barra de herramientas de lado a lado + explorador (carpetas) + editor ===== */
+.tbar{display:flex;align-items:center;gap:2px;padding:3px max(12px,env(safe-area-inset-left));background:var(--sf);border-bottom:1px solid var(--ln);box-shadow:0 2px 8px #0000000d;overflow-x:auto;scrollbar-width:none}
+.tbar::-webkit-scrollbar{display:none}
+.tbar button{background:transparent;display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:.28em .6em;font-size:.72rem;font-weight:800;color:var(--tx2);border-radius:10px;white-space:nowrap;flex:none}
+.tbar button .ic{width:22px;height:22px;color:var(--ack)}
+.tbar button.on{background:var(--acl2);color:var(--ack)}
+.tbar button:hover{background:var(--acl);filter:none}
+.tbar .tsep{width:1px;align-self:stretch;margin:7px 5px;background:var(--ln);flex:none}
+.tbar .tobj{font-size:.8rem;font-weight:800;color:var(--mu);white-space:nowrap;padding:0 .4em;flex:none}
+.tbar .tobj b{color:var(--ack)}
+.hdr .hplay{background:#fff;color:var(--ack);font-weight:900;display:inline-flex;gap:.35em;align-items:center;padding:.42em .95em;border-radius:99px;margin-left:.2em}
+.hdr .hplay .ic{width:20px;height:20px}
+.hdr .hcfg.on{background:#ffffff40}
+.shell{display:grid;grid-template-columns:280px minmax(0,1fr);gap:14px;max-width:1500px;margin:0 auto;padding:12px 16px 0;align-items:start}
+.shell main{padding:0;max-width:none;margin:0;min-width:0}
+.nav{position:sticky;top:calc(var(--topH,110px) + 12px);max-height:calc(100vh - var(--topH,110px) - 24px);overflow:auto;background:var(--sf);border-radius:var(--r);box-shadow:var(--sh);padding:6px 6px 10px;overscroll-behavior:contain}
+.nav .nh{display:flex;align-items:center;font-size:.78rem;font-weight:900;color:var(--mu);padding:10px 6px 4px 8px;letter-spacing:.3px}
+.nav .nh button{background:transparent;padding:.15em .35em;color:var(--ack)}.nav .nh .ic{width:20px;height:20px}
+.nr{display:flex;align-items:center;gap:5px;padding:2px 6px 2px 2px;border-radius:9px;cursor:pointer;white-space:nowrap;min-height:31px;user-select:none}
+.nr:hover{background:var(--sf2)}
+.nr.on{background:var(--ac);color:#fff}
+.nr.msel{background:var(--acl2)}
+.nr .tw{width:24px;height:24px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:7px;background:transparent;padding:0;color:inherit;opacity:.7}
+.nr .tw .ic{width:15px;height:15px}.nr .tw.no{visibility:hidden}
+.nr .lb{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.nr small{font-size:.74rem;color:var(--mu);font-weight:800}.nr.on small{color:#ffffffd0}
+.nr .pdot{width:7px;height:7px;border-radius:50%;background:var(--wa);flex:none}
+.nr .csw{width:4px;height:18px;border-radius:2px;flex:none}
+.nr.sepr .lb{font-style:italic;color:var(--tx2)}.nr.on.sepr .lb{color:#fff}
+.nk .nk{margin-left:13px;padding-left:4px;border-left:1.5px solid var(--ln)}
+.nav .vacio{padding:4px 10px;font-size:.85rem}
+.ruta{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin:0 0 10px;font-weight:800;background:var(--sf);border-radius:var(--r);box-shadow:var(--sh);padding:6px 8px}
+.ruta button{background:transparent;padding:.3em .55em;color:var(--ack)}.ruta button.on{background:var(--acl2)}
+.ruta .gt{color:var(--mu);font-weight:900;font-size:1.25rem;line-height:1;padding:0 2px}
+.navbtn{display:none!important}
+.strip .chip.esta{box-shadow:inset 0 0 0 2px var(--ac)}
+.nivel-t{font-size:.78rem;font-weight:900;color:var(--mu);margin:0 0 2px}
+@media (max-width:860px){.shell{grid-template-columns:minmax(0,1fr);padding:8px 10px 0}
+  .nav{display:none;position:fixed;z-index:30;top:var(--topH,110px);left:0;bottom:0;width:min(86vw,340px);max-height:none;border-radius:0 var(--r) var(--r) 0}
+  body.navon .nav{display:block}.navbtn{display:inline-flex!important}}
+@media (max-width:560px){.tbar button .tl{display:none}.tbar button{padding:.45em .5em}.hdr .hplay span{display:none}.hdr .hplay{padding:.42em .6em}.tbar .tobj{display:none}}
 </style>
 </head>
 <body>
@@ -429,10 +470,12 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
   <button class="gh" id="btnCloud" title="Sincronizar con Google Drive" hidden></button>
   <button class="gh" id="btnSnd" title="Sonido en este dispositivo"></button>
   <button class="gh" id="btnHelp" title="Ayuda"></button>
+  <button class="gh" id="btnCfg" title="Ajustes (pedal, MIDI, red, letras, respaldo)"></button>
+  <button class="hplay" id="btnPlay" title="Tocar lo que tienes elegido (pantalla completa)"></button>
 </div>
-<nav class="tabs" id="tabs"></nav>
+<nav class="tbar" id="tbar"></nav>
 </div>
-<main id="main"></main>
+<div class="shell"><aside class="nav" id="nav"></aside><main id="main"></main></div>
 <script type="application/json" id="mnp">[[255,3,"Voice · PolyphonyMode",0,4,1],[255,5,"Voice · PortamentoRate",0,127],[255,8,"Mixer · WetLevel",0,127],[255,9,"Voice · PreGlide",52,76,1],[255,10,"FX · PanPosition",0,127],[255,12,"Voice · PortamentoMode",0,1,1],[255,14,"Voice · Unison",0,4,1],[255,15,"Voice · UnisonDetune",0,127],[255,16,"Osc123 · Drift",0,127],[255,17,"Osc123 · Phase",0,120,1],[255,18,"Osc123 · FixedTranspose",0,127,1],[255,19,"Osc 1 · Wave",0,71,1],[255,20,"Osc 1 · WaveInterpolate",0,127],[255,21,"Osc 1 · PulseWidthIndex",0,127],[255,22,"Osc 1 · VirtualSyncDepth",0,127],[255,23,"Osc 1 · Hardness",0,127],[255,24,"Osc 1 · Density",0,127],[255,25,"Osc 1 · DensityDetune",0,127],[255,26,"Osc 1 · Semitones",0,127,1],[255,27,"Osc 1 · Cents",0,127],[255,28,"Osc 1 · PitchBend",52,76,1],[255,29,"Osc 2 · Wave",0,71,1],[255,30,"Osc 2 · WaveInterpolate",0,127],[255,31,"Osc 2 · PulseWidthIndex",0,127],[255,33,"Osc 2 · VirtualSyncDepth",0,127],[255,34,"Osc 2 · Hardness",0,127],[255,35,"Osc 2 · Density",0,127],[255,36,"Osc 2 · DensityDetune",0,127],[255,37,"Osc 2 · Semitones",0,127,1],[255,39,"Osc 2 · Cents",0,127],[255,40,"Osc 2 · PitchBend",52,76,1],[255,41,"Osc 3 · Wave",0,71,1],[255,42,"Osc 3 · WaveInterpolate",0,127],[255,43,"Osc 3 · PulseWidthIndex",0,127],[255,44,"Osc 3 · VirtualSyncDepth",0,127],[255,45,"Osc 3 · Hardness",0,127],[255,46,"Osc 3 · Density",0,127],[255,47,"Osc 3 · DensityDetune",0,127],[255,48,"Osc 3 · Semitones",0,127,1],[255,49,"Osc 3 · Cents",0,127],[255,50,"Osc 3 · PitchBend",52,76,1],[255,51,"Mixer · Osc1Level",0,127],[255,52,"Mixer · Osc2Level",0,127],[255,53,"Mixer · Osc3Level",0,127],[255,54,"Mixer · RingModLevel13",0,127],[255,55,"Mixer · RingModLevel23",0,127],[255,56,"Mixer · NoiseLevel",0,127],[255,57,"Mixer · NoiseColour",0,3,1],[255,58,"Mixer · PreFXLevel",52,82],[255,59,"Mixer · PostFXLevel",52,82],[255,60,"Filter · Routing",0,5,1],[255,61,"Filter · Balance",0,127],[255,63,"Filter 1 · Drive",0,127],[0,122,"Filter · FreqLink",42,43,1],[0,122,"Filter · ResLink",44,45,1],[255,65,"Filter 1 · DriveType",0,6,1],[255,68,"Filter 1 · Type",0,13,1],[255,69,"Filter 1 · Track",0,127,1],[255,70,"Envelope 1 · Sustain",0,127],[255,71,"Filter 1 · Resonance",0,127],[255,72,"Envelope 1 · Release",0,127],[255,73,"Envelope 1 · Attack",0,127],[255,74,"Filter 1 · Frequency",0,127],[255,75,"Envelope 1 · Decay",0,127],[255,76,"Osc · VibratoSpeed",0,127],[255,77,"Osc · VibratoDepth",0,127],[255,78,"Filter 1 · QNormalise",0,127],[255,79,"Filter 1 · Env2ToFreq",0,127],[255,80,"Filter 2 · Drive",0,127],[255,81,"Filter 2 · DriveType",0,6,1],[255,82,"Filter 2 · Type",0,13,1],[255,83,"Filter 2 · Frequency",0,127],[255,84,"Filter 2 · Track",0,127,1],[255,85,"Filter 2 · Resonance",0,127],[255,86,"Filter 2 · QNormalise",0,127],[60,0,"Animate 1 · Hold",0,127,1],[60,1,"Animate 2 · Hold",0,127,1],[60,2,"Animate 3 · Hold",0,127,1],[60,3,"Animate 4 · Hold",0,127,1],[60,4,"Animate 5 · Hold",0,127,1],[60,5,"Animate 6 · Hold",0,127,1],[60,6,"Animate 7 · Hold",0,127,1],[60,7,"Animate 8 · Hold",0,127,1],[0,122,"Envelope 1 · Trigger",0,1,1],[0,122,"Envelope 2 · Trigger",2,3,1],[0,122,"Envelope 3 · Trigger",4,5,1],[0,122,"Envelope 4 · Trigger",6,7,1],[0,122,"Envelope 5 · Trigger",8,9,1],[0,122,"Envelope 6 · Trigger",10,11,1],[255,87,"Filter 2 · Env2ToFreq",0,127],[255,88,"FX · PanRate",0,127],[255,89,"FX · PanSync",0,35,1],[255,90,"FX · PanModDepth",0,127],[255,91,"FX 1 · Level",0,127],[255,92,"FX 2 · Level",0,127],[255,93,"FX 3 · Level",0,127],[255,94,"FX 4 · Level",0,127],[255,95,"FX 5 · Level",0,127],[255,106,"Envelope · TrackCentre",0,127],[255,108,"Envelope 1 · Velocity",0,127],[255,109,"Envelope 1 · SustainRate",0,127],[255,110,"Envelope 1 · SustainTime",0,127],[255,111,"Envelope 1 · ADRepeats",0,127],[255,112,"Envelope 1 · AttackTrack",0,127,1],[0,0,"Envelope 2 · Velocity",0,127],[0,1,"Envelope 2 · Attack",0,127],[0,2,"Envelope 2 · Decay",0,127],[0,3,"Envelope 2 · Sustain",0,127],[0,4,"Envelope 2 · Release",0,127],[0,5,"Envelope 2 · SustainRate",0,127],[0,6,"Envelope 2 · SustainTime",0,127],[0,7,"Envelope 2 · ADRepeats",0,127],[0,8,"Envelope 2 · AttackTrack",0,127,1],[0,9,"Envelope 2 · DecayTrack",0,127,1],[0,10,"Envelope 2 · LevelTrack",0,127,1],[0,11,"Envelope 2 · AttackSlope",0,127],[0,12,"Envelope 2 · DecaySlope",0,127],[0,13,"Envelope 2 · AnimTrigger",0,24,1],[0,14,"Envelope 3 · Delay",0,127],[0,15,"Envelope 3 · Attack",0,127],[0,16,"Envelope 3 · Decay",0,127],[0,17,"Envelope 3 · Sustain",0,127],[0,18,"Envelope 3 · Release",0,127],[0,19,"Envelope 3 · SustainRate",0,127],[0,20,"Envelope 3 · SustainTime",0,127],[0,21,"Envelope 3 · ADRepeats",0,127],[0,22,"Envelope 3 · AttackTrack",0,127,1],[0,23,"Envelope 3 · DecayTrack",0,127,1],[0,24,"Envelope 3 · LevelTrack",0,127,1],[0,25,"Envelope 3 · AttackSlope",0,127],[0,26,"Envelope 3 · DecaySlope",0,127],[0,27,"Envelope 3 · AnimTrigger",0,24,1],[0,28,"Envelope 4 · Delay",0,127],[0,29,"Envelope 4 · Attack",0,127],[0,30,"Envelope 4 · Decay",0,127],[0,31,"Envelope 4 · Sustain",0,127],[0,32,"Envelope 4 · Release",0,127],[0,33,"Envelope 4 · SustainRate",0,127],[0,34,"Envelope 4 · SustainTime",0,127],[0,35,"Envelope 4 · ADRepeats",0,127],[0,36,"Envelope 4 · AttackTrack",0,127,1],[0,37,"Envelope 4 · DecayTrack",0,127,1],[0,38,"Envelope 4 · LevelTrack",0,127,1],[0,39,"Envelope 4 · AttackSlope",0,127],[0,40,"Envelope 4 · DecaySlope",0,127],[0,41,"Envelope 4 · AnimTrigger",0,24,1],[0,42,"Envelope 5 · Delay",0,127],[0,43,"Envelope 5 · Attack",0,127],[0,44,"Envelope 5 · Decay",0,127],[0,45,"Envelope 5 · Sustain",0,127],[0,46,"Envelope 5 · Release",0,127],[0,47,"Envelope 5 · SustainRate",0,127],[0,48,"Envelope 5 · SustainTime",0,127],[0,49,"Envelope 5 · ADRepeats",0,127],[0,50,"Envelope 5 · AttackTrack",0,127,1],[0,51,"Envelope 5 · DecayTrack",0,127,1],[0,52,"Envelope 5 · LevelTrack",0,127,1],[0,53,"Envelope 5 · AttackSlope",0,127],[0,54,"Envelope 5 · DecaySlope",0,127],[0,55,"Envelope 5 · AnimTrigger",0,24,1],[0,56,"Envelope 6 · Delay",0,127],[0,57,"Envelope 6 · Attack",0,127],[0,58,"Envelope 6 · Decay",0,127],[0,59,"Envelope 6 · Sustain",0,127],[0,60,"Envelope 6 · Release",0,127],[0,61,"Envelope 6 · SustainRate",0,127],[0,62,"Envelope 6 · SustainTime",0,127],[0,63,"Envelope 6 · ADRepeats",0,127],[0,64,"Envelope 6 · AttackTrack",0,127,1],[0,65,"Envelope 6 · DecayTrack",0,127,1],[0,66,"Envelope 6 · LevelTrack",0,127,1],[0,67,"Envelope 6 · AttackSlope",0,127],[0,68,"Envelope 6 · DecaySlope",0,127],[0,69,"Envelope 6 · AnimTrigger",0,24,1],[0,70,"LFO 1 · Waveform",0,37,1],[0,71,"LFO 1 · PhaseOffset",0,119],[0,72,"LFO 1 · SlewRate",0,127],[0,74,"LFO 1 · Delay",0,127],[0,75,"LFO 1 · DelaySync",0,35,1],[0,76,"LFO 1 · Rate",0,127],[0,77,"LFO 1 · RateSync",0,35,1],[0,122,"LFO 1 · OneShot",12,13,1],[0,122,"LFO 1 · KeySync",14,15,1],[0,122,"LFO 1 · CommonSync",16,17,1],[0,122,"LFO 1 · DelayTrigger",18,19,1],[0,123,"LFO 1 · FadeMode",0,3,1],[0,79,"LFO 2 · Waveform",0,37,1],[0,80,"LFO 2 · PhaseOffset",0,119],[0,81,"LFO 2 · SlewRate",0,127],[0,83,"LFO 2 · Delay",0,127],[0,84,"LFO 2 · DelaySync",0,35,1],[0,85,"LFO 2 · Rate",0,127],[0,86,"LFO 2 · RateSync",0,35,1],[0,122,"LFO 2 · OneShot",22,23,1],[0,122,"LFO 2 · KeySync",24,25,1],[0,122,"LFO 2 · CommonSync",26,27,1],[0,122,"LFO 2 · DelayTrigger",28,29,1],[0,123,"LFO 2 · FadeMode",4,7,1],[0,88,"LFO 3 · Waveform",0,37,1],[0,89,"LFO 3 · PhaseOffset",0,119],[0,90,"LFO 3 · SlewRate",0,127],[0,92,"LFO 3 · Delay",0,127],[0,93,"LFO 3 · DelaySync",0,35,1],[0,94,"LFO 3 · Rate",0,127],[0,95,"LFO 3 · RateSync",0,35,1],[0,122,"LFO 3 · OneShot",32,33,1],[0,122,"LFO 3 · KeySync",34,35,1],[0,122,"LFO 3 · CommonSync",36,37,1],[0,122,"LFO 3 · DelayTrigger",38,39,1],[0,123,"LFO 3 · FadeMode",8,11,1],[0,97,"FX · Routing",0,7,1],[0,98,"FX · Feedback",0,127],[0,99,"FX 1 · Select",0,14,1],[0,100,"FX 2 · Select",0,14,1],[0,101,"FX 3 · Select",0,14,1],[0,102,"FX 4 · Select",0,14,1],[0,103,"FX 5 · Select",0,14,1],[255,113,"Envelope 1 · DecayTrack",0,127,1],[255,114,"Envelope 1 · LevelTrack",0,127,1],[255,115,"Envelope 1 · AttackSlope",0,127],[255,116,"Envelope 1 · DecaySlope",0,127],[255,117,"Envelope 1 · AnimTrigger",0,8,1],[0,104,"Equaliser · BassFrequency",0,127],[0,105,"Equaliser · BassLevel",0,127],[0,106,"Equaliser · MidFrequency",0,127],[0,107,"Equaliser · MidLevel",0,127],[0,108,"Equaliser · TrebleFrequency",0,127],[0,109,"Equaliser · TrebleLevel",0,127],[0,110,"Compressor 1 · Ratio",0,127],[0,111,"Compressor 1 · Threshold",0,60],[0,112,"Compressor 1 · Attack",0,127],[0,113,"Compressor 1 · Release",0,127],[0,114,"Compressor 1 · Hold",0,127],[0,115,"Compressor 1 · Gain",0,127],[0,116,"Compressor 2 · Ratio",0,127],[0,117,"Compressor 2 · Threshold",0,60],[0,118,"Compressor 2 · Attack",0,127],[0,119,"Compressor 2 · Release",0,127],[0,120,"Compressor 2 · Hold",0,127],[0,121,"Compressor 2 · Gain",0,127],[1,0,"Distortion 1 · Type",0,6,1],[1,1,"Distortion 1 · Compensation",0,127],[1,2,"Distortion 1 · Level",52,82],[1,3,"Distortion 2 · Type",0,6,1],[1,4,"Distortion 2 · Compensation",0,127],[1,5,"Distortion 2 · Level",52,82],[1,6,"Delay 1 · Time",0,127],[1,7,"Delay 1 · TimeSync",0,35,1],[1,8,"Delay 1 · Feedback",0,127],[1,9,"Delay 1 · Width",0,127],[1,10,"Delay 1 · LRRatio",0,12,1],[1,11,"Delay 1 · SlewRate",0,127],[1,12,"Delay 2 · Time",0,127],[1,13,"Delay 2 · TimeSync",0,35,1],[1,14,"Delay 2 · Feedback",0,127],[1,15,"Delay 2 · Width",0,127],[1,16,"Delay 2 · LRRatio",0,12,1],[1,17,"Delay 2 · SlewRate",0,127],[1,18,"Reverb 1 · Type",0,5,1],[1,19,"Reverb 1 · Decay",0,127],[1,20,"Reverb 1 · Damping",0,127],[1,21,"Reverb 2 · Type",0,5,1],[1,22,"Reverb 2 · Decay",0,127],[1,23,"Reverb 2 · Damping",0,127],[1,24,"Chorus 1 · Type",0,1,1],[1,25,"Chorus 1 · Rate",0,127],[1,26,"Chorus 1 · RateSync",0,35,1],[1,27,"Chorus 1 · Feedback",0,127],[1,28,"Chorus 1 · ModDepth",0,127],[1,29,"Chorus 1 · Delay",0,127],[1,30,"Chorus 2 · Type",0,1,1],[1,31,"Chorus 2 · Rate",0,127],[1,32,"Chorus 2 · RateSync",0,35,1],[1,33,"Chorus 2 · Feedback",0,127],[1,34,"Chorus 2 · ModDepth",0,127],[1,35,"Chorus 2 · Delay",0,127],[1,36,"Chorus 3 · Type",0,1,1],[1,37,"Chorus 3 · Rate",0,127],[1,38,"Chorus 3 · RateSync",0,35,1],[1,39,"Chorus 3 · Feedback",0,127],[1,40,"Chorus 3 · ModDepth",0,127],[1,41,"Chorus 3 · Delay",0,127],[1,42,"Chorus 4 · Type",0,1,1],[1,43,"Chorus 4 · Rate",0,127],[1,44,"Chorus 4 · RateSync",0,35,1],[1,45,"Chorus 4 · Feedback",0,127],[1,46,"Chorus 4 · ModDepth",0,127],[1,47,"Chorus 4 · Delay",0,127],[0,122,"Gator · On",52,53,1],[0,122,"Gator · KeySync",54,55,1],[0,122,"Gator · KeyLatch",56,57,1],[1,49,"Gator · RateSync",0,35,1],[1,50,"Gator · Mode",0,5,1],[1,52,"Gator · EdgeSlew",0,127],[1,53,"Gator · Hold",0,127],[1,54,"Gator · LRDelay",0,127],[0,122,"Vocoder · On",58,59,1],[0,122,"Vocoder · SibilanceType",60,61,1],[0,122,"Vocoder · Freeze",62,63,1],[0,122,"Vocoder · AllMax",64,65,1],[0,122,"Vocoder · VocoderInput",66,67,1],[1,57,"Vocoder · Width",0,127],[1,58,"Vocoder · Sibilance",0,127],[1,59,"Vocoder · SpecShift",0,127],[1,60,"Vocoder · SpecSpread",0,127],[0,122,"Arp · On",46,47,1],[0,122,"Arp · KeyLatch",50,51,1],[1,62,"Arp · Octaves",0,3,1],[1,63,"Arp · RateSync",0,18,1],[1,64,"Arp · Gate",1,127],[1,65,"Arp · Mode",0,6,1],[1,66,"Arp · Pattern",0,32,1],[1,68,"Arp · Swing",1,99],[60,40,"Arp · Length",2,8,1],[60,32,"Arp 1 · Step",0,127,1],[60,33,"Arp 2 · Step",0,127,1],[60,34,"Arp 3 · Step",0,127,1],[60,35,"Arp 4 · Step",0,127,1],[60,36,"Arp 5 · Step",0,127,1],[60,37,"Arp 6 · Step",0,127,1],[60,38,"Arp 7 · Step",0,127,1],[60,39,"Arp 8 · Step",0,127,1],[1,71,"Vocoder · Level",0,127],[1,72,"Vocoder · CarrierLevel",0,127],[1,73,"Vocoder · ModulatorLevel",0,127],[1,74,"Vocoder · Resonance",0,127],[1,75,"Vocoder · Decay",0,127],[1,76,"Vocoder · GateThreshold",0,96],[1,77,"Vocoder · GateRelease",0,127],[1,78,"Chorder · Transpose",53,75,1],[1,79,"Chorder · On",0,1,1],[7,16,"Chorder · Chorder Count",0,10,1],[1,80,"VocalTune · Shift",40,88],[1,81,"VocalTune · Bend",40,88],[1,83,"ModMatrix 1 · Source1",0,18,1],[1,84,"ModMatrix 1 · Source2",0,18,1],[1,85,"ModMatrix 1 · AnimTrigger",0,8,1],[1,86,"ModMatrix 1 · Depth",0,127],[1,87,"ModMatrix 1 · Destination",0,69,1],[1,88,"ModMatrix 2 · Source1",0,18,1],[1,89,"ModMatrix 2 · Source2",0,18,1],[1,90,"ModMatrix 2 · AnimTrigger",0,8,1],[1,91,"ModMatrix 2 · Depth",0,127],[1,92,"ModMatrix 2 · Destination",0,69,1],[1,93,"ModMatrix 3 · Source1",0,18,1],[1,94,"ModMatrix 3 · Source2",0,18,1],[1,95,"ModMatrix 3 · AnimTrigger",0,8,1],[1,96,"ModMatrix 3 · Depth",0,127],[1,97,"ModMatrix 3 · Destination",0,69,1],[1,98,"ModMatrix 4 · Source1",0,18,1],[1,99,"ModMatrix 4 · Source2",0,18,1],[1,100,"ModMatrix 4 · AnimTrigger",0,8,1],[1,101,"ModMatrix 4 · Depth",0,127],[1,102,"ModMatrix 4 · Destination",0,69,1],[1,103,"ModMatrix 5 · Source1",0,18,1],[1,104,"ModMatrix 5 · Source2",0,18,1],[1,105,"ModMatrix 5 · AnimTrigger",0,8,1],[1,106,"ModMatrix 5 · Depth",0,127],[1,107,"ModMatrix 5 · Destination",0,69,1],[1,108,"ModMatrix 6 · Source1",0,18,1],[1,109,"ModMatrix 6 · Source2",0,18,1],[1,110,"ModMatrix 6 · AnimTrigger",0,8,1],[1,111,"ModMatrix 6 · Depth",0,127],[1,112,"ModMatrix 6 · Destination",0,69,1],[1,113,"ModMatrix 7 · Source1",0,18,1],[1,114,"ModMatrix 7 · Source2",0,18,1],[1,115,"ModMatrix 7 · AnimTrigger",0,8,1],[1,116,"ModMatrix 7 · Depth",0,127],[1,117,"ModMatrix 7 · Destination",0,69,1],[1,118,"ModMatrix 8 · Source1",0,18,1],[1,119,"ModMatrix 8 · Source2",0,18,1],[1,120,"ModMatrix 8 · AnimTrigger",0,8,1],[1,121,"ModMatrix 8 · Depth",0,127],[1,122,"ModMatrix 8 · Destination",0,69,1],[1,123,"ModMatrix 9 · Source1",0,18,1],[1,124,"ModMatrix 9 · Source2",0,18,1],[1,125,"ModMatrix 9 · AnimTrigger",0,8,1],[1,126,"ModMatrix 9 · Depth",0,127],[1,127,"ModMatrix 9 · Destination",0,69,1],[2,0,"ModMatrix10 · Source1",0,18,1],[2,1,"ModMatrix10 · Source2",0,18,1],[2,2,"ModMatrix10 · AnimTrigger",0,8,1],[2,3,"ModMatrix10 · Depth",0,127],[2,4,"ModMatrix10 · Destination",0,69,1],[2,5,"ModMatrix11 · Source1",0,18,1],[2,6,"ModMatrix11 · Source2",0,18,1],[2,7,"ModMatrix11 · AnimTrigger",0,8,1],[2,8,"ModMatrix11 · Depth",0,127],[2,9,"ModMatrix11 · Destination",0,69,1],[2,10,"ModMatrix12 · Source1",0,18,1],[2,11,"ModMatrix12 · Source2",0,18,1],[2,12,"ModMatrix12 · AnimTrigger",0,8,1],[2,13,"ModMatrix12 · Depth",0,127],[2,14,"ModMatrix12 · Destination",0,69,1],[2,15,"ModMatrix13 · Source1",0,18,1],[2,16,"ModMatrix13 · Source2",0,18,1],[2,17,"ModMatrix13 · AnimTrigger",0,8,1],[2,18,"ModMatrix13 · Depth",0,127],[2,19,"ModMatrix13 · Destination",0,69,1],[2,20,"ModMatrix14 · Source1",0,18,1],[2,21,"ModMatrix14 · Source2",0,18,1],[2,22,"ModMatrix14 · AnimTrigger",0,8,1],[2,23,"ModMatrix14 · Depth",0,127],[2,24,"ModMatrix14 · Destination",0,69,1],[2,25,"ModMatrix15 · Source1",0,18,1],[2,26,"ModMatrix15 · Source2",0,18,1],[2,27,"ModMatrix15 · AnimTrigger",0,8,1],[2,28,"ModMatrix15 · Depth",0,127],[2,29,"ModMatrix15 · Destination",0,69,1],[2,30,"ModMatrix16 · Source1",0,18,1],[2,31,"ModMatrix16 · Source2",0,18,1],[2,32,"ModMatrix16 · AnimTrigger",0,8,1],[2,33,"ModMatrix16 · Depth",0,127],[2,34,"ModMatrix16 · Destination",0,69,1],[2,35,"ModMatrix17 · Source1",0,18,1],[2,36,"ModMatrix17 · Source2",0,18,1],[2,37,"ModMatrix17 · AnimTrigger",0,8,1],[2,38,"ModMatrix17 · Depth",0,127],[2,39,"ModMatrix17 · Destination",0,69,1],[2,40,"ModMatrix18 · Source1",0,18,1],[2,41,"ModMatrix18 · Source2",0,18,1],[2,42,"ModMatrix18 · AnimTrigger",0,8,1],[2,43,"ModMatrix18 · Depth",0,127],[2,44,"ModMatrix18 · Destination",0,69,1],[2,45,"ModMatrix19 · Source1",0,18,1],[2,46,"ModMatrix19 · Source2",0,18,1],[2,47,"ModMatrix19 · AnimTrigger",0,8,1],[2,48,"ModMatrix19 · Depth",0,127],[2,49,"ModMatrix19 · Destination",0,69,1],[2,50,"ModMatrix20 · Source1",0,18,1],[2,51,"ModMatrix20 · Source2",0,18,1],[2,52,"ModMatrix20 · AnimTrigger",0,8,1],[2,53,"ModMatrix20 · Depth",0,127],[2,54,"ModMatrix20 · Destination",0,69,1],[0,123,"VocalTune · Mode",16,19,1],[0,123,"VocalTune · Insert",20,22,1],[2,56,"VocalTune · ScaleType",0,5,1],[2,57,"VocalTune · ScaleKey",0,11,1],[2,58,"VocalTune · CorrectionTime",0,127],[2,59,"VocalTune · Level",0,127],[2,60,"VocalTune · Vibrato",0,127],[2,61,"VocalTune · VibratoModWheel",0,127],[2,62,"VocalTune · VibratoRate",0,127],[5,0,"Gator · Paso 1",0,7,1],[5,1,"Gator · Paso 2",0,7,1],[5,2,"Gator · Paso 3",0,7,1],[5,3,"Gator · Paso 4",0,7,1],[5,4,"Gator · Paso 5",0,7,1],[5,5,"Gator · Paso 6",0,7,1],[5,6,"Gator · Paso 7",0,7,1],[5,7,"Gator · Paso 8",0,7,1],[5,8,"Gator · Paso 9",0,7,1],[5,9,"Gator · Paso 10",0,7,1],[5,10,"Gator · Paso 11",0,7,1],[5,11,"Gator · Paso 12",0,7,1],[5,12,"Gator · Paso 13",0,7,1],[5,13,"Gator · Paso 14",0,7,1],[5,14,"Gator · Paso 15",0,7,1],[5,15,"Gator · Paso 16",0,7,1],[5,16,"Gator · Paso 17",0,7,1],[5,17,"Gator · Paso 18",0,7,1],[5,18,"Gator · Paso 19",0,7,1],[5,19,"Gator · Paso 20",0,7,1],[5,20,"Gator · Paso 21",0,7,1],[5,21,"Gator · Paso 22",0,7,1],[5,22,"Gator · Paso 23",0,7,1],[5,23,"Gator · Paso 24",0,7,1],[5,24,"Gator · Paso 25",0,7,1],[5,25,"Gator · Paso 26",0,7,1],[5,26,"Gator · Paso 27",0,7,1],[5,27,"Gator · Paso 28",0,7,1],[5,28,"Gator · Paso 29",0,7,1],[5,29,"Gator · Paso 30",0,7,1],[5,30,"Gator · Paso 31",0,7,1],[5,31,"Gator · Paso 32",0,7,1],[7,17,"Chorder · Tecla 2",0,127,1],[7,18,"Chorder · Tecla 3",0,127],[7,19,"Chorder · Tecla 4",0,127],[7,20,"Chorder · Tecla 5",0,127],[7,21,"Chorder · Tecla 6",0,127],[7,22,"Chorder · Tecla 7",0,127],[7,23,"Chorder · Tecla 8",0,127],[7,24,"Chorder · Tecla 9",0,127],[7,25,"Chorder · Tecla 10",0,127]]</script>
 <script>
 "use strict";
@@ -476,7 +519,9 @@ const ICONS={
   tele:'<rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M9 12h6"/>',
   close:'<path d="M6 6l12 12M18 6L6 18"/>', music:'<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/>',
   tempo:'<path d="M8 20l3-15h2l3 15z"/><path d="M12 13l5-6"/>',
-  dots:'<circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/>'};
+  dots:'<circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/>',
+  cog:'<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/><circle cx="12" cy="12" r="6.6"/>',
+  tree:'<path d="M4 5h7M8 12h12M8 19h12M6 5v14M6 12h2M6 19h2"/>'};
 function ic(n,extra){const e=document.createElementNS('http://www.w3.org/2000/svg','svg');e.setAttribute('viewBox','0 0 24 24');e.setAttribute('class','ic');e.setAttribute('aria-hidden','true');e.innerHTML=ICONS[n]||'';if(extra)e.style.cssText=extra;return e;}
 
 /* ---------- Teoría musical ---------- */
@@ -520,11 +565,15 @@ function packX(d,keys,ns){let f=0;const v=[];keys.forEach((k,i)=>{if(d[k]!=null)
     for(const[a,b,x]of l){const T=keys===CX?mnTrans(d,a,b):null;if(T)v.push(a&255,(b&127)|(T.b?0x80:0),(x&127)|0x80,Q(T.d,T),Q(T.w,T));else v.push(a&255,b&127,x&127);}}
   if(keys===SX&&d.base&&d.base.length){f|=128;const l=d.base.slice(0,40);v.push(l.length);for(const[a,b,x]of l)v.push(a&255,b&127,x&127);}   // canción: cómo viene en el sonido lo que cambian los acordes
   return f?[f,...v]:[];}
+const defVacia=d=>!d||!Object.keys(d).some(k=>d[k]!=null&&!(typeof d[k]==='object'&&!Object.keys(d[k]).length));
 function enc(m){const o=[];const u8=v=>o.push(v&255),u16=v=>{u8(v);u8(v>>8)},str=(s,mx)=>{const b=utf8(s,mx);u8(b.length);for(const x of b)o.push(x)};
+  const chordB=(c,ns)=>{const hh=c.hold!=null,ht=c.tie!=null,hb=c.bpm!=null,hv=c.vel!=null;
+    const cx=packX(c,CX,ns);u8(ns.length|(hh?8:0)|(ht?16:0)|(hb?32:0)|(hv?64:0)|(cx.length?128:0));if(hh||ht)u8((c.hold?1:0)|(c.tie?2:0));if(hb)u16(c.bpm);if(hv)u8(c.vel);for(const x of cx)u8(x);for(const n of ns)u8(n);};
   const S=m.settings;u8(S.outCh);u8(S.clock?1:0);u8(Math.round(S.longMs/10));for(const t of S.trig){u8(t.t);u8(t.ch);u8(t.n);}str(S.ssid,24);str(S.pass,24);u16(S.nextId);
   u8(m.songs.length);for(const s of m.songs){u16(s.id);str(s.name,24);const sx=packX(s,SX);u8((s.hold?1:0)|(s.tie?2:0)|(s.repeat?4:0)|(s.sendPC?8:0)|((s.bank||0)&3)<<4|(sx.length?64:0)|(s.hasLyr?128:0));u16(s.bpm);u8(s.vel);u8(s.pc);for(const x of sx)u8(x);u8(s.phrases.length);
-    for(const p of s.phrases){str(p.name,16);u8((p.color&7)|(p.sound?128:0));if(p.sound){u8(p.sound.bank&3);u8(p.sound.pc&127);}u8(p.chords.length);for(const c of p.chords){const ns=[...c.notes].sort((a,b)=>a-b).slice(0,7);const hh=c.hold!=null,ht=c.tie!=null,hb=c.bpm!=null,hv=c.vel!=null;
-      const cx=packX(c,CX,ns);u8(ns.length|(hh?8:0)|(ht?16:0)|(hb?32:0)|(hv?64:0)|(cx.length?128:0));if(hh||ht)u8((c.hold?1:0)|(c.tie?2:0));if(hb)u16(c.bpm);if(hv)u8(c.vel);for(const x of cx)u8(x);for(const n of ns)u8(n);}}
+    for(const p of s.phrases){str(p.name,16);const pd=defVacia(p.def)?null:p.def;u8((p.color&7)|(pd?64:0)|(p.sound?128:0));
+      if(p.sound){u8(p.sound.bank&3);u8(p.sound.pc&127);}u8(p.chords.length);if(pd)chordB(pd,[]);   // ajustes propios de la frase (como un acorde sin notas), antes de sus acordes
+      for(const c of p.chords)chordB(c,[...c.notes].sort((a,b)=>a-b).slice(0,7));}
     u8(s.form.length);for(const f of s.form){u8(f.p);u8(f.r);}}
   u8(m.sets.length);for(const st of m.sets){str(st.name,24);u8(st.entries.length);for(const e of st.entries){if(e.k===0){u8(0);u8(e.s);u8(e.t&255);str(e.note||'',40);}else if(e.notas&&e.notas.length){u8(2);str(e.label||'',24);const l=e.notas.slice(0,20);u8(l.length);for(const n of l){str(n.t||'',24);str(n.x||'',160);}}else{u8(1);str(e.label||'',24);}}}
   return new Uint8Array(o);}
@@ -540,15 +589,16 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
     if(f&128){if(keys===SX){d.base=[];for(let n=u8()&63;n--;)d.base.push([u8(),u8(),u8()]);}else d.reset=true;}
     if(d.mod!=null){d.ctl=d.ctl||{};d.ctl[0]=d.mod;delete d.mod;}};   // la antigua "mod" pasa a ser el control Modulación
   const u8=()=>{if(i>=b.length)throw Error('corto');return b[i++]},u16=()=>u8()|u8()<<8,str=()=>{const n=u8();const s=td.decode(b.subarray(i,i+n));i+=n;return s};
+  const chordR=()=>{const hd=u8(),ch={};if(hd&24){const ov=u8();if(hd&8)ch.hold=!!(ov&1);if(hd&16)ch.tie=!!(ov&2);}if(hd&32)ch.bpm=u16();if(hd&64)ch.vel=u8();if(hd&128)unpackX(ch,CX,hd&7);ch.notes=[];for(let n=hd&7;n--;)ch.notes.push(u8());if(ch.nv){const o={};ch.notes.forEach((n,k)=>{if(ch.nv[k])o[n]=ch.nv[k];});ch.nv=o;if(!Object.keys(o).length)delete ch.nv;}return ch;};
   const S={outCh:u8(),clock:!!(u8()&1),longMs:u8()*10,trig:[0,1,2,3].map(()=>({t:u8(),ch:u8(),n:u8()}))};S.ssid=str();S.pass=str();S.nextId=u16();
   const songs=[];for(let k=u8();k--;){const s={id:u16(),name:str()};const f=u8();Object.assign(s,{hold:!!(f&1),tie:!!(f&2),repeat:!!(f&4),sendPC:!!(f&8),bank:(f>>4)&3,bpm:u16(),vel:u8(),pc:u8(),phrases:[]});if(f&128)s.hasLyr=true;if(f&64)unpackX(s,SX);
-    for(let p=u8();p--;){const ph={name:str(),color:u8(),chords:[]};if(ph.color&128){ph.color&=7;ph.sound={bank:u8(),pc:u8()};}for(let c=u8();c--;){const hd=u8(),ch={};if(hd&24){const ov=u8();if(hd&8)ch.hold=!!(ov&1);if(hd&16)ch.tie=!!(ov&2);}if(hd&32)ch.bpm=u16();if(hd&64)ch.vel=u8();if(hd&128)unpackX(ch,CX,hd&7);ch.notes=[];for(let n=hd&7;n--;)ch.notes.push(u8());if(ch.nv){const o={};ch.notes.forEach((n,k)=>{if(ch.nv[k])o[n]=ch.nv[k];});ch.nv=o;if(!Object.keys(o).length)delete ch.nv;}ph.chords.push(ch);}s.phrases.push(ph);}
+    for(let p=u8();p--;){const ph={name:str(),chords:[]},pf=u8();ph.color=pf&7;if(pf&128)ph.sound={bank:u8(),pc:u8()};let nc=u8();if(pf&64){ph.def=chordR();delete ph.def.notes;}for(;nc--;)ph.chords.push(chordR());s.phrases.push(ph);}
     s.form=[];for(let n=u8();n--;)s.form.push({p:u8(),r:u8()});songs.push(s);}
   const sets=[];for(let k=u8();k--;){const st={name:str(),entries:[]};for(let n=u8();n--;){const kd=u8();if(kd===0){const s=u8();let t=u8();if(t>127)t-=256;st.entries.push({k:0,s,t,note:str()});}else{const e={k:1,label:str()};if(kd===2){e.notas=[];for(let n=u8();n--;)e.notas.push({t:str(),x:str()});}st.entries.push(e);}}sets.push(st);}
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.02-0952';
+const QM_VERSION='2026.10.02-1028';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -603,9 +653,13 @@ function toggleMute(){prefs.mute=!prefs.mute;savePrefs();synthStop();if(prefs.mu
 let M=null;          // modelo completo
 let st={};           // último estado del Arduino
 let online=false,lastErr='',knownBv=-1,pendingUp=false,uploading=false;
-let tab='live',perfOn=false,revealSel=false;
+let tab='edit',perfOn=false,revealSel=false;
 let uiSaved={};try{uiSaved=JSON.parse(localStorage.getItem('qm_ui')||'{}');}catch(e){}
-if(uiSaved.tab)tab=uiSaved.tab;
+if(uiSaved.tab==='cfg')tab='cfg';   // (ya no hay pestañas: En vivo es el botón Tocar; Canciones y Presentaciones están en el explorador)
+/* ---------- Explorador: canciones y presentaciones como carpetas ----------
+   nivel = lo que estás editando: 'cancion' > 'frase' > 'acorde' > 'nota', o 'show' > 'entrada' (una presentación y lo que tiene adentro) */
+let nivel=['cancion','frase','acorde','nota','show','entrada'].includes(uiSaved.nivel)?uiSaved.nivel:(uiSaved.tab==='sets'?'show':'acorde'),notaSel=uiSaved.notaSel??null,entSel=uiSaved.entSel??-1,multiX=new Set();
+let navOpen=new Set();try{navOpen=new Set(JSON.parse(localStorage.getItem('qm_nav')||'[]'));}catch(e){}
 let edSong=0,edSel={p:0,c:0},multi=new Set(),multiMode=false;
 let clip=null;       // {kind:'chords'|'phrase', data} (se recuerda aunque cierres la app)
 try{clip=JSON.parse(localStorage.getItem('qm_clip')||'null');}catch(e){}
@@ -667,7 +721,7 @@ async function tick(){let wait=perfOn?200:400;
     const pos=[s.s,s.st,s.r,s.c,s.set,s.se].join();
     if(M&&sndOn()&&pos!==lastPos){lastPos=pos;const so=M.songs[s.s];let it=null;
       if(so&&s.c>=0)it=flatten(so).find(x=>x.st===s.st&&x.r===s.r&&x.ci===s.c);
-      if(it){const same=lastIt&&lastSongIdx===s.s,c=it.c,tie=same?(lastIt.c.tie!=null?lastIt.c.tie:so.tie):false,tr=liveTr();
+      if(it){const same=lastIt&&lastSongIdx===s.s,c=it.e,tie=same?(lastIt.e.tie!=null?lastIt.e.tie:so.tie):false,tr=liveTr();
         const trans=same?(c.trans!=null?c.trans:(so.trans||0)):0;
         synthPlay(c.notes.map(n=>n+tr),c.vel!=null?c.vel:so.vel,{tie,trans,glide:c.glide!=null?c.glide:so.glide,bend:c.bend,nv:nvShift(c,tr)});}
       else synthStop();
@@ -686,13 +740,13 @@ function tocarEnStudio(s,pos){lastPosStudio=pos;const so=M.songs[s.s];if(!so){la
   const it=s.c>=0?flatten(so).find(x=>x.st===s.st&&x.r===s.r&&x.ci===s.c):null;
   const p=it?so.phrases[it.p]:null,snd=(p&&p.sound)||(so.sendPC?{bank:so.bank||0,pc:so.pc}:null),slot=slotDe(snd);
   if(!it){studio('quack/parar',{olvidar:true}).catch(()=>{});if(lastSongStudio!==s.s&&slot)studio('quack/elegir',{slot}).catch(()=>{});}
-  else{const same=lastItStudio&&lastSongStudio===s.s,c=it.c,tie=same?(lastItStudio.c.tie!=null?lastItStudio.c.tie:so.tie):false;
+  else{const same=lastItStudio&&lastSongStudio===s.s,c=it.e,tie=same?(lastItStudio.e.tie!=null?lastItStudio.e.tie:so.tie):false;
     const trans=same?(c.trans!=null?c.trans:(so.trans||0)):0;
     studio('quack/paso',pasoStudio(so,c,p,{ligado:!!tie,trans,tr:liveTr()})).catch(()=>{});}
   lastItStudio=it;lastSongStudio=s.s;}
 window.qmTick=tick;
 // Pedal (virtual) suelto: en "Mantener" sin Ligado, el acorde se apaga
-window.qmPedalUp=k=>{const it=lastIt||lastItStudio;if(k>1||!it||!M)return;const so=M.songs[st.s];if(!so)return;const hold=it.c.hold!=null?it.c.hold:so.hold,tie=it.c.tie!=null?it.c.tie:so.tie;
+window.qmPedalUp=k=>{const it=lastIt||lastItStudio;if(k>1||!it||!M)return;const so=M.songs[st.s];if(!so)return;const hold=it.e.hold!=null?it.e.hold:so.hold,tie=it.e.tie!=null?it.e.tie:so.tie;
   if(hold&&!tie){synthStop();if(usarStudio())studio('quack/parar',{}).catch(()=>{});}};
 
 /* ---------- Utilidades de UI ---------- */
@@ -748,7 +802,17 @@ const moveArr=(a,f,t)=>{const[x]=a.splice(f,1);a.splice(t,0,x);};
 
 /* ---------- Motor de secuencia (igual que en el Arduino) ---------- */
 function formOf(s){return s.form.length?s.form:s.phrases.map((_,i)=>({p:i,r:1}));}
-function flatten(s){const seq=[];const F=formOf(s);F.forEach((f,sti)=>{const ph=s.phrases[f.p];if(!ph)return;for(let r=0;r<f.r;r++)ph.chords.forEach((c,ci)=>seq.push({st:sti,r,ci,p:f.p,c}));});return seq;}
+function flatten(s){const seq=[];const F=formOf(s);F.forEach((f,sti)=>{const ph=s.phrases[f.p];if(!ph)return;for(let r=0;r<f.r;r++)ph.chords.forEach((c,ci)=>seq.push({st:sti,r,ci,p:f.p,c,e:efc(ph,c,ci)}));});return seq;}
+// El acorde como suena: lo que no define él lo toma de su frase (y lo que no define la frase, de la canción).
+// En el primer acorde de la frase van también los parámetros del Mininova y los controles de la frase ("al entrar").
+const HEREDA=['hold','tie','bpm','vel','trans','glide'];
+function efc(ph,c,ci){const d=ph&&ph.def;if(defVacia(d))return c;const e=Object.assign({},c);
+  for(const k of HEREDA)if(e[k]==null&&d[k]!=null)e[k]=d[k];
+  if(ci===0){const T=x=>x&&{w:x.w,d:x.d,b:x.b};
+    if(d.ctl){e.ctl=Object.assign({},d.ctl,c.ctl||{});const ct={};for(const id in d.ctl){const t=(d.ctlT&&d.ctlT[id])||d.trT;if(t)ct[id]=T(t);}e.ctlT=Object.assign(ct,c.ctlT||{});if(!Object.keys(e.ctlT).length)delete e.ctlT;}
+    if(d.mn&&d.mn.length){const own=c.mn||[],mt={};const fr=d.mn.filter(x=>!own.some(y=>y[0]===x[0]&&y[1]===x[1]));
+      for(const[a,b]of fr){const t=mnTrans(d,a,b)||d.trT;if(t)mt[a+':'+b]=T(t);}e.mn=[...fr,...own];e.mnT=Object.assign(mt,c.mnT||{});if(!Object.keys(e.mnT).length)delete e.mnT;}}
+  return e;}
 function liveSong(){return M&&M.songs[st.s];}
 function liveTr(){if(st.set==null||st.set>=255||!M.sets[st.set])return 0;const e=M.sets[st.set].entries[st.se];return e&&e.k===0?e.t:0;}
 function posIndex(seq){if(st.c<0){const i=seq.findIndex(x=>x.st>=st.st);return{i:-1,next:i<0?null:i};}const i=seq.findIndex(x=>x.st===st.st&&x.r===st.r&&x.ci===st.c);return{i,next:i<0?null:i+1<seq.length?i+1:null};}
@@ -756,7 +820,7 @@ function posIndex(seq){if(st.c<0){const i=seq.findIndex(x=>x.st>=st.st);return{i
 /* ---------- Pestañas ---------- */
 const TABS=[['live','En vivo'],['songs','Canciones'],['sets','Presentaciones'],['edit','Editar'],['cfg','Ajustes']];
 function renderTabs(){const t=$('#tabs');t.innerHTML='';for(const[k,n]of TABS)t.append(h('button',{class:tab===k?'on':'',onclick:()=>{tab=k;renderAll();scrollTo(0,0);}},n));}
-function saveUi(){try{localStorage.setItem('qm_ui',JSON.stringify({tab,edSong,edSel,editSet,y:scrollY}));}catch(e){}}
+function saveUi(){try{localStorage.setItem('qm_ui',JSON.stringify({tab,edSong,edSel,editSet,nivel,notaSel,entSel,y:scrollY}));}catch(e){}}
 let uiTimer=null;addEventListener('scroll',()=>{clearTimeout(uiTimer);uiTimer=setTimeout(saveUi,300);},{passive:true});
 function renderAll(){
   // conservar el desplazamiento de la página y de cada fila de acordes al redibujar
@@ -769,12 +833,77 @@ function renderAll(){
   saveUi();}
 /* Franja calipso: deshacer / rehacer (siempre) y copiar / pegar (al editar) */
 let lastFocus='chords';   // qué se copia: 'chords' (los acordes elegidos) o 'phrase' (la frase elegida)
-function updTop(){const t=$('#htools');if(!t)return;t.innerHTML='';
-  const B=(i,title,fn,off)=>h('button',{class:'gh',title,disabled:off||null,onclick:fn},ic(i));
-  t.append(B('undo','Deshacer',undo,!hist.u.length),B('redo','Rehacer',redo,!hist.r.length));
-  if(tab==='edit'&&M&&M.songs.length){const s=M.songs[edSong];
-    t.append(B('copy',lastFocus==='phrase'?'Copiar la frase elegida':'Copiar los acordes elegidos',()=>copySel(s)),
-      B('paste',!clip?'Nada copiado':clip.kind==='phrase'?`Pegar la frase "${clip.data.name}" después de la elegida`:'Pegar: los acordes completos, o solo sus ajustes en los elegidos',()=>pasteClip(s),!clip));}}
+// Sobre qué actúan las herramientas: el nivel elegido (o los pasos de la Forma, si fue lo último que tocaste)
+const blanco=()=>tab==='cfg'||!M?null:(esCancion()&&!M.songs.length)?null:esCancion()&&lastFocus==='form'?'paso':nivel;
+const NOMBRE_N={cancion:'canción',frase:'frase',acorde:'acorde',nota:'nota',paso:'paso de la forma',show:'presentación',entrada:'canción o intermedio del show'};
+function updTop(){const t=$('#tbar');if(!t)return;t.innerHTML='';const ht=$('#htools');if(ht)ht.innerHTML='';if(!M)return;
+  const k=blanco(),s=M.songs[edSong];
+  const B=(i,txt,fn,o={})=>h('button',{class:o.on?'on':'',disabled:o.off||null,title:o.title||txt,onclick:fn},ic(i),h('span',{class:'tl'},txt));
+  const sep=()=>h('span',{class:'tsep'});
+  const n=k==='acorde'?(multiMode?multi.size:1):k&&k!=='paso'&&multiX.size?xSel(k).length:1;
+  const obj=!k?'':k==='paso'?(fFin!=null&&fFin!==fSel?(Math.abs(fFin-fSel)+1)+' pasos de la forma':'paso de la forma'):n>1?n+' '+(k==='frase'?'frases':k==='acorde'?'acordes':k==='nota'?'notas':k==='cancion'?'canciones':k==='show'?'presentaciones':'elementos'):NOMBRE_N[k];
+  t.append(h('button',{class:'navbtn',title:'Abrir el explorador (canciones y presentaciones)',onclick:()=>document.body.classList.toggle('navon')},ic('tree'),h('span',{class:'tl'},'Explorar')),
+    B('plus','Nuevo',e=>nuevo(e.currentTarget),{off:!k&&tab==='cfg',title:'Agregar '+(k==='paso'?'un paso a la forma':k==='nota'||k==='acorde'?'un acorde después del elegido':k==='frase'?'una frase después de la elegida':k==='show'?'una presentación':k==='entrada'?'una canción o un intermedio al show':'una canción')}),
+    B('dup','Duplicar',duplicar,{off:!k||k==='nota',title:'Duplicar '+(obj||'lo elegido')}),sep(),
+    B('copy','Copiar',copiar,{off:!['frase','acorde','paso'].includes(k),title:k==='acorde'?'Copiar los acordes elegidos':'Copiar la frase elegida'}),
+    B('paste','Pegar',()=>s&&pasteClip(s),{off:!clip||!esCancion(),title:!clip?'Nada copiado':clip.kind==='phrase'?`Pegar la frase "${clip.data.name}" después de la elegida`:'Pegar: los acordes completos, o solo sus ajustes en los elegidos'}),
+    B('trash','Borrar',borrar,{off:!k,title:'Borrar '+(obj||'lo elegido')}),sep(),
+    B('check','Varios',varios,{on:multiMode||fVarios,off:!k,title:'Elegir varios a la vez (también con Ctrl o Mayús + clic)'}),sep(),
+    B('undo','Deshacer',undo,{off:!hist.u.length}),B('redo','Rehacer',redo,{off:!hist.r.length}),
+    h('span',{class:'sp'}),k?h('span',{class:'tobj'},'Elegido: ',h('b',null,obj)):'');}
+function nuevo(btn){const k=blanco(),s=M.songs[edSong];
+  if(!k||k==='cancion')return nuevaCancion();
+  if(k==='show')return nuevoShow();
+  if(k==='entrada'){const S=M.sets[editSet];if(!S)return;const at=entSel>=0?entSel+1:S.entries.length;
+    const sel=h('select',null,h('option',{value:''},'Canción…'),M.songs.map((x,i)=>h('option',{value:i},x.name)));
+    sel.onchange=()=>{if(sel.value==='')return;edit(()=>S.entries.splice(at,0,{k:0,s:+sel.value,t:0,note:''}),false);document.querySelectorAll('.pop').forEach(x=>x.remove());irA('entrada',{e:at});};
+    return popAt(btn,h('div',{class:'col'},h('b',null,'Agregar al show'),sel,h('button',{onclick:()=>{edit(()=>S.entries.splice(at,0,{k:1,label:'Intermedio'}),false);document.querySelectorAll('.pop').forEach(x=>x.remove());irA('entrada',{e:at});}},ic('plus'),'Intermedio')));}
+  if(!s)return;
+  if(k==='paso'){if(s.form.length>=255)return;const fp=s.form[fSel],at=s.form.length?Math.max(fSel,fFin??fSel)+1:0;edit(()=>{s.form.splice(at,0,{p:fp?fp.p:0,r:1});fSel=at;fFin=null;});return;}
+  if(k==='frase'){if(s.phrases.length>=255)return;const pi=edSel.p,at=s.phrases.length?pi+1:0;
+    edit(()=>{s.phrases.splice(at,0,{name:freeName(s,'Frase'),color:s.phrases.length%8,chords:[{notes:buildChord(0,4,0,0)}]});for(const f of s.form)if(f.p>=at)f.p++;s.form.push({p:at,r:1});},false);irA('frase',{p:at});return;}
+  const p=s.phrases[edSel.p];if(!p)return;const at=p.chords.length?edSel.c+1:0;
+  edit(()=>{p.chords.splice(at,0,heredar(p,{notes:buildChord(0,4,0,0)}));},false);irA('acorde',{p:edSel.p,c:at});revealSel=true;}
+function duplicar(){const k=blanco(),s=M.songs[edSong];
+  if(k==='cancion'){const idx=(multiX.size?xSel('cancion').map(Number):[edSong]).sort((a,b)=>b-a);
+    edit(()=>{for(const i of idx){const d=copy(M.songs[i]);d.id=newId();d.name=(M.songs[i].name+' (copia)').slice(0,24);M.songs.splice(i+1,0,d);remapSets(x=>x>i?x+1:x);}},false);irA('cancion',{s:idx[idx.length-1]+1});return;}
+  if(k==='show'){const S=M.sets[editSet];if(!S)return;edit(()=>{const d=copy(S);d.name=(S.name+' (copia)').slice(0,24);M.sets.splice(editSet+1,0,d);},false);irA('show',{set:editSet+1});return;}
+  if(k==='entrada'){const S=M.sets[editSet];if(!S||!S.entries[entSel])return;const idx=(multiX.size?xSel('entrada').map(Number):[entSel]).sort((a,b)=>a-b),hi=idx[idx.length-1];
+    edit(()=>S.entries.splice(hi+1,0,...idx.map(i=>copy(S.entries[i]))),false);irA('entrada',{e:hi+1});return;}
+  if(!s)return;
+  if(k==='paso'){const lo=Math.min(fSel,fFin??fSel),hi=Math.max(fSel,fFin??fSel),nn=hi-lo+1;if(s.form.length+nn>255)return toast('La forma tiene un máximo de 255 pasos');
+    edit(()=>{s.form.splice(hi+1,0,...copy(s.form.slice(lo,hi+1)));fSel=hi+1;fFin=nn>1?hi+nn:null;});return;}
+  if(k==='frase'){const idx=(multiX.size?xSel('frase').map(Number):[edSel.p]).sort((a,b)=>b-a);let ult=null;
+    edit(()=>{for(const pi of idx){const d=copy(s.phrases[pi]);d.name=freeName(s,s.phrases[pi].name);s.phrases.splice(pi+1,0,d);for(const f of s.form)if(f.p>pi)f.p++;s.form.push({p:pi+1,r:1});ult=d;}},false);
+    irA('frase',{p:idx[idx.length-1]+1});if(idx.length===1&&ult)renamePhrase(ult,'Nombre de la copia');return;}
+  const p=s.phrases[edSel.p];if(!p)return;
+  if(k==='acorde'){const cs=selChords(s);if(!cs.length)return;const at=multiMode?Math.max(...[...multi].map(x=>+x.split('.')[1]))+1:edSel.c+1;
+    edit(()=>{p.chords.splice(at,0,...copy(cs));},false);irA('acorde',{p:edSel.p,c:at+cs.length-1});revealSel=true;}}
+function copiar(){const k=blanco(),s=M.songs[edSong];if(!s)return;lastFocus=k==='acorde'?'chords':'phrase';if(k==='paso'){const f=s.form[fSel];if(f)edSel={p:f.p,c:0};}copySel(s);if(k==='paso')lastFocus='form';}
+function borrar(){const k=blanco(),s=M.songs[edSong];
+  if(k==='cancion'){const idx=(multiX.size?xSel('cancion').map(Number):[edSong]).sort((a,b)=>b-a);
+    return modal(idx.length>1?`¿Borrar ${idx.length} canciones?`:'¿Borrar canción?',h('p',null,idx.length>1?'Se borrarán y se quitarán de las presentaciones.':`Se borrará "${M.songs[idx[0]].name}" y se quitará de las presentaciones.`),
+      [['Cancelar'],['Borrar',()=>{edit(()=>{for(const i of idx){M.songs.splice(i,1);remapSets(x=>x===i?-1:x>i?x-1:x);}},false);irA('cancion',{s:Math.max(0,Math.min(idx[idx.length-1],M.songs.length-1))});},'er']]);}
+  if(k==='show'){const S=M.sets[editSet];if(!S)return;return modal('¿Borrar presentación?',h('p',null,S.name),[['Cancelar'],['Borrar',()=>{edit(()=>M.sets.splice(editSet,1),false);irA('show',{set:Math.max(0,editSet-1)});},'er']]);}
+  if(k==='entrada'){const S=M.sets[editSet];if(!S)return;const idx=(multiX.size?xSel('entrada').map(Number):[entSel]).filter(i=>S.entries[i]).sort((a,b)=>b-a);if(!idx.length)return;
+    edit(()=>{for(const i of idx)S.entries.splice(i,1);},false);irA(S.entries.length?'entrada':'show',{e:Math.max(0,Math.min(idx[idx.length-1],S.entries.length-1))});return;}
+  if(!s)return;
+  if(k==='paso'){const lo=Math.min(fSel,fFin??fSel),nn=Math.abs((fFin??fSel)-fSel)+1;edit(()=>{s.form.splice(lo,nn);fSel=Math.max(0,lo-1);fFin=null;});return;}
+  if(k==='frase'){const idx=(multiX.size?xSel('frase').map(Number):[edSel.p]).sort((a,b)=>b-a);
+    return modal(idx.length>1?`¿Borrar ${idx.length} frases?`:'¿Borrar frase?',h('p',null,idx.length>1?'Y sus pasos en la forma.':`"${s.phrases[idx[0]].name}" y sus pasos en la forma.`),[['Cancelar'],['Borrar',()=>{
+      edit(()=>{for(const pi of idx){s.phrases.splice(pi,1);s.form=s.form.filter(f=>f.p!==pi).map(f=>({p:f.p>pi?f.p-1:f.p,r:f.r}));}},false);irA(s.phrases.length?'frase':'cancion',{p:Math.max(0,idx[idx.length-1]-1)});},'er']]);}
+  const p=s.phrases[edSel.p];if(!p)return;
+  if(k==='nota'){const c=p.chords[edSel.c];if(!c)return;const ns=(multiX.size?xSel('nota').map(Number):[notaSel]);
+    edit(()=>{c.notes=c.notes.filter(n=>!ns.includes(n));if(c.nv){for(const n of ns)delete c.nv[n];if(!Object.keys(c.nv).length)delete c.nv;}},false);irA('acorde',{p:edSel.p,c:edSel.c});return;}
+  if(k==='acorde'){edit(()=>{if(multiMode){const ks=[...multi].map(x=>x.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();multiMode=false;}else p.chords.splice(edSel.c,1);fixSel();});}}
+function varios(){const k=blanco();if(k==='paso'){fVarios=!fVarios;fFin=null;renderAll();return;}
+  multiMode=!multiMode;multi.clear();multiX.clear();if(multiMode){if(k==='acorde')multi.add(edSel.p+'.'+edSel.c);else if(k)multiX.add(k+':'+actualKey(k));}
+  toast(multiMode?'Varios: toca los que quieras elegir (en el explorador o en el editor)':'Varios: apagado');renderAll();}
+/* Tocar: como "Presentar" en PowerPoint. Toca lo que tienes elegido: el show, la canción o desde la frase */
+function tocar(){if(!M)return;
+  if((nivel==='show'||nivel==='entrada')&&M.sets[editSet])return perform(editSet);
+  const s=M.songs[edSong];if(!s)return toast('Elige una canción o una presentación');
+  cmd('song',edSong).then(()=>{const st2=nivel!=='cancion'?s.form.findIndex(f=>f.p===edSel.p):-1;return st2>0?cmd('jump',st2):null;}).then(()=>openPerf());}
 function copySel(s){
   if(lastFocus==='phrase'){const p=s.phrases[edSel.p];if(!p)return;clip={kind:'phrase',data:copy(p)};toast(`Frase "${p.name}" copiada`);}
   else{const sel=selChords(s);if(!sel.length)return toast('Elige un acorde');clip={kind:'chords',data:copy(sel)};toast(sel.length===1?`Acorde ${stepLabel(sel[0])} copiado`:sel.length+' acordes copiados');}
@@ -790,12 +919,103 @@ function pasteClip(s){if(!clip)return;
        [n===1?'El acorde completo, después':'Los acordes, después',()=>{pasteClip.directo=true;try{pasteClip(s);}finally{pasteClip.directo=false;}},'ac']]);}
   if(clip.kind==='phrase')edit(()=>{const d=copy(clip.data),at=Math.min(edSel.p+1,s.phrases.length);s.phrases.splice(at,0,d);for(const f of s.form)if(f.p>=at)f.p++;s.form.push({p:at,r:1});edSel={p:at,c:0};});
   else{const p=s.phrases[edSel.p];if(!p)return;edit(()=>{const at=p.chords.length?edSel.c+1:0;p.chords.splice(at,0,...copy(clip.data));edSel.c=at+clip.data.length-1;revealSel=true;});}}
-function renderMain(){renderTabs();updTop();const m=$('#main');m.innerHTML='';if(!M){m.append(h('div',{class:'card'},'Conectando con Quack MIDI…'));return;}
+function renderMain(){renderNav();updTop();const m=$('#main');m.innerHTML='';if(!M){m.append(h('div',{class:'card'},'Conectando con Quack MIDI…'));return;}
   if(st.crc)m.append(h('div',{class:'banner er'},'Los datos guardados estaban dañados (¿se cortó la luz mientras guardaba?). No los cargué. Importa tu respaldo en Ajustes.'));
   if(st.warn>=0&&st.warn!=null)m.append(h('div',{class:'banner'},`El switch ${st.warn+1} parece no estar en modo momentáneo. Cámbialo en el Ampero.`,h('span',{class:'sp'}),h('button',{onclick:()=>cmd('warnok')},'Entendido')));
   if(st.thru)m.append(h('div',{class:'banner'},'MIDI Thru activado: Quack MIDI deja pasar todo y no toca acordes.'));
   if(window.APPMODE&&!window.SIM_NOBACKUPNAG&&Date.now()-lastExport()>7*864e5&&M.songs.some(x=>x.id>4))m.append(h('div',{class:'banner'},lastExport()?'Hace más de una semana que no respaldas tus canciones.':'Todavía no respaldas tus canciones en un archivo.',h('span',{class:'sp'}),h('button',{onclick:saveBackup},ic('save'),'Guardar (respaldar)')));
-  ({live:vLive,songs:vSongs,sets:vSets,edit:vEdit,cfg:vCfg})[tab](m);}
+  document.documentElement.style.setProperty('--topH',$('#topw').offsetHeight+'px');
+  const bc=$('#btnCfg');if(bc)bc.classList.toggle('on',tab==='cfg');
+  if(tab==='cfg'){m.append(h('div',{class:'row',style:'margin:0 0 10px'},h('button',{onclick:()=>{tab='edit';renderAll();}},ic('left'),'Volver al editor'),h('h2',{style:'margin:0'},'Ajustes')));vCfg(m);return;}
+  if(nivel==='show'||nivel==='entrada'){const S=M.sets[editSet];if(!S){m.append(h('div',{class:'card'},h('p',{class:'mu',style:'margin:0'},M.sets.length?'Elige una presentación en el explorador.':'Todavía no hay presentaciones. Crea una con ＋ junto a "Presentaciones", en el explorador.')));return;}return vSetEdit(m,S);}
+  vEdit(m);}
+const esCancion=()=>['cancion','frase','acorde','nota'].includes(nivel);
+const saveNav=()=>{try{localStorage.setItem('qm_nav',JSON.stringify([...navOpen]));}catch(e){}};
+// Elegir un nivel (desde el explorador, la ruta o el editor). o: {s, p, c, n, set, e}
+function irA(n,o={}){tab='edit';nivel=n;
+  if(o.s!=null&&o.s!==edSong){edSong=o.s;fSel=0;fFin=null;}
+  if(o.p!=null)edSel={p:o.p,c:o.c!=null?o.c:0};
+  if(n==='nota')notaSel=o.n;
+  if(o.set!=null)editSet=o.set;
+  if(n==='entrada')entSel=o.e;
+  if(!o.keep){multiX.clear();multi.clear();multiMode=false;fVarios=false;fFin=null;}
+  lastFocus=n==='acorde'||n==='nota'?'chords':'phrase';
+  const s=M.songs[edSong];
+  if(esCancion()&&s){navOpen.add('s'+s.id);if(n!=='cancion')navOpen.add('p'+s.id+'.'+edSel.p);if(n==='nota')navOpen.add('c'+s.id+'.'+edSel.p+'.'+edSel.c);}
+  if((n==='entrada'||n==='show')&&M.sets[editSet])navOpen.add('t'+editSet);
+  saveNav();document.body.classList.remove('navon');renderAll();
+  if(n==='frase'||n==='acorde'||n==='nota')setTimeout(()=>{const x=document.querySelector(n==='frase'?'#peditor':'#ceditor');if(x&&x.getBoundingClientRect().top>innerHeight*.85)x.scrollIntoView({block:'start',behavior:'smooth'});},30);}
+// Varios (o Ctrl/Mayús + clic): se eligen varios del mismo nivel
+function navClick(ev,kind,key,go){if(suppressClick)return;
+  if((multiMode||ev.shiftKey||ev.ctrlKey||ev.metaKey)&&kind===nivel&&kind!=='cancion'||((multiMode||ev.ctrlKey||ev.metaKey)&&kind==='cancion'&&nivel==='cancion')){
+    if(kind==='acorde'){if(!multiMode){multiMode=true;multi.clear();multi.add(edSel.p+'.'+edSel.c);}multi.has(key)?multi.delete(key):multi.add(key);}
+    else{multiMode=true;if(!multiX.size)multiX.add(kind+':'+actualKey(kind));const k=kind+':'+key;multiX.has(k)?multiX.delete(k):multiX.add(k);}
+    renderAll();return;}
+  go();}
+const actualKey=k=>k==='cancion'?edSong:k==='frase'?edSel.p:k==='nota'?notaSel:k==='show'?editSet:k==='entrada'?entSel:'';
+const xSel=k=>[...multiX].filter(x=>x.startsWith(k+':')).map(x=>x.slice(k.length+1));
+function renderNav(){const nv=$('#nav');if(!nv)return;const y=nv.scrollTop;nv.innerHTML='';if(!M)return;
+  const tw=(k,ab,hay=true)=>h('button',{class:'tw'+(hay?'':' no'),title:ab?'Cerrar':'Abrir',onclick:e=>{e.stopPropagation();ab?navOpen.delete(k):navOpen.add(k);saveNav();renderNav();}},ic('right',ab?'transform:rotate(90deg)':''));
+  const nr=(on,ms,kids,click,cl='')=>h('div',{class:'nr '+cl+(on?' on':'')+(ms?' msel':''),onclick:click},kids);
+  const pdot=x=>x?h('span',{class:'pdot',title:'Tiene ajustes propios'}):null;
+  // Canciones
+  nv.append(h('div',{class:'nh'},'Canciones',h('span',{class:'sp'}),h('button',{title:'Canción nueva',onclick:()=>nuevaCancion()},ic('plus'))));
+  const ls=h('div',{class:'nk'});
+  M.songs.forEach((s,si)=>{const ks='s'+s.id,ab=navOpen.has(ks),it=h('div',{'data-idx':si});
+    it.append(nr(nivel==='cancion'&&si===edSong&&!multiX.size,multiX.has('cancion:'+si),[tw(ks,ab,s.phrases.length>0),h('span',{class:'lb'},s.name),h('small',null,s.phrases.length+'')],
+      e=>navClick(e,'cancion',si,()=>irA('cancion',{s:si}))));
+    if(ab){const lp=h('div',{class:'nk'});
+      s.phrases.forEach((p,pi)=>{const kp='p'+s.id+'.'+pi,abp=navOpen.has(kp),ip=h('div',{'data-idx':pi}),aqui=si===edSong;
+        ip.append(nr(aqui&&nivel==='frase'&&edSel.p===pi&&!multiX.size,aqui&&multiX.has('frase:'+pi),[tw(kp,abp,p.chords.length>0),h('span',{class:'csw',style:'background:'+PCOL[p.color%8]}),h('span',{class:'lb'},p.name),pdot(!defVacia(p.def)||p.sound),h('small',null,p.chords.length+'')],
+          e=>{if(si!==edSong)return irA('frase',{s:si,p:pi});navClick(e,'frase',pi,()=>irA('frase',{s:si,p:pi}));}));
+        if(abp){const lc=h('div',{class:'nk'});
+          p.chords.forEach((c,ci)=>{const kc='c'+s.id+'.'+pi+'.'+ci,abc=navOpen.has(kc),ic2=h('div',{'data-idx':ci}),ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||!!c.nv||nPar(c)>0||!!c.reset;
+            const onC=aqui&&!multiMode&&nivel==='acorde'&&edSel.p===pi&&edSel.c===ci,msC=aqui&&multiMode&&multi.has(pi+'.'+ci);
+            ic2.append(nr(onC,msC,[tw(kc,abc,c.notes.length>0),h('span',{class:'lb'},c.notes.length?stepLabel(c):'silencio'),pdot(ov)],
+              e=>{if(si!==edSong||edSel.p!==pi)return irA('acorde',{s:si,p:pi,c:ci});navClick(e,'acorde',pi+'.'+ci,()=>irA('acorde',{s:si,p:pi,c:ci}));}));
+            if(abc&&c.notes.length){const ln=h('div',{class:'nk'});
+              [...c.notes].sort((a,b)=>b-a).forEach(n=>{const d=c.nv&&c.nv[n];
+                ln.append(nr(aqui&&nivel==='nota'&&edSel.p===pi&&edSel.c===ci&&notaSel===n&&!multiX.size,aqui&&edSel.p===pi&&edSel.c===ci&&multiX.has('nota:'+n),[h('span',{class:'tw no'}),h('span',{class:'lb'},noteName(n)),d?h('small',null,'vel '+(d>0?'+':'')+d):null],
+                  e=>{if(si!==edSong||edSel.p!==pi||edSel.c!==ci||nivel!=='nota')return irA('nota',{s:si,p:pi,c:ci,n});navClick(e,'nota',n,()=>irA('nota',{s:si,p:pi,c:ci,n}));}));});
+              ic2.append(ln);}
+            lc.append(ic2);});
+          if(aqui)sortable(lc,(a,b)=>edit(()=>{moveArr(p.chords,a,b);edSel={p:pi,c:b};}),'y');
+          ip.append(lc);}
+        lp.append(ip);});
+      if(si===edSong)sortable(lp,(a,b)=>edit(()=>movePhrase(s,a,b)),'y');
+      it.append(lp);}
+    ls.append(it);});
+  sortable(ls,(f,to)=>edit(()=>{moveArr(M.songs,f,to);remapSets(x=>{if(x===f)return to;if(f<to&&x>f&&x<=to)return x-1;if(f>to&&x>=to&&x<f)return x+1;return x;});if(edSong===f)edSong=to;}),'y');
+  nv.append(ls);if(!M.songs.length)nv.append(h('div',{class:'vacio mu'},'Sin canciones: crea una con ＋.'));
+  // Presentaciones
+  nv.append(h('div',{class:'nh'},'Presentaciones',h('span',{class:'sp'}),h('button',{title:'Presentación nueva',onclick:()=>nuevoShow()},ic('plus'))));
+  const lt=h('div',{class:'nk'});
+  M.sets.forEach((S,ti)=>{const kt='t'+ti,ab=navOpen.has(kt),it=h('div',{'data-idx':ti});const nS=S.entries.filter(e=>e.k===0).length;
+    it.append(nr(nivel==='show'&&editSet===ti&&!multiX.size,multiX.has('show:'+ti),[tw(kt,ab,S.entries.length>0),h('span',{class:'lb'},S.name),h('small',null,nS+'')],e=>navClick(e,'show',ti,()=>irA('show',{set:ti}))));
+    if(ab){const le=h('div',{class:'nk'});
+      S.entries.forEach((e,ei)=>{const so=e.k===0?M.songs[e.s]:null;const ie=h('div',{'data-idx':ei});
+        ie.append(nr(nivel==='entrada'&&editSet===ti&&entSel===ei&&!multiX.size,editSet===ti&&multiX.has('entrada:'+ei),[h('span',{class:'tw no'}),
+          h('span',{class:'lb'},e.k===0?(so?so.name:'¿?'):'— '+(e.label||'Intermedio')+' —'),e.k===0&&e.t?h('small',null,(e.t>0?'+':'')+e.t):e.notas&&e.notas.length?h('small',null,e.notas.length+' nota'+(e.notas.length===1?'':'s')):null],
+          ev=>{if(editSet!==ti)return irA('entrada',{set:ti,e:ei});navClick(ev,'entrada',ei,()=>irA('entrada',{set:ti,e:ei}));},e.k===0?'':'sepr'));
+        le.append(ie);});
+      sortable(le,(a,b)=>edit(()=>{moveArr(S.entries,a,b);if(editSet===ti)entSel=b;}),'y');
+      it.append(le);}
+    lt.append(it);});
+  sortable(lt,(a,b)=>edit(()=>{moveArr(M.sets,a,b);if(editSet===a)editSet=b;}),'y');
+  nv.append(lt);
+  nv.scrollTop=y;
+  const on=nv.querySelector('.nr.on');if(on&&renderNav.revelar){renderNav.revelar=false;on.scrollIntoView({block:'nearest'});}}
+function nuevaCancion(){if(M.songs.length>=255)return toast('Máximo 255 canciones');const at=M.songs.length?edSong+1:0;
+  edit(()=>{M.songs.splice(at,0,newSong());remapSets(x=>x>=at?x+1:x);},false);irA('cancion',{s:at});renderNav.revelar=true;}
+function nuevoShow(){edit(()=>{M.sets.push({name:'Presentación nueva',entries:[]});},false);irA('show',{set:M.sets.length-1});}
+/* La ruta: dónde estás, y para subir de nivel con un toque */
+function ruta(s){const p=s.phrases[edSel.p],c=p&&p.chords[edSel.c];
+  const b=(t,on,fn)=>h('button',{class:on?'on':'',onclick:fn},t),g=()=>h('span',{class:'gt'},'›');
+  const r=h('div',{class:'ruta'},b(s.name,nivel==='cancion',()=>irA('cancion')));
+  if(nivel!=='cancion'&&p)r.append(g(),b(p.name,nivel==='frase',()=>irA('frase',{p:edSel.p})));
+  if((nivel==='acorde'||nivel==='nota')&&(c||multi.size))r.append(g(),b(multiMode&&multi.size?multi.size+' acordes':'Acorde '+(edSel.c+1)+' · '+(c.notes.length?stepLabel(c):'silencio'),nivel==='acorde',()=>irA('acorde',{p:edSel.p,c:edSel.c})));
+  if(nivel==='nota'&&notaSel!=null)r.append(g(),b(xSel('nota').length>1?xSel('nota').length+' notas':'Nota '+noteName(notaSel),true,()=>{}));
+  return r;}
 function renderLive(){if(tab==='live'&&M&&!dragS&&!document.activeElement.matches('input,textarea'))renderAll();}
 
 /* ---------- Vista: En vivo ---------- */
@@ -855,7 +1075,7 @@ function vSets(m){
     h('button',{title:'Borrar',onclick:()=>modal('¿Borrar presentación?',h('p',null,s.name),[['Cancelar'],['Borrar',()=>edit(()=>M.sets.splice(i,1)),'er']])},ic('trash'))));});
   sortable(list,(f,t)=>edit(()=>moveArr(M.sets,f,t)),'y');c.append(list);m.append(c);}
 function vSetEdit(m,S){
-  const c=h('div',{class:'card'},h('div',{class:'row'},h('button',{onclick:()=>{editSet=-1;renderAll();}},'← Volver'),h('input',{type:'text',class:'grow',value:S.name,maxlength:24,onchange:e=>edit(()=>S.name=e.target.value)}),
+  const c=h('div',{class:'card'},h('div',{class:'row'},h('input',{type:'text',class:'grow',value:S.name,maxlength:24,onchange:e=>edit(()=>S.name=e.target.value)}),
     h('button',{onclick:()=>printSet(S)},'Imprimir'),h('button',{class:'ac',onclick:()=>perform(editSet)},'Performar')),
     h('p',{class:'mu sm'},'Mantén presionado y arrastra para ordenar. La transposición y las notas solo aplican en esta presentación. En el show, el switch 2 recorre todo el programa: al terminar una canción pasa al intermedio (si hay) y después a la canción siguiente.'));
   const list=h('div');let n=0;
@@ -871,6 +1091,8 @@ function vSetEdit(m,S){
       h('span',{class:'row nodrag'},h('span',{class:'mu sm'},'Transp.'),h('button',{onclick:()=>edit(()=>e.t=clamp(e.t-1,-24,24))},'−'),h('b',{style:'min-width:2.2em;text-align:center'},(e.t>0?'+':'')+e.t),h('button',{onclick:()=>edit(()=>e.t=clamp(e.t+1,-24,24))},'+')),
       h('button',{onclick:()=>edit(()=>S.entries.splice(i,1))},'✕'),
       h('input',{type:'text',style:'flex-basis:100%',maxlength:40,value:e.note||'',placeholder:'Nota de escena antes de esta canción (opcional)',onchange:ev=>edit(()=>e.note=ev.target.value,false)}));}
+    row.classList.toggle('cur',nivel==='entrada'&&entSel===i);
+    row.addEventListener('click',ev=>{if(ev.target.closest('input,textarea,button,select')||suppressClick)return;nivel='entrada';entSel=i;multiX.clear();renderNav();updTop();list.querySelectorAll(':scope>.li').forEach((x,j)=>x.classList.toggle('cur',j===i));});
     list.append(row);});
   sortable(list,(f,t)=>edit(()=>moveArr(S.entries,f,t)),'y');c.append(list);
   const pick=h('select',null,h('option',{value:''},'+ Agregar canción…'),M.songs.map((s,i)=>h('option',{value:i},s.name)));
@@ -913,15 +1135,14 @@ function audition(c,s){if(prefs.mute)return;const v=c.vel!=null?c.vel:s.vel;synt
 function vEdit(m){
   if(!M.songs.length){m.append(h('div',{class:'card'},'No hay canciones.'));return;}
   fixSel();const s=M.songs[edSong];
-  // --- Encabezado y ajustes de la canción ---
-  const pickS=h('select',{onchange:e=>{edSong=+e.target.value;edSel={p:0,c:0};multi.clear();renderAll();}},M.songs.map((x,i)=>h('option',{value:i,selected:i===edSong?'':null},`${i+1}. ${x.name}`)));
+  m.append(ruta(s));
   const gl=s.glide!=null?s.glide:150;
-  m.append(h('div',{class:'card'},
-    panelHead('Canción',null,[pickS,tb('play','Tocar en vivo',()=>tocarEnVivo(edSong),{title:'Elegir esta canción en el pedal e ir a En vivo'})]),
+  const songCard=h('div',{class:'card',id:'seditor'},
+    panelHead('Ajustes de la canción',[s.name],[]),
     h('div',{class:'row',style:'margin-top:10px'},h('input',{type:'text',class:'grow',value:s.name,maxlength:24,onchange:e=>edit(()=>s.name=e.target.value)})),
     h('div',{class:'row',style:'margin-top:10px;gap:6px',title:'Mueve las notas de todos los acordes. Se puede deshacer con ↶.'},h('span',{class:'mu sm',style:'font-weight:800'},'Transponer'),
       [[-12,'Octava abajo'],[-1,'−1'],[1,'+1'],[12,'Octava arriba']].map(([d,txt])=>h('button',{onclick:()=>transponer(s,d)},txt))),
-    h('p',{class:'mu sm',style:'margin:8px 0 0'},'Estos ajustes valen para todos los acordes de la canción. Cada acorde puede tener excepciones en su propio panel.'),
+    h('p',{class:'mu sm',style:'margin:8px 0 0'},'Estos ajustes valen para todas las frases y acordes de la canción. Cada frase y cada acorde pueden tener los suyos (en su propio panel).'),
     sec('s:toca','tempo','Cómo se toca',[`${s.bpm} BPM`,'velocity '+s.vel,s.hold?'Mantener':'Latch',TRANS_OPTS[s.trans||0][1]+(s.trans?' '+gl+' ms':''),s.tie?'ligado':null,s.repeat?'repite':null].filter(Boolean).join(' · '),()=>[
       srow('Tempo','Velocidad de la canción. También marca el MIDI Clock que recibe el MiniNova.',knob({label:'Tempo',value:s.bpm,min:20,max:300,onInput:v=>edit(()=>s.bpm=v)})),
       srow('Velocity','Qué tan fuerte suenan las notas (1 a 127).',knob({label:'Velocity',value:s.vel,min:1,max:127,onInput:v=>edit(()=>s.vel=v)})),
@@ -942,15 +1163,15 @@ function vEdit(m){
       paramBloque(s,s,{tipo:'cancion'})];}),
     sec('s:letra','paste','Letra',s.hasLyr?lyrCount(s)+' acordes con letra':'Sin letra',()=>[
       srow('Esta canción tiene letra','Muestra un fragmento de letra bajo cada acorde (y en el Modo Performance). Las letras no se mandan al Arduino.',toggle('',!!s.hasLyr,v=>edit(()=>{if(v)s.hasLyr=true;else delete s.hasLyr;}))),
-      s.hasLyr?srow('Escribir de corrido','Escribe la letra de una frase entera, una línea por acorde, y se reparte sola. Para dos líneas en un acorde usa \" / \".',h('button',{onclick:()=>lyrDialog(s)},ic('paste'),'Escribir la letra de la frase')):null])));
+      s.hasLyr?srow('Escribir de corrido','Escribe la letra de una frase entera, una línea por acorde, y se reparte sola. Para dos líneas en un acorde usa \" / \".',h('button',{onclick:()=>lyrDialog(s)},ic('paste'),'Escribir la letra de la frase')):null]));
   // ② Forma: el orden en que suenan las frases. Sus herramientas actúan sobre el paso elegido.
   fSel=clamp(fSel,0,Math.max(0,s.form.length-1));if(fFin!=null)fFin=clamp(fFin,0,Math.max(0,s.form.length-1));
   // con "Varios" (o Mayús + clic) se eligen varios pasos seguidos: de fSel a fFin
   const fLo=Math.min(fSel,fFin??fSel),fHi=Math.max(fSel,fFin??fSel),fN=fHi-fLo+1,fBloque=s.form.slice(fLo,fHi+1);
   const fs=h('div',{class:'strip','data-sk':'form'+s.id});
-  s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip'+(i>=fLo&&i<=fHi&&s.form.length?' on':''),'data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0],
-    onclick:ev=>{lastFocus='phrase';if(fVarios){if(fFin==null)fSel=i;fFin=i;renderAll();return;}if(ev.shiftKey&&s.form[fSel]){fFin=i;renderAll();return;}
-      fSel=i;fFin=null;if(p&&edSel.p!==f.p){edSel={p:f.p,c:0};multi.clear();}renderAll();}},p?p.name:'?',f.r>1?h('b',null,'×'+f.r):null));});
+  s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip'+(i>=fLo&&i<=fHi&&s.form.length&&(lastFocus==='form'||fVarios)?' on':'')+(f.p===edSel.p&&nivel!=='cancion'&&lastFocus!=='form'?' esta':''),'data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0],
+    onclick:ev=>{lastFocus='form';if(fVarios){if(fFin==null)fSel=i;fFin=i;renderAll();return;}if(ev.shiftKey&&s.form[fSel]){fFin=i;renderAll();return;}
+      fSel=i;fFin=null;if(p){if(edSel.p!==f.p)edSel={p:f.p,c:0};nivel='frase';multi.clear();multiX.clear();multiMode=false;}renderAll();lastFocus='form';updTop();}},p?p.name:'?',f.r>1?h('b',null,'×'+f.r):null));});
   sortable(fs,(a,b)=>edit(()=>{moveArr(s.form,a,b);fSel=b;fFin=null;}));
   const fc=s.form[fSel],fp=fc&&s.phrases[fc.p];
   const fMover=d=>edit(()=>{if(d<0){const x=s.form.splice(fLo-1,1)[0];s.form.splice(fHi,0,x);}else{const x=s.form.splice(fHi+1,1)[0];s.form.splice(fLo,0,x);}
@@ -959,46 +1180,76 @@ function vEdit(m){
   addF.onchange=()=>{if(addF.value===''||s.form.length>=255)return;const at=s.form.length?fSel+1:0;edit(()=>{s.form.splice(at,0,{p:+addF.value,r:1});fSel=at;});};
   m.append(h('div',{class:'card'},
     panelHead('Forma',fN>1?[fN+' pasos elegidos']:fp?[fp.name,PCOL[fp.color%8]]:null,[addF,
-      tb('dup','Duplicar',()=>{if(s.form.length+fN>255)return toast('La forma tiene un máximo de 255 pasos');edit(()=>{s.form.splice(fHi+1,0,...copy(fBloque));fSel=fHi+1;fFin=fN>1?fHi+fN:null;});},{off:!fc,title:fN>1?'Duplicar los pasos elegidos (quedan juntos, a continuación)':'Duplicar el paso elegido'}),
       tb('left','',()=>fMover(-1),{off:!fc||fLo===0,title:fN>1?'Mover los pasos a la izquierda':'Mover el paso a la izquierda'}),
       tb('right','',()=>fMover(1),{off:!fc||fHi>=s.form.length-1,title:fN>1?'Mover los pasos a la derecha':'Mover el paso a la derecha'}),
       tb('minus','',()=>edit(()=>fBloque.forEach(f=>f.r=clamp(f.r-1,1,99))),{off:!fc||fBloque.every(f=>f.r<=1),title:'Una repetición menos'}),
       h('span',{class:'cnt',title:'Veces que suena este paso'},fc&&fN===1?'×'+fc.r:''),
       tb('plus','',()=>edit(()=>fBloque.forEach(f=>f.r=clamp(f.r+1,1,99))),{off:!fc,title:'Una repetición más'}),
-      tb('trash','Quitar',()=>edit(()=>{s.form.splice(fLo,fN);fSel=Math.max(0,fLo-1);fFin=null;}),{off:!fc,title:fN>1?'Quitar los pasos elegidos de la forma (las frases no se borran)':'Quitar el paso elegido de la forma (la frase no se borra)'}),
-      tb('check','Varios',()=>{fVarios=!fVarios;fFin=null;lastFocus='phrase';renderAll();},{cl:fVarios?'on':'',title:'Elegir varios pasos seguidos (para duplicarlos, moverlos o quitarlos juntos)'})]),
-    h('p',{class:'mu sm hint'},fVarios?'Varios: toca el primer paso y después el último; quedan elegidos todos los de entremedio. Duplicar los copia juntos, a continuación.':'El orden en que suenan las frases, de izquierda a derecha. Toca un paso para elegirlo; mantén presionado para moverlo. Repetir una frase no la copia. Con "Varios" eliges varios pasos seguidos.'),fs));
+      ]),
+    h('p',{class:'mu sm hint'},fVarios?'Varios: toca el primer paso y después el último; quedan elegidos todos los de entremedio. Arriba, Duplicar los copia juntos, a continuación.':'El orden en que suenan las frases, de izquierda a derecha. Toca un paso para elegirlo (las herramientas de arriba actúan sobre él); mantén presionado para moverlo. Repetir una frase no la copia.'),fs));
 
   // ③ Frases, con los acordes de la frase elegida adentro (como un Combinator)
   const uses=pi=>s.form.filter(f=>f.p===pi).reduce((a,f)=>a+f.r,0);
   const pstrip=h('div',{class:'strip','data-sk':'phr'+s.id});
   s.phrases.forEach((p,pi)=>{const on=edSel.p===pi,u=uses(pi);
-    pstrip.append(h('div',{class:'pt'+(on?' on':''),'data-idx':pi,style:'--pc:'+PCOL[p.color%8],onclick:()=>{lastFocus='phrase';if(edSel.p!==pi){edSel={p:pi,c:0};multi.clear();renderAll();}else updTop();}},
+    pstrip.append(h('div',{class:'pt'+(on&&(nivel!=='frase'||!multiX.size)?' on':'')+(nivel==='frase'&&multiX.has('frase:'+pi)?' on':''),'data-idx':pi,style:'--pc:'+PCOL[p.color%8],onclick:()=>{if(suppressClick)return;if(multiMode&&nivel==='frase'){const k='frase:'+pi;if(!multiX.size)multiX.add('frase:'+edSel.p);multiX.has(k)?multiX.delete(k):multiX.add(k);renderAll();return;}irA('frase',{p:pi});}},
       h('b',null,p.name),h('small',null,`${p.chords.length} acorde${p.chords.length===1?'':'s'}`+(u>1?` · suena ×${u}`:u===0?' · no está en la forma':'')+(p.sound?' · '+sndLabel(p.sound):''))));});
   sortable(pstrip,(a,b)=>edit(()=>{movePhrase(s,a,b);}));
   const p=s.phrases[edSel.p],pi=edSel.p;
   const phCard=h('div',{class:'card'},
     panelHead('Frases',p?[p.name,PCOL[p.color%8]]:null,[
-      tb('plus','Frase',()=>{if(s.phrases.length>=255)return;edit(()=>{const at=s.phrases.length?pi+1:0;s.phrases.splice(at,0,{name:'Frase '+(s.phrases.length+1),color:s.phrases.length%8,chords:[{notes:buildChord(0,4,0,0)}]});for(const f of s.form)if(f.p>=at)f.p++;s.form.push({p:at,r:1});edSel={p:at,c:0};});},{title:'Agregar una frase después de la elegida'}),
-      tb('dup','Duplicar',()=>{const d=copy(p);d.name=freeName(s,p.name);edit(()=>{s.phrases.splice(pi+1,0,d);for(const f of s.form)if(f.p>pi)f.p++;s.form.push({p:pi+1,r:1});edSel={p:pi+1,c:0};});renamePhrase(d,'Nombre de la copia');},{off:!p,title:'Duplicar la frase elegida'}),
       tb('left','',()=>edit(()=>movePhrase(s,pi,pi-1)),{off:!p||pi===0,title:'Mover la frase a la izquierda'}),
       tb('right','',()=>edit(()=>movePhrase(s,pi,pi+1)),{off:!p||pi>=s.phrases.length-1,title:'Mover la frase a la derecha'}),
       p?h('button',{title:'Color de la frase',onclick:e=>colorPop(e.currentTarget,p.color%8,v=>edit(()=>p.color=v))},h('span',{class:'sw',style:'background:'+PCOL[p.color%8]}),'Color'):null,
-      tb('dots','Más',e=>phraseMenu(s,p,pi,e.currentTarget),{off:!p,title:'Nombre, sonido, grabar e ir en vivo'}),
-      tb('trash','Borrar',()=>modal('¿Borrar frase?',h('p',null,`"${p.name}" y sus pasos en la forma.`),[['Cancelar'],['Borrar',()=>edit(()=>{s.phrases.splice(pi,1);s.form=s.form.filter(f=>f.p!==pi).map(f=>({p:f.p>pi?f.p-1:f.p,r:f.r}));edSel={p:Math.max(0,pi-1),c:0};}),'er']]),{off:!p,title:'Borrar la frase elegida'})]),
-    h('p',{class:'mu sm hint'},'Partes de la canción (estrofa, coro…). Toca una para ver sus acordes aquí abajo; mantén presionado para moverla.'),pstrip);
+      tb('dots','Más',e=>phraseMenu(s,p,pi,e.currentTarget),{off:!p,title:'Nombre, sonido, grabar e ir en vivo'})]),
+    h('p',{class:'mu sm hint'},'Partes de la canción (estrofa, coro…). Toca una para elegirla y ver sus acordes aquí abajo; mantén presionado para moverla.'),pstrip);
   if(p){
     const strip=h('div',{class:'strip','data-sk':'ph'+s.id+'.'+pi});
     p.chords.forEach((c,ci)=>strip.append(chordCard(s,p,pi,c,ci)));
     sortable(strip,(a,b)=>edit(()=>{moveArr(p.chords,a,b);edSel.c=b;}));
     phCard.append(h('div',{class:'rack',id:'chordsCard',style:'--pc:'+PCOL[p.color%8]},
       rackHead(s,p,pi),
-      h('p',{class:'mu sm hint'},multiMode?'Toca los acordes que quieras elegir.':'Toca un acorde para editarlo abajo. Mantén presionado para moverlo.'),strip));
+      h('p',{class:'mu sm hint'},multiMode&&nivel==='acorde'?'Toca los acordes que quieras elegir.':'Toca un acorde para elegirlo y editarlo abajo. Mantén presionado para moverlo.'),strip));
   }
   m.append(phCard);
-  // ④ El acorde elegido (lo más detallado)
-  m.append(chordEditor(s));
+  // ④ El panel del nivel elegido: canción, frase, acorde o nota
+  if(nivel==='cancion')m.append(songCard);
+  else if(nivel==='frase')m.append(phraseEditor(s,p,pi));
+  else{if(nivel==='nota'){const np=notaPanel(s,p&&p.chords[edSel.c]);if(np)m.append(np);}m.append(chordEditor(s));}
 }
+/* Ajustes de la frase: valen para todos sus acordes (salvo los que tengan el suyo); lo que no define viene de la canción */
+function phraseEditor(s,p,pi){const card=h('div',{class:'card',id:'peditor'});if(!p)return card;
+  const many=multiX.size>1,ps=many?xSel('frase').map(Number).map(i=>s.phrases[i]).filter(Boolean):[p];
+  for(const x of ps)if(!x.def)x.def={};const sel=ps.map(x=>x.def),d=sel[0];
+  card.append(panelHead(many?'Ajustes de '+ps.length+' frases':'Ajustes de la frase',many?[ps.map(x=>x.name).join(', ')]:[p.name,PCOL[p.color%8]],many?[]:[
+    h('button',{title:'Color de la frase',onclick:e=>colorPop(e.currentTarget,p.color%8,v=>edit(()=>p.color=v))},h('span',{class:'sw',style:'background:'+PCOL[p.color%8]}),'Color'),
+    tb('paste','Nombre',()=>renamePhrase(p))]),
+    h('p',{class:'mu sm',style:'margin:8px 0 0'},'Lo que pongas aquí vale para todos los acordes de '+(many?'estas frases':'esta frase')+', salvo los que tengan el suyo. Lo que no pongas viene de la canción.'));
+  const sGl=s.glide!=null?s.glide:150,sTr=s.trans||0,rTr=d.trans!=null?d.trans:sTr,rGl=d.glide!=null?d.glide:sGl;
+  const res=[d.trans!=null?TRANS_OPTS[d.trans][1]:null,d.hold!=null?(d.hold?'Mantener':'Latch'):null,d.tie!=null?(d.tie?'ligado':'sin ligar'):null,d.bpm!=null?d.bpm+' BPM':null,d.vel!=null?'velocity '+d.vel:null].filter(Boolean);
+  const IR=(t,e,k,st,sv,ctl)=>irow(t,e,sel,k,st,sv,ctl,'la canción',many?'estas frases':'esta frase');
+  card.append(sec('f:toca','right','Cómo se tocan sus acordes',res.length?res.join(' · '):'Como la canción',()=>[
+    IR('Transición',transExpl(rTr,rGl,0),'trans',TRANS_OPTS[sTr][1],sTr===2?0:sTr,cur=>seg(TRANS_OPTS.filter(x=>x[0]!==2),cur,v=>edit(()=>{for(const c of sel)c.trans=v;}))),
+    rTr?IR('Deslizar (ms)','Cuánto tarda el paso de un acorde al otro.','glide',sGl+' ms',sGl,cur=>knob({label:'Deslizar',value:cur,min:0,max:2550,step:10,onInput:v=>edit(()=>{for(const c of sel)c.glide=v;})})):null,
+    IR('Sostén','Latch: suena hasta la próxima pisada. Mantener: solo mientras el pie está abajo.','hold',s.hold?'Mantener':'Latch',!!s.hold,cur=>seg([[false,'Latch'],[true,'Mantener']],cur,v=>edit(()=>{for(const c of sel)c.hold=v;}))),
+    IR('Ligado','Las notas que se repiten en el acorde siguiente no se vuelven a atacar.','tie',s.tie?'sí':'no',!!s.tie,cur=>seg([[false,'No'],[true,'Sí']],cur,v=>edit(()=>{for(const c of sel)c.tie=v;}))),
+    IR('Tempo','Al llegar a esta frase cambia el tempo (y el MIDI Clock).','bpm',s.bpm+' BPM',s.bpm,cur=>knob({label:'Tempo',value:cur,min:20,max:300,onInput:v=>edit(()=>{for(const c of sel)c.bpm=v;})})),
+    IR('Velocity','Qué tan fuerte suenan sus notas (1 a 127).','vel','velocity '+s.vel,s.vel,cur=>knob({label:'Velocity',value:cur,min:1,max:127,onInput:v=>edit(()=>{for(const c of sel)c.vel=v;})}))]));
+  if(!many){const elegir=()=>elegirSonidoDlg(p.sound||null,x=>edit(()=>{p.sound={bank:x.bank,pc:x.pc};}),
+      {titulo:'Sonido de "'+p.name+'"',nota:'Al llegar a esta frase el Mininova cambia a este sonido (el cambio corta lo que suena).',quitar:p.sound?['Quitar (usar el de la canción)',()=>edit(()=>{delete p.sound;})]:null});
+    card.append(sec('f:sonido','music','Sonido del Mininova',[p.sound?sndLabel(p.sound):'el de la canción',nPar(d)?nPar(d)+' parámetro'+(nPar(d)===1?'':'s')+' al entrar':null].filter(Boolean).join(' · '),()=>[
+      srow('Sonido de la frase','Al llegar a esta frase el Mininova cambia a este sonido (el cambio corta lo que suena). Sin sonido propio, usa el de la canción.',p.sound?[h('b',null,sndLabel(p.sound)),h('button',{onclick:elegir},'Cambiar…'),h('button',{class:'gh',onclick:()=>edit(()=>{delete p.sound;})},ic('close'),'Quitar')]:h('button',{onclick:elegir},ic('piano'),'Elegir sonido…')),
+      h('h3',null,'Parámetros al entrar a la frase'),
+      paramBloque(s,d,{tipo:'frase'})]));}
+  else card.append(h('p',{class:'mu sm'},'El sonido y los parámetros del Mininova se eligen de a una frase.'));
+  return card;}
+/* La nota elegida: solo su velocity (más fuerte o más suave que el resto del acorde) */
+function notaPanel(s,one){if(!one||notaSel==null||!one.notes.includes(notaSel))return null;
+  const ns=(multiX.size?xSel('nota').map(Number):[notaSel]).filter(n=>one.notes.includes(n)),d=one.nv&&one.nv[ns[0]],own=ns.some(n=>one.nv&&one.nv[n]!=null);
+  return h('div',{class:'card',id:'neditor'},panelHead(ns.length>1?ns.length+' notas':'Nota '+noteName(ns[0]),[stepLabel(one)],[tb('play','Escuchar',()=>synthPlay(ns,100,{fade:true}))]),
+    srow('Velocity de '+(ns.length>1?'estas notas':'esta nota'),'Más fuerte (+) o más suave (−) que el resto del acorde. Lo demás de la nota lo decide el acorde.',
+      [toggle('Igual que el acorde',!own,on=>edit(()=>{if(on){if(one.nv){for(const n of ns)delete one.nv[n];if(!Object.keys(one.nv).length)delete one.nv;}}else{one.nv=one.nv||{};for(const n of ns)one.nv[n]=one.nv[n]||10;}})),
+       own?knob({label:'±',value:d||0,min:-126,max:126,onInput:v=>edit(()=>{one.nv=one.nv||{};for(const n of ns){if(v)one.nv[n]=v;else delete one.nv[n];}if(!Object.keys(one.nv).length)delete one.nv;})}):null]));}
 
 /* Transponer: mueve las notas de todos los acordes de la canción d semitonos (sin salirse de 0-127) */
 function transponer(s,d){const cs=s.phrases.flatMap(p=>p.chords),ns=cs.flatMap(c=>c.notes);
@@ -1011,15 +1262,10 @@ function transponer(s,d){const cs=s.phrases.flatMap(p=>p.chords),ns=cs.flatMap(c
 function rackHead(s,p,pi){
     const cur=p.chords[edSel.c],many=multiMode&&multi.size;
     const insertAt=arr=>edit(()=>{const at=p.chords.length?edSel.c+1:0;p.chords.splice(at,0,...arr);edSel.c=at+arr.length-1;revealSel=true;});
-  return panelHead('Acordes',multiMode?[multi.size+' elegidos']:cur?[stepLabel(cur)]:null,[
-        tb('plus','Acorde',()=>insertAt([heredar(p,{notes:buildChord(0,4,0,0)})]),{title:'Agregar un acorde nuevo (Do mayor) después del elegido; cámbialo con el piano o con Armar'}),
-        tb('minus','Silencio',()=>insertAt([{notes:[]}]),{title:'Agregar un silencio después del elegido'}),
-        tb('dup','Duplicar',()=>insertAt([copy(cur)]),{off:!cur||multiMode,title:'Duplicar el acorde elegido'}),
+  return panelHead('Acordes',multiMode&&nivel==='acorde'?[multi.size+' elegidos']:cur&&(nivel==='acorde'||nivel==='nota')?[stepLabel(cur)]:null,[
+        tb('minus','Silencio',()=>{insertAt([{notes:[]}]);nivel='acorde';},{title:'Agregar un silencio después del elegido (para un acorde nuevo, usa Nuevo, arriba)'}),
         tb('left','',()=>edit(()=>{moveArr(p.chords,edSel.c,edSel.c-1);edSel.c--;revealSel=true;}),{off:!cur||multiMode||edSel.c===0,title:'Mover el acorde a la izquierda'}),
         tb('right','',()=>edit(()=>{moveArr(p.chords,edSel.c,edSel.c+1);edSel.c++;revealSel=true;}),{off:!cur||multiMode||edSel.c>=p.chords.length-1,title:'Mover el acorde a la derecha'}),
-        tb('trash','Borrar',()=>edit(()=>{if(multiMode){const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();}else p.chords.splice(edSel.c,1);fixSel();}),{off:multiMode?!many:!cur,title:multiMode?'Borrar los acordes elegidos':'Borrar el acorde elegido'}),
-        tb('check','Varios',()=>{multiMode=!multiMode;multi.clear();lastFocus='chords';renderAll();},{cl:multiMode?'on':'',title:'Elegir varios acordes a la vez (para cambiarlos, copiarlos o borrarlos juntos)'}),
-        multiMode?tb('check','Toda la frase',()=>fraseEntera(pi),{title:'Elegir todos los acordes de esta frase (para ponerles sostén, ligado, tempo… de una vez)'}):null,
         st.cap?h('button',{class:'on',onclick:()=>cmd('cap',0)},st.cap===2?'Detener grabación':'Cancelar captura'):null],'chTgt');}
 
 /* Encabezado común de todos los paneles: título · lo elegido · herramientas de ese panel */
@@ -1126,24 +1372,25 @@ function bendHeard(s,pi,ci){const c=s.phrases[pi]&&s.phrases[pi].chords[ci];if(!
 // Valor que tenía una perilla antes de este acorde (el último que la cambió, o el de la canción)
 function prevCtl(s,pi,ci,id){const seq=flatten(s);let k=seq.findIndex(x=>x.p===pi&&x.ci===ci);
   if(!(k>=0&&seq[k].c.reset))for(let j=k-1;j>=0;j--){const x=seq[j].c;if(x.ctl&&x.ctl[id]!=null)return x.ctl[id];if(x.reset)break;}return primero(s.ctl&&s.ctl[id],baseVal(s,255,CTRL[id][1]),CTRL[id][3]);}
-const HEREDA=['hold','tie','bpm','vel','trans','glide'];
 function heredar(p,c){const cs=p.chords.filter(x=>x.notes.length);if(!cs.length||!c.notes.length)return c;
   for(const k of HEREDA){const v=cs[0][k];if(v!=null&&cs.every(x=>x[k]===v))c[k]=v;}return c;}
 function fraseEntera(pi){const s=M.songs[edSong],p=s&&s.phrases[pi];if(!p)return;edSel={p:pi,c:0};multiMode=true;
   multi=new Set(p.chords.map((_,ci)=>pi+'.'+ci));lastFocus='chords';renderAll();
   const ed=document.getElementById('ceditor');if(ed)ed.scrollIntoView({block:'start',behavior:'smooth'});}
 function chordCard(s,p,pi,c,ci){
-  const hb=bendHeard(s,pi,ci),key=pi+'.'+ci,sel=!multiMode&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.bend!=null||!!c.nv||(c.ctl&&Object.keys(c.ctl).length>0)||!!(c.mn&&c.mn.length)||!!c.reset||!!c.trT;
-  return h('div',{class:'cc'+(sel?' sel':'')+(multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
+  const hb=bendHeard(s,pi,ci),key=pi+'.'+ci,sel=!multiMode&&(nivel==='acorde'||nivel==='nota')&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.bend!=null||!!c.nv||(c.ctl&&Object.keys(c.ctl).length>0)||!!(c.mn&&c.mn.length)||!!c.reset||!!c.trT;
+  return h('div',{class:'cc'+(sel?' sel':'')+(multiMode&&multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
       const card=ev.currentTarget;lastFocus='chords';
-      if(multiMode){multi.has(key)?multi.delete(key):multi.add(key);renderAll();return;}
-      selectChord(s,pi,ci,card);audition(c,s);}},
+      if(suppressClick)return;
+      if(multiMode&&nivel==='acorde'){multi.has(key)?multi.delete(key):multi.add(key);renderAll();return;}
+      if(nivel!=='acorde'||multiMode){irA('acorde',{p:pi,c:ci});audition(c,s);return;}
+      selectChord(s,pi,ci,card);renderNav();audition(c,s);}},
     ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel?delBtn(s,pi,ci):null,h('div',{class:'nm'},hb?'↗ '+chordName(hb):stepLabel(c)),
     h('div',{class:'nt'},hb?'pitch '+((c.bend||0)>0?'+':'')+(c.bend||0):(c.notes.length?c.notes.map(noteName).join(' '):'silencio')+(c.notes.length&&(c.trans===1||(c.trans==null&&s.trans===1))?' ~':'')),
     s.hasLyr?(()=>{const x=own(c,0),r0=lyrRes(s,pi,ci,0);return x&&x!==LCUT?h('div',{class:'ly'},x):r0&&x!==LCUT?h('div',{class:'ly cont'},'↳ '+r0):null;})():null);}
 const delBtn=(s,pi,ci)=>h('button',{class:'del nodrag',title:'Borrar este acorde',onclick:e=>{e.stopPropagation();edit(()=>{s.phrases[pi].chords.splice(ci,1);fixSel();});}},ic('close'));
 function selectChord(s,pi,ci,card){
-  edSel={p:pi,c:ci};lastFocus='chords';
+  edSel={p:pi,c:ci};lastFocus='chords';nivel='acorde';
   document.querySelectorAll('#chordsCard .cc').forEach((x,k)=>{const on=k===ci;x.classList.toggle('sel',on);const d=x.querySelector('.del');if(d&&!on)d.remove();
     if(on&&!d)x.insertBefore(delBtn(s,pi,ci),x.firstChild);});
   const rk=document.getElementById('chordsCard');if(rk)rk.querySelector(':scope>.pnh').replaceWith(rackHead(s,s.phrases[pi],pi));
@@ -1156,7 +1403,7 @@ function phraseMenu(s,p,pi,btn){const old=$('.sndmenu');if(old)old.remove();cons
     it('piano',p.sound?'Sonido: '+sndLabel(p.sound):'Sonido propio…',()=>elegirSonidoDlg(p.sound||null,x=>edit(()=>{p.sound={bank:x.bank,pc:x.pc};}),
       {titulo:'Sonido de "'+p.name+'"',nota:'Al llegar a esta frase el Mininova cambia a este sonido (el cambio corta lo que suena). '+(s.sendPC?'Sin sonido propio usa el de la canción: '+sndLabel({bank:s.bank||0,pc:s.pc})+'.':'La canción no tiene sonido: sin sonido propio, deja el que esté.'),
        quitar:p.sound?['Quitar (usar el de la canción)',()=>edit(()=>{delete p.sound;})]:null})),
-    it('check','Ajustes de toda la frase (sostén, ligado…)',()=>fraseEntera(pi)),
+    it('check','Ajustes de la frase (sostén, ligado, tempo…)',()=>irA('frase',{p:pi})),
     it('rec','Grabar acordes desde teclado MIDI',()=>{edSel={p:pi,c:Math.max(0,p.chords.length-1)};cmd('cap',2);toast('Grabando: toca acordes en tu teclado MIDI');}),
     it('jump','Ir a esta frase en vivo',()=>{const st2=s.form.findIndex(f=>f.p===pi);cmd('song',edSong).then(()=>st2>=0&&cmd('jump',st2));}));
   document.body.append(mn);setTimeout(()=>document.addEventListener('pointerdown',function f(e){if(!mn.contains(e.target)){mn.remove();}document.removeEventListener('pointerdown',f);}),0);}
@@ -1239,10 +1486,10 @@ function sec(key,icon,title,summary,body){
   w.append(hd,bd);return w;}
 function srow(title,expl,control){return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,title),expl?h('small',null,expl):null),h('div',{class:'sc'},control));}
 // Fila de un acorde que puede heredar de la canción: interruptor "Igual que la canción" y, si se apaga, el control propio
-function irow(title,expl,sel,key,songTxt,songVal,control){
+function irow(title,expl,sel,key,songTxt,songVal,control,de='la canción',cosa='este acorde'){
   const vals=sel.map(c=>c[key]),own=vals.some(v=>v!=null),mix=own&&!vals.every(v=>v===vals[0]),cur=own?vals.find(v=>v!=null):songVal;
-  const sw=toggle('Igual que la canción',!own,on=>edit(()=>{for(const c of sel){if(on)delete c[key];else if(c[key]==null)c[key]=songVal;}}));
-  return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,title),h('small',null,expl),h('small',null,own?(mix?'Valores distintos en los acordes seleccionados.':'Propio de este acorde.'):'Usa el de la canción: '+songTxt+'.')),
+  const sw=toggle('Igual que '+de,!own,on=>edit(()=>{for(const c of sel){if(on)delete c[key];else if(c[key]==null)c[key]=songVal;}}));
+  return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,title),h('small',null,expl),h('small',null,own?(mix?'Valores distintos en los elegidos.':'Propio de '+cosa+'.'):'Usa el de '+de+': '+songTxt+'.')),
     h('div',{class:'sc'},sw),own?h('div',{class:'own'},control(cur)):null);}
 const transExpl=(t,ms,bend)=>t===1?`Entra antes de soltar el anterior: el MiniNova desliza sin re-atacar, en ${ms} ms.`:t===2?`No toca notas nuevas: mueve la rueda de pitch ${bend>0?'+':''}${bend} semitonos en ${ms} ms.`:'Suelta el acorde anterior y toca este (con Ligado, las notas repetidas no se re-atacan).';
 
@@ -1262,7 +1509,8 @@ function chordEditor(s){
       h('div',{class:'row',style:'margin-top:6px'},h('button',{onclick:()=>edit(()=>{one.trans=1;})},'Usar Legato (toca '+(one.notes.length?chordName(one.notes):'sus notas')+')'),
         h('button',{onclick:()=>edit(()=>{one.notes=[...hb];delete one.nv;})},'Ajustar las notas a lo que suena')))));
     else if(ctr===2&&!hb)card.append(h('div',{class:'warnb'},ic('info'),h('small',{class:'grow'},'Antes de este acorde no suena nada, así que el pitch bend no tiene qué mover: este acorde se toca normal, con sus notas.')));}
-  const sGl=s.glide!=null?s.glide:150,sTr=s.trans||0;
+  const pd=(p&&p.def)||{},par=k=>pd[k]!=null?pd[k]:s[k],deK=k=>pd[k]!=null?'la frase':'la canción';   // de dónde hereda cada ajuste
+  const sGl=par('glide')!=null?par('glide'):150,sTr=par('trans')||0;
   const rTr=one?(one.trans!=null?one.trans:sTr):sTr,rGl=one?(one.glide!=null?one.glide:sGl):sGl,rBend=one&&one.bend!=null?one.bend:0;
   const diffs=c=>[c.hold!=null?(c.hold?'Mantener':'Latch'):null,c.tie!=null?(c.tie?'ligado':'sin ligar'):null,c.bpm!=null?c.bpm+' BPM':null,c.vel!=null?'velocity '+c.vel:null,c.nv?'velocity por nota':null].filter(Boolean);
   // 1. Notas
@@ -1287,14 +1535,14 @@ function chordEditor(s){
         h('div',null,h('button',{onclick:()=>edit(()=>addVar(p))},ic('plus'),'Agregar variación'))));})()]));
   // 2. Cómo se toca (cómo llega desde el anterior, sostén, ligado, tempo y velocity)
   const trOwn=sel.some(c=>c.trans!=null),d=one?diffs(one):[...new Set(sel.flatMap(diffs))];
-  card.append(sec('c:toca','right','Cómo se toca',[TRANS_OPTS[rTr][1]+(rTr?' '+rGl+' ms':'')+(rTr===2?' '+(rBend>0?'+':'')+rBend+' st':''),...d].join(' · ')+(trOwn||d.length?'':' (como la canción)'),()=>[
-    irow('Transición',transExpl(rTr,rGl,rBend),sel,'trans',TRANS_OPTS[sTr][1],sTr,cur=>seg(TRANS_OPTS,cur,v=>edit(()=>{for(const c of sel){c.trans=v;if(v===2&&c.bend==null)c.bend=2;}if(v===2&&s.bendRange==null)s.bendRange=12;}))),
-    rTr?irow('Deslizar (ms)','Cuánto tarda el paso desde el acorde anterior.',sel,'glide',sGl+' ms',sGl,cur=>knob({label:'Deslizar',value:cur,min:0,max:2550,step:10,onInput:v=>edit(()=>{for(const c of sel)c.glide=v;})})):null,
+  card.append(sec('c:toca','right','Cómo se toca',[TRANS_OPTS[rTr][1]+(rTr?' '+rGl+' ms':'')+(rTr===2?' '+(rBend>0?'+':'')+rBend+' st':''),...d].join(' · ')+(trOwn||d.length?'':' (como '+(defVacia(pd)?'la canción':'la frase')+')'),()=>[
+    irow('Transición',transExpl(rTr,rGl,rBend),sel,'trans',TRANS_OPTS[sTr][1],sTr,cur=>seg(TRANS_OPTS,cur,v=>edit(()=>{for(const c of sel){c.trans=v;if(v===2&&c.bend==null)c.bend=2;}if(v===2&&s.bendRange==null)s.bendRange=12;})),deK('trans')),
+    rTr?irow('Deslizar (ms)','Cuánto tarda el paso desde el acorde anterior.',sel,'glide',sGl+' ms',sGl,cur=>knob({label:'Deslizar',value:cur,min:0,max:2550,step:10,onInput:v=>edit(()=>{for(const c of sel)c.glide=v;})}),deK('glide')):null,
     rTr===2?srow('Pitch (semitonos)',`Hasta dónde mueve la rueda (rango ±${s.bendRange||12}). Vuelve al centro en el siguiente acorde que no sea Pitch bend.`,knob({label:'Pitch',value:rBend,min:-(s.bendRange||12),max:s.bendRange||12,onInput:v=>edit(()=>{for(const c of sel)c.bend=v;})})):null,
-    irow('Sostén','Latch: suena hasta la próxima pisada. Mantener: solo mientras el pie está abajo.',sel,'hold',s.hold?'Mantener':'Latch',!!s.hold,cur=>seg([[false,'Latch'],[true,'Mantener']],cur,v=>edit(()=>{for(const c of sel)c.hold=v;}))),
-    irow('Ligado al siguiente','Las notas que se repiten en el acorde siguiente no se vuelven a atacar.',sel,'tie',s.tie?'sí':'no',!!s.tie,cur=>seg([[false,'No'],[true,'Sí']],cur,v=>edit(()=>{for(const c of sel)c.tie=v;}))),
-    irow('Tempo','Al llegar a este acorde cambia el tempo (y el MIDI Clock).',sel,'bpm',s.bpm+' BPM',s.bpm,cur=>knob({label:'Tempo',value:cur,min:20,max:300,onInput:v=>edit(()=>{for(const c of sel)c.bpm=v;})})),
-    irow('Velocity','Qué tan fuerte suenan las notas de este acorde (1 a 127).',sel,'vel','velocity '+s.vel,s.vel,cur=>knob({label:'Velocity',value:cur,min:1,max:127,onInput:v=>edit(()=>{for(const c of sel)c.vel=v;})}))]));
+    irow('Sostén','Latch: suena hasta la próxima pisada. Mantener: solo mientras el pie está abajo.',sel,'hold',par('hold')?'Mantener':'Latch',!!par('hold'),cur=>seg([[false,'Latch'],[true,'Mantener']],cur,v=>edit(()=>{for(const c of sel)c.hold=v;})),deK('hold')),
+    irow('Ligado al siguiente','Las notas que se repiten en el acorde siguiente no se vuelven a atacar.',sel,'tie',par('tie')?'sí':'no',!!par('tie'),cur=>seg([[false,'No'],[true,'Sí']],cur,v=>edit(()=>{for(const c of sel)c.tie=v;})),deK('tie')),
+    irow('Tempo','Al llegar a este acorde cambia el tempo (y el MIDI Clock).',sel,'bpm',par('bpm')+' BPM',par('bpm'),cur=>knob({label:'Tempo',value:cur,min:20,max:300,onInput:v=>edit(()=>{for(const c of sel)c.bpm=v;})}),deK('bpm')),
+    irow('Velocity','Qué tan fuerte suenan las notas de este acorde (1 a 127).',sel,'vel','velocity '+par('vel'),par('vel'),cur=>knob({label:'Velocity',value:cur,min:1,max:127,onInput:v=>edit(()=>{for(const c of sel)c.vel=v;})}),deK('vel'))]));
   // 3. Sonido del Mininova: volver a como empieza la canción + lo que cambia este acorde
   const todosReset=sel.every(c=>c.reset),np=one?nPar(one):0;
   card.append(sec('c:sonido','music','Sonido del Mininova',[todosReset?'↺ vuelve a como empieza':null,sel.length>1?sel.length+' acordes':(np?np+' cambio'+(np===1?'':'s'):(todosReset?null:'Sin cambios'))].filter(Boolean).join(' · '),
@@ -1310,9 +1558,9 @@ function chordEditor(s){
 const nPar=t=>Object.keys(t.ctl||{}).length+(t.mn||[]).length;
 const primero=(...v)=>v.find(x=>x!=null);
 const baseVal=(s,a,b)=>{const e=(s.base||[]).find(x=>x[0]===a&&x[1]===b);return e?e[2]:null;};
-function paramBloque(s,t,ctx){const acorde=ctx.tipo==='acorde',cont=h('div');
+function paramBloque(s,t,ctx){const acorde=ctx.tipo==='acorde',frase=ctx.tipo==='frase',cont=h('div');
   cont.append(h('p',{class:'mu sm',style:'margin:8px 0 0'},acorde?'Cambian al llegar a este acorde (antes de las notas) y se quedan así hasta que otro acorde los cambie. Filtro, resonancia, drive y modulación se deslizan con el tiempo de "Deslizar"; lo demás cambia de golpe. Con "Transición para todos" o la transición propia de cada uno, eliges cuánto esperan y cuánto tardan en llegar.'
-    :'Se mandan al Mininova al empezar la canción, después del sonido. Los acordes pueden cambiarlos.'));
+    :frase?'Se mandan al Mininova cada vez que empieza esta frase (antes de su primer acorde). Sus acordes pueden cambiarlos.':'Se mandan al Mininova al empezar la canción, después del sonido. Los acordes pueden cambiarlos.'));
   const quitarCtl=id=>edit(()=>{delete t.ctl[id];if(!Object.keys(t.ctl).length)delete t.ctl;if(t.ctlT){delete t.ctlT[id];if(!Object.keys(t.ctlT).length)delete t.ctlT;}});
   // Transición para todos: perillas y parámetros de este acorde llegan juntos a sus valores (salvo los que tienen la suya)
   if(acorde)cont.append(h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,'Transición para todos'),h('small',null,'Todo lo que cambia este acorde (perillas y parámetros) espera y llega a su valor con esta transición, salvo lo que tenga transición propia. Los parámetros de opciones cambian de golpe al terminar la espera.')),
@@ -1326,7 +1574,7 @@ function paramBloque(s,t,ctx){const acorde=ctx.tipo==='acorde',cont=h('div');
       h('div',{class:'sc'},knob({label:'',value:clamp(e[2],lo,hi),min:lo,max:hi,onInput:v=>edit(()=>{t.mn[i][2]=v;},false)}),
         h('button',{class:'gh sm',title:'Quitar',onclick:()=>edit(()=>{t.mn.splice(i,1);if(!t.mn.length)delete t.mn;if(t.mnT){delete t.mnT[a+':'+b];if(!Object.keys(t.mnT).length)delete t.mnT;}})},ic('close'))),
       acorde?mnTimeBlock(s,t,a,b,clamp(e[2],lo,hi),ctx):null));});
-  if(!nPar(t))cont.append(h('p',{class:'mu sm'},acorde?'Este acorde no cambia nada del sonido.':'Ninguno: el sonido parte tal como está guardado.'));
+  if(!nPar(t))cont.append(h('p',{class:'mu sm'},acorde?'Este acorde no cambia nada del sonido.':frase?'Esta frase no cambia nada del sonido.':'Ninguno: el sonido parte tal como está guardado.'));
   // agregar: primero las perillas principales, después todo el Mininova por sección
   const add=h('select',null,h('option',{value:''},'+ Agregar parámetro…'));
   const libres=CTRL.map((_,id)=>id).filter(id=>!(t.ctl&&t.ctl[id]!=null));
@@ -1336,18 +1584,18 @@ function paramBloque(s,t,ctx){const acorde=ctx.tipo==='acorde',cont=h('div');
   for(const[g,xs]of Object.entries(grupos)){const og=h('optgroup',{label:g});for(const x of xs)og.append(h('option',{value:x[0]+':'+x[1]},x[2].split(' · ')[1]||x[2]));add.append(og);}
   add.onchange=()=>{const v=add.value;if(!v)return;
     if(v[0]==='k'){const id=+v.slice(1),ini=acorde?prevCtl(s,ctx.p,ctx.c,id):primero(baseVal(s,255,CTRL[id][1]),CTRL[id][3]);edit(()=>{t.ctl=t.ctl||{};t.ctl[id]=ini;});return;}
-    const[a,b]=v.split(':').map(Number);if((t.mn||[]).length>=40)return toast('Máximo 40 por '+(acorde?'acorde':'canción'));
+    const[a,b]=v.split(':').map(Number);if((t.mn||[]).length>=40)return toast('Máximo 40 por '+(acorde?'acorde':frase?'frase':'canción'));
     const x=mnInfo(a,b),enCancion=acorde?((s.mn||[]).find(e=>e[0]===a&&e[1]===b)||[])[2]:null;
     edit(()=>{t.mn=t.mn||[];t.mn.push([a,b,primero(enCancion,baseVal(s,a,b),Math.round((x[3]+x[4])/2))]);});};
   cont.append(h('div',{class:'row',style:'gap:8px;margin-top:8px;align-items:center'},add,
-    STUDIO.ok?h('button',{class:'ac',onclick:()=>ajustarEnStudio(s,ctx)},'🎛 Ajustar en Quack Studio'):null));
-  if(STUDIO.ok)cont.append(h('p',{class:'mu sm'},'"Ajustar en Quack Studio" abre el Panel Mininova con este sonido: mueve lo que quieras de oído y, con "Llevar a Quack MIDI", queda guardado aquí solo lo que cambiaste.'));
+    STUDIO.ok&&!frase?h('button',{class:'ac',onclick:()=>ajustarEnStudio(s,ctx)},'🎛 Ajustar en Quack Studio'):null));
+  if(STUDIO.ok&&!frase)cont.append(h('p',{class:'mu sm'},'"Ajustar en Quack Studio" abre el Panel Mininova con este sonido: mueve lo que quieras de oído y, con "Llevar a Quack MIDI", queda guardado aquí solo lo que cambiaste.'));
   return cont;}
 /* "Volver a como empieza la canción" sin recargar el sonido: para cada parámetro que cambia algún acorde (y la canción no fija),
    la canción guarda cómo viene en su sonido ("base"). Esos valores los lee Quack Studio de lo guardado en el slot; se revisan solos
    al editar y al abrir Quack MIDI en el PC (si guardaste el sonido de nuevo, se actualizan). */
 function mnTocados(s){const fij=new Set((s.mn||[]).map(e=>e[0]+':'+e[1])),o=new Map();
-  for(const p of s.phrases)for(const c of p.chords){for(const e of c.mn||[]){const k=e[0]+':'+e[1];if(!fij.has(k))o.set(k,[e[0],e[1]]);}
+  for(const p of s.phrases)for(const c of [...p.chords,p.def||{}]){for(const e of c.mn||[]){const k=e[0]+':'+e[1];if(!fij.has(k))o.set(k,[e[0],e[1]]);}
     for(const id of Object.keys(c.ctl||{}))if(!(s.ctl&&s.ctl[id]!=null))o.set('255:'+CTRL[id][1],[255,CTRL[id][1]]);}   // perilla que la canción no fija
   return[...o.values()];}
 const slotCancion=s=>s.sendPC?slotDe({bank:s.bank||0,pc:s.pc}):null;
@@ -1598,8 +1846,8 @@ function pfMargen(){if(!pfEl)return;let pad=0;
   if(/Win/.test(navigator.platform)&&screen.availHeight){pad=document.fullscreenElement?screen.height-screen.availHeight:(window.screenY+window.outerHeight)-((screen.availTop||0)+screen.availHeight);}
   pfEl.style.paddingBottom=(12+Math.max(0,Math.min(120,pad)))+'px';}
 addEventListener('resize',pfMargen);document.addEventListener('fullscreenchange',()=>setTimeout(pfMargen,100));
-function openPerf(){perfOn=true;pfLocked=false;lastPfSig='';pfEl=h('div',{class:'perf'});document.body.append(pfEl);pfMargen();try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{});}catch(e){}renderPerf();requestAnimationFrame(pulse);}
-function closePerf(){perfOn=false;pfEl&&pfEl.remove();pfEl=null;try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}renderAll();}
+function openPerf(){perfOn=true;prefs.tocando=true;savePrefs();pfLocked=false;lastPfSig='';pfEl=h('div',{class:'perf'});document.body.append(pfEl);pfMargen();try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{});}catch(e){}renderPerf();requestAnimationFrame(pulse);}
+function closePerf(){perfOn=false;prefs.tocando=false;savePrefs();pfEl&&pfEl.remove();pfEl=null;try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}renderAll();}
 function nextSongInfo(){if(st.set!=null&&st.set<255&&M.sets[st.set]){const E=M.sets[st.set].entries;let note='',sep='';for(let i=st.se+1;i<E.length;i++){if(E[i].k===1){sep=E[i].label;continue;}return{name:M.songs[E[i].s]?M.songs[E[i].s].name:'?',note:E[i].note,sep};}return{name:'(fin de la presentación)',note:'',sep};}
   const n=M.songs[st.s+1];return{name:n?n.name:'(última canción)',note:'',sep:''};}
 function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set,st.se,st.sep,st.sp,st.end,prefs.view,pfLocked,st.bpm].join();if(sig===lastPfSig)return;lastPfSig=sig;
@@ -1607,6 +1855,8 @@ function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set
   const tr=liveTr(),seq=flatten(s),pi=posIndex(seq),F=formOf(s);const cur=pi.i>=0?seq[pi.i]:null,nx=pi.next!=null?seq[pi.next]:null,pv=pi.i>0?seq[pi.i-1]:null;
   const inSet=st.set!=null&&st.set<255&&M.sets[st.set];let pos='';if(inSet){const E=M.sets[st.set].entries;const songsOnly=E.filter(e=>e.k===0);pos=`${E.slice(0,st.se+1).filter(e=>e.k===0).length}/${songsOnly.length} · `;}
   pfEl.append(h('div',{class:'pf-top'},h('span',{class:'pulse',id:'pls'}),h('span',{class:'t grow'},pos+(st.sep&&inSet?((M.sets[st.set].entries[st.se]||{}).label||'Intermedio'):s.name+(tr?` (${tr>0?'+':''}${tr})`:''))),h('span',{class:'bpm'},`♩ ${st.bpm||s.bpm}`),
+    pfLocked?null:h('button',{title:'Volver al inicio de la canción',onclick:()=>cmd('restart')},ic('restart')),
+    pfLocked?null:h('button',{class:st.thru?'on':'',title:st.thru?'MIDI Thru encendido: Quack MIDI deja pasar todo y no toca (toca para apagarlo)':'MIDI Thru: dejar pasar todo lo que entra, sin tocar acordes',onclick:()=>cmd('thru',st.thru?0:1).then(()=>{lastPfSig='';})},'Thru'),
     h('button',{title:prefs.view==='tele'?'Ver el mapa':'Ver el teleprompter',onclick:()=>{prefs.view=prefs.view==='tele'?'map':'tele';savePrefs();lastPfSig='';renderPerf();}},ic(prefs.view==='tele'?'map':'tele')),
     h('button',{class:'lockbtn',title:pfLocked?'Mantén presionado para desbloquear':'Bloquear pantalla',onpointerdown:lockDown,onpointerup:lockUp,onpointerleave:lockUp},ic(pfLocked?'lock':'unlock')),
     pfLocked?null:h('button',{title:'Salir',onclick:closePerf},ic('close'))));
@@ -1814,6 +2064,10 @@ $('#btnSnd').onclick=toggleMute;updSnd();
 $('#btnStudio').onclick=abrirStudio;
 $('#btnCloud').onclick=()=>syncNow(true);
 $('#btnHelp').append(ic('info','width:22px;height:22px'));
+$('#btnCfg').append(ic('cog','width:22px;height:22px'));$('#btnCfg').onclick=()=>{tab=tab==='cfg'?'edit':'cfg';renderAll();scrollTo(0,0);};
+$('#btnPlay').append(ic('play'),h('span',null,'Tocar'));$('#btnPlay').onclick=tocar;
+addEventListener('resize',()=>{const tw=$('#topw');if(tw)document.documentElement.style.setProperty('--topH',tw.offsetHeight+'px');});
+document.addEventListener('pointerdown',e=>{if(document.body.classList.contains('navon')&&!e.target.closest('#nav,.navbtn'))document.body.classList.remove('navon');});
 $('#btnHelp').onclick=()=>modal('Cómo usar Quack MIDI',h('div',{class:'col sm'},
   h('p',null,h('b',null,'Pedal: '),'switch 1 = acorde anterior · 2 = acorde siguiente · 3 = canción anterior (mantener: silenciar) · 4 = canción siguiente (mantener: reiniciar).'),
   h('p',null,h('b',null,'Canciones: '),'cada canción tiene frases (Estrofa, Coro…) y una forma (Estrofa ×2 → Coro…). Repetir una frase no la copia: si la corriges, se corrige en todas partes.'),
@@ -1836,6 +2090,7 @@ setTimeout(()=>{const d=$('#hduck');if(d&&!matchMedia('(prefers-reduced-motion: 
 (async()=>{renderAll();await new Promise(r=>document.readyState==='loading'?document.addEventListener('DOMContentLoaded',r):r());try{const r=await api('/api/s');st=await r.json();online=true;await loadLyrics();await loadBlob();if(M&&lyrMig()){if(M.songs.some(x=>x.hasLyr))changed(false);lyrMigDone();}}catch(e){}
   if(M){if(uiSaved.edSong!=null)edSong=uiSaved.edSong;if(uiSaved.edSel)edSel=uiSaved.edSel;if(uiSaved.editSet!=null)editSet=uiSaved.editSet;fixSel();}
   takeSnap();renderAll();if(uiSaved.y)setTimeout(()=>scrollTo(0,uiSaved.y),50);updPill();offerIncoming();poll();
+  if(prefs.tocando)setTimeout(()=>{if(!perfOn)openPerf();},300);   // cerraste la app tocando: vuelve a Tocar
   if(window.APPMODE&&M){initMeta();if(syncMeta().connected){syncState=tokenOk()?'busy':'login';updCloud();if(tokenOk())syncNow(false);}else{syncState='off';updCloud();}}})();
 </script>
 
@@ -1858,7 +2113,7 @@ function nextPos(st,r,c){const F=form();if(c+1<nCh(st))return[st,r,c+1];if(r+1<F
 function prevPos(st,r,c){const F=form();if(c>0)return[st,r,c-1];if(r>0)return[st,r-1,nCh(st)-1];st--;while(st>=0&&!nCh(st))st--;return st>=0?[st,F[st].r-1,nCh(st)-1]:null;}
 function firstFrom(st){const F=form();while(st<F.length&&!nCh(st))st++;return st<F.length?[st,0,0]:null;}
 function curChord(){const s=song();if(!s||S.c<0)return null;return s.phrases[form()[S.st].p].chords[S.c];}
-function bpmNow(){const s=song();if(!s)return 120;const c=curChord();return c&&c.bpm!=null?c.bpm:s.bpm;}
+function bpmNow(){const s=song();if(!s)return 120;const c=curChord();if(c&&c.bpm!=null)return c.bpm;const p=c&&s.phrases[form()[S.st].p];return p&&p.def&&p.def.bpm!=null?p.def.bpm:s.bpm;}
 function set(p){if(p){[S.st,S.r,S.c]=p;}}
 // Switch 2 recorre el programa completo (igual que el .ino): al terminar, el intermedio o la canción siguiente
 function sigue(){if(S.set<255&&m.sets[S.set]){const E=m.sets[S.set].entries,i=S.se+1;if(i>=E.length)return false;S.se=i;
