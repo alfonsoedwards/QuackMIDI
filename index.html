@@ -548,7 +548,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.02-0112';
+const QM_VERSION='2026.10.02-0901';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1862,13 +1862,19 @@ function enterSet(i){if(!m.sets[i]){S.set=255;return;}S.set=i;const E=m.sets[i].
 function status(){if(blob!==S._ult){S._ult=blob;S._t=Date.now();}else if(flash!==blob&&Date.now()-S._t>4000){flash=blob;persist();}   // guardado automático (como el Arduino)
   const s=song();let end=0;if(s&&S.c>=0&&!s.repeat&&!nextPos(S.st,S.r,S.c))end=1;
   return{bv:S.bv,s:S.s,st:S.st,r:S.r,c:S.c,end,bpm:bpmNow(),thru:S.thru,dirty:+(blob.length!==flash.length||blob.some((x,i)=>x!==flash[i])),mem:blob.length,max:8112,
-    L:S.L,Lk:S.Lk,Lr:S.Lr,cap:S.cap,cn:S.cn,cv:S.cv,set:S.set,se:S.se,sep:S.sep,sp:S.sp||0,warn:S.warn,up:Math.floor((Date.now()-S.t0)/1000),crc:0,q:0,clk:1};}
+    L:S.L,Lk:S.Lk,Lr:S.Lr,cap:S.cap,cn:S.cn,cv:S.cv,cw:S.cw,set:S.set,se:S.se,sep:S.sep,sp:S.sp||0,warn:S.warn,up:Math.floor((Date.now()-S.t0)/1000),crc:0,q:0,clk:1};}
+// Capturar sin el Arduino: las notas que tocas en el Mininova o el Axiom llegan por Quack Studio (USB)
+function capStudio(){if(!S.cap)return;
+  if(typeof STUDIO==='undefined'||!STUDIO.ok){S.cap=0;toast('Para capturar sin el Arduino, abre Quack Studio en el PC con el Mininova conectado por USB');return;}
+  studio('quack/captura').then(r=>{if(!S.cap)return;
+    if(!r||!r.ok)throw 0;{if(S.capN==null)S.capN=r.n;else if(r.n!==S.capN){S.capN=r.n;S.cv=r.notas;S.cw=r.vels;S.cn++;if(S.cap===1){S.cap=0;return;}}}
+    S.capE=0;setTimeout(capStudio,120);}).catch(()=>{if(++S.capE>=4){S.cap=0;S.capE=0;toast('Quack Studio no responde a la captura: ciérralo y ábrelo de nuevo');}else setTimeout(capStudio,500);});}
 function cmd(q){const x=q.get('x'),a=q.has('a')?+q.get('a'):null;
   switch(x){case'next':next();break;case'prev':prev();break;case'snext':songStep(1);break;case'sprev':songStep(-1);break;
   case'restart':if(!S.sep){S.st=0;S.r=0;S.c=-1;}break;case'song':S.set=255;load(a);break;case'jump':S.st=a;S.r=0;S.c=-1;break;
   case'set':S.sep=0;a!==255?enterSet(a):S.set=255;break;case'thru':S.thru=a;break;case'warnok':S.warn=-1;break;case'reboot':break;
   case'learn':if(a===255)S.L=0;else{S.L=1;S.Lk=a;S.Lr=0;setTimeout(()=>{if(!S.L)return;m.settings.trig[a]={t:0,ch:0,n:80+a};blob=enc(m);S.bv++;S.L=0;S.Lr=1;persist();},1500);}break;
-  case'cap':S.cap=a;if(a){const f=()=>{if(!S.cap)return;S.cv=[57,60,64,67];S.cn++;if(S.cap===1)S.cap=0;else setTimeout(f,2500);};setTimeout(f,1500);}break;}
+  case'cap':S.cap=a;S.capN=null;S.capE=0;if(a)capStudio();break;}
   return{ok:1};}
 const J=o=>new Response(JSON.stringify(o),{headers:{'Content-Type':'application/json'}});
 const realFetch=window.fetch.bind(window);
