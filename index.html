@@ -389,6 +389,8 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
 .pal button.on{border-color:var(--tx)}
 .pop .col{gap:8px}
 .pop select{width:100%}
+/* Celular: la barra de arriba no puede ser más ancha que la pantalla (si no, los botones quedan afuera y la página se corre) */
+@media (max-width:560px){.brand>span:last-child{display:none}.hdr{gap:.15em}.hdr button.gh,.hdr .hstudio{padding:.35em .38em}.htools{display:flex;gap:0}.pill{padding:.45em}.pill>span{display:none}}
 </style>
 </head>
 <body>
@@ -527,7 +529,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.01-2257';
+const QM_VERSION='2026.10.01-2309';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
