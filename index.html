@@ -148,7 +148,9 @@ table.tr{width:100%;border-collapse:collapse}table.tr td{padding:4px}
 .map .mr{display:flex;align-items:stretch;gap:6px;margin-bottom:6px}
 .map .ml{flex:0 0 7.5em;border-radius:10px;padding:.4em .6em;font-weight:900;color:#081418;cursor:pointer;display:flex;flex-direction:column;justify-content:center}
 .map .ml small{font-weight:800;opacity:.75}
-.map .mc{flex:1 1 0;min-width:3.2em;max-width:8em;background:#172127;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;font-size:clamp(1rem,2.6vw,1.6rem);padding:.3em}
+.map .mcs{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:6px}   /* los acordes de la frase: si no caben en una línea, siguen abajo */
+.map .mc{flex:0 0 auto;width:clamp(5.4rem,9.2vw,8rem);min-height:3.4rem;background:#172127;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;font-size:clamp(1rem,2.4vw,1.55rem);padding:.3em;overflow:hidden}
+.map .mc>b{display:block;white-space:nowrap;max-width:100%;font-weight:900}
 .map .mc small{font-size:.65rem;font-weight:700;color:#8aa0ab;max-width:100%;overflow:hidden;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .map .mc.now{background:var(--ac);color:#062b33}
 .map .mc.now small{color:#0b3f4a}
@@ -539,7 +541,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.02-0021';
+const QM_VERSION='2026.10.02-0025';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1557,12 +1559,18 @@ function onLearnDone(){if(learnM){learnM.remove();learnM=null;}const r=st.Lr;
 
 /* ---------- Modo Performance ---------- */
 let pfLocked=false,pfEl=null,pulseT0=0,lastPfSig='';
-function openPerf(){perfOn=true;pfLocked=false;lastPfSig='';pfEl=h('div',{class:'perf'});document.body.append(pfEl);try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{});}catch(e){}renderPerf();requestAnimationFrame(pulse);}
+/* En Windows la barra de tareas a veces queda encima (incluso en pantalla completa) o la ventana pasa por debajo de ella:
+   se deja libre ese espacio abajo, para que la franja y los botones se vean siempre */
+function pfMargen(){if(!pfEl)return;let pad=0;
+  if(/Win/.test(navigator.platform)&&screen.availHeight){pad=document.fullscreenElement?screen.height-screen.availHeight:(window.screenY+window.outerHeight)-((screen.availTop||0)+screen.availHeight);}
+  pfEl.style.paddingBottom=(12+Math.max(0,Math.min(120,pad)))+'px';}
+addEventListener('resize',pfMargen);document.addEventListener('fullscreenchange',()=>setTimeout(pfMargen,100));
+function openPerf(){perfOn=true;pfLocked=false;lastPfSig='';pfEl=h('div',{class:'perf'});document.body.append(pfEl);pfMargen();try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{});}catch(e){}renderPerf();requestAnimationFrame(pulse);}
 function closePerf(){perfOn=false;pfEl&&pfEl.remove();pfEl=null;try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}renderAll();}
 function nextSongInfo(){if(st.set!=null&&st.set<255&&M.sets[st.set]){const E=M.sets[st.set].entries;let note='',sep='';for(let i=st.se+1;i<E.length;i++){if(E[i].k===1){sep=E[i].label;continue;}return{name:M.songs[E[i].s]?M.songs[E[i].s].name:'?',note:E[i].note,sep};}return{name:'(fin de la presentación)',note:'',sep};}
   const n=M.songs[st.s+1];return{name:n?n.name:'(última canción)',note:'',sep:''};}
 function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set,st.se,st.end,prefs.view,pfLocked,st.bpm].join();if(sig===lastPfSig)return;lastPfSig=sig;
-  const s=liveSong();pfEl.innerHTML='';if(!s){pfEl.append(h('button',{onclick:closePerf},'Salir'));return;}
+  const s=liveSong();const mapTop=(pfEl.querySelector('.map')||{}).scrollTop||0;pfEl.innerHTML='';if(!s){pfEl.append(h('button',{onclick:closePerf},'Salir'));return;}
   const tr=liveTr(),seq=flatten(s),pi=posIndex(seq),F=formOf(s);const cur=pi.i>=0?seq[pi.i]:null,nx=pi.next!=null?seq[pi.next]:null,pv=pi.i>0?seq[pi.i-1]:null;
   const inSet=st.set!=null&&st.set<255&&M.sets[st.set];let pos='';if(inSet){const E=M.sets[st.set].entries;const songsOnly=E.filter(e=>e.k===0);pos=`${E.slice(0,st.se+1).filter(e=>e.k===0).length}/${songsOnly.length} · `;}
   pfEl.append(h('div',{class:'pf-top'},h('span',{class:'pulse',id:'pls'}),h('span',{class:'t grow'},pos+s.name+(tr?` (${tr>0?'+':''}${tr})`:'')),h('span',{class:'bpm'},`♩ ${st.bpm||s.bpm}`),
@@ -1589,9 +1597,12 @@ function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set
     pfEl._strip=fsx;
   }else{
     const mp=h('div',{class:'map'});let nowEl=null;
-    F.forEach((f,sti)=>{const p=s.phrases[f.p];if(!p)return;for(let r=0;r<f.r;r++){const row=h('div',{class:'mr'},h('div',{class:'ml',style:'background:'+PCOL[p.color%8],onclick:()=>jump(sti)},p.name,f.r>1?h('small',null,`${r+1}/${f.r}`):null,p.sound?h('small',null,'sonido '+sndLabel(p.sound)):null));
-      p.chords.forEach((c,ci)=>{const now=cur&&cur.st===sti&&cur.r===r&&cur.ci===ci;const done=cur&&(sti<cur.st||sti===cur.st&&(r<cur.r||r===cur.r&&ci<cur.ci));const el=h('div',{class:'mc'+(now?' now':'')+(done?' done':'')},chordName(c.notes,tr),(()=>{const v=vueltaOf(s,sti,r),x=s.hasLyr?lyrRes(s,f.p,ci,v):'';return x&&(ci===0||x!==lyrRes(s,f.p,ci-1,v))?h('small',null,x):null;})());if(now)nowEl=el;row.append(el);});mp.append(row);}});
-    pfEl.append(mp);if(nowEl)requestAnimationFrame(()=>nowEl.scrollIntoView({block:'center',behavior:'smooth'}));
+    F.forEach((f,sti)=>{const p=s.phrases[f.p];if(!p)return;for(let r=0;r<f.r;r++){const row=h('div',{class:'mr'},h('div',{class:'ml',style:'background:'+PCOL[p.color%8],onclick:()=>jump(sti)},p.name,f.r>1?h('small',null,`${r+1}/${f.r}`):null,p.sound?h('small',null,'sonido '+sndLabel(p.sound)):null)),mcs=h('div',{class:'mcs'});
+      p.chords.forEach((c,ci)=>{const now=cur&&cur.st===sti&&cur.r===r&&cur.ci===ci;const done=cur&&(sti<cur.st||sti===cur.st&&(r<cur.r||r===cur.r&&ci<cur.ci));const el=h('div',{class:'mc'+(now?' now':'')+(done?' done':'')},h('b',null,chordName(c.notes,tr)),(()=>{const v=vueltaOf(s,sti,r),x=s.hasLyr?lyrRes(s,f.p,ci,v):'';return x&&(ci===0||x!==lyrRes(s,f.p,ci-1,v))?h('small',null,x):null;})());if(now)nowEl=el;mcs.append(el);});row.append(mcs);mp.append(row);}});
+    pfEl.append(mp);mp.scrollTop=mapTop;   // se redibuja donde estaba y desde ahí se desliza al acorde actual
+    // nombres largos (Fadd9/G, D·F·A·C·E…): se achican hasta caber en su casilla
+    mp.querySelectorAll('.mc>b').forEach(b=>{let fs=parseFloat(getComputedStyle(b).fontSize);for(let i=0;i<30&&b.scrollWidth>b.clientWidth+1;i++){fs*=.92;b.style.fontSize=fs+'px';}});
+    if(nowEl)requestAnimationFrame(()=>{const r=nowEl.getBoundingClientRect(),m=mp.getBoundingClientRect();if(r.top<m.top+8||r.bottom>m.bottom-8)mp.scrollTo({top:mp.scrollTop+r.top-m.top-(m.height-r.height)/2,behavior:'smooth'});});
   }
   const atEnd=st.end||(!s.repeat&&pi.next==null&&pi.i>=0);const ni=nextSongInfo();
   if(atEnd)pfEl.append(h('div',{class:'pf-end'},'Siguiente canción: ',h('b',null,ni.name),ni.sep?h('div',{class:'scene'},'— '+ni.sep+' —'):null,ni.note?h('div',{class:'scene'},ni.note):null));
