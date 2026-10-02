@@ -529,7 +529,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.01-2309';
+const QM_VERSION='2026.10.01-2323';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -887,6 +887,8 @@ function vEdit(m){
   m.append(h('div',{class:'card'},
     panelHead('Canción',null,[pickS,tb('play','Tocar en vivo',()=>cmd('song',edSong),{title:'Elegir esta canción en el pedal'})]),
     h('div',{class:'row',style:'margin-top:10px'},h('input',{type:'text',class:'grow',value:s.name,maxlength:24,onchange:e=>edit(()=>s.name=e.target.value)})),
+    h('div',{class:'row',style:'margin-top:10px;gap:6px',title:'Mueve las notas de todos los acordes. Se puede deshacer con ↶.'},h('span',{class:'mu sm',style:'font-weight:800'},'Transponer'),
+      [[-12,'Octava abajo'],[-1,'−1'],[1,'+1'],[12,'Octava arriba']].map(([d,txt])=>h('button',{onclick:()=>transponer(s,d)},txt))),
     h('p',{class:'mu sm',style:'margin:8px 0 0'},'Estos ajustes valen para todos los acordes de la canción. Cada acorde puede tener excepciones en su propio panel.'),
     sec('s:toca','tempo','Cómo se toca',[`${s.bpm} BPM`,'velocity '+s.vel,s.hold?'Mantener':'Latch',TRANS_OPTS[s.trans||0][1]+(s.trans?' '+gl+' ms':''),s.tie?'ligado':null,s.repeat?'repite':null].filter(Boolean).join(' · '),()=>[
       srow('Tempo','Velocidad de la canción. También marca el MIDI Clock que recibe el MiniNova.',knob({label:'Tempo',value:s.bpm,min:20,max:300,onInput:v=>edit(()=>s.bpm=v)})),
@@ -960,6 +962,13 @@ function vEdit(m){
   m.append(chordEditor(s));
 }
 
+/* Transponer: mueve las notas de todos los acordes de la canción d semitonos (sin salirse de 0-127) */
+function transponer(s,d){const cs=s.phrases.flatMap(p=>p.chords),ns=cs.flatMap(c=>c.notes);
+  if(!ns.length)return toast('La canción no tiene notas');
+  if(Math.min(...ns)+d<0||Math.max(...ns)+d>127)return toast('No se puede: alguna nota quedaría fuera del rango MIDI');
+  edit(()=>{for(const c of cs){c.notes=c.notes.map(n=>n+d);if(c.nv){const o={};for(const k in c.nv)o[+k+d]=c.nv[k];c.nv=o;}}});
+  const a=Math.abs(d);toast(`Canción transpuesta ${d>0?'+':'−'}${a===12?'1 octava':a+' semitono'+(a===1?'':'s')}`);
+  const c=selChords(s)[0];if(c)audition(c,s);}
 /* Encabezado del panel de acordes (se redibuja solo al elegir otro acorde) */
 function rackHead(s,p,pi){
     const cur=p.chords[edSel.c],many=multiMode&&multi.size;
