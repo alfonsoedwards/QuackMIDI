@@ -401,7 +401,9 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
 /* Celular: la barra de arriba no puede ser más ancha que la pantalla (si no, los botones quedan afuera y la página se corre) */
 @media (max-width:560px){.brand>span:last-child{display:none}.hdr{gap:.15em}.hdr button.gh,.hdr .hstudio{padding:.35em .38em}.htools{display:flex;gap:0}.pill{padding:.45em}.pill>span{display:none}}
 /* ===== Sin pestañas: barra de herramientas de lado a lado + explorador (carpetas) + editor ===== */
-.tbar{display:flex;align-items:center;gap:2px;padding:3px max(12px,env(safe-area-inset-left));background:var(--sf);border-bottom:1px solid var(--ln);box-shadow:0 2px 8px #0000000d;overflow-x:auto;scrollbar-width:none}
+/* la barra va justo encima de los paneles (alineada con ellos), pegada arriba al bajar; el explorador queda a su lado */
+.coled{min-width:0}
+.tbar{position:sticky;top:var(--topH,60px);z-index:15;display:flex;align-items:center;gap:2px;padding:3px 8px;margin:0 0 12px;background:var(--sf);border-bottom:2px solid var(--acl2);box-shadow:0 4px 10px -6px #0003;overflow-x:auto;scrollbar-width:none}
 .tbar::-webkit-scrollbar{display:none}
 .tbar button{background:transparent;display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:.28em .6em;font-size:.72rem;font-weight:800;color:var(--tx2);border-radius:10px;white-space:nowrap;flex:none}
 .tbar button .ic{width:22px;height:22px;color:var(--ack)}
@@ -413,15 +415,15 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
 .hdr .hplay{background:#fff;color:var(--ack);font-weight:900;display:inline-flex;gap:.35em;align-items:center;padding:.42em .95em;border-radius:99px;margin-left:.2em}
 .hdr .hplay .ic{width:20px;height:20px}
 .hdr .hcfg.on{background:#ffffff40}
-.shell{display:grid;grid-template-columns:280px minmax(0,1fr);gap:14px;max-width:1500px;margin:0 auto;padding:12px 16px 0;align-items:start}
+.shell{display:grid;grid-template-columns:280px minmax(0,1fr);gap:14px;max-width:1500px;margin:0 auto;padding:0 16px;align-items:start}
 .shell main{padding:0;max-width:none;margin:0;min-width:0}
-.nav{position:sticky;top:calc(var(--topH,110px) + 12px);max-height:calc(100vh - var(--topH,110px) - 24px);overflow:auto;background:var(--sf);border-radius:var(--r);box-shadow:var(--sh);padding:6px 6px 10px;overscroll-behavior:contain}
+.nav{position:sticky;top:var(--topH,60px);max-height:calc(100vh - var(--topH,60px) - 12px);overflow:auto;background:var(--sf);border-radius:var(--r);box-shadow:var(--sh);padding:6px 6px 10px;overscroll-behavior:contain}
 .nav .nh{display:flex;align-items:center;font-size:.78rem;font-weight:900;color:var(--mu);padding:10px 6px 4px 8px;letter-spacing:.3px}
 .nav .nh button{background:transparent;padding:.15em .35em;color:var(--ack)}.nav .nh .ic{width:20px;height:20px}
 .nr{display:flex;align-items:center;gap:5px;padding:2px 6px 2px 2px;border-radius:9px;cursor:pointer;white-space:nowrap;min-height:31px;user-select:none}
 .nr:hover{background:var(--sf2)}
 .nr.on{background:var(--ac);color:#fff}
-.nr.msel{background:var(--acl2)}
+.nr.msel{background:var(--acl2)}.nr.padre{box-shadow:inset 0 0 0 2px var(--ac)}
 .nr .tw{width:24px;height:24px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:7px;background:transparent;padding:0;color:inherit;opacity:.7}
 .nr .tw .ic{width:15px;height:15px}.nr .tw.no{visibility:hidden}
 .nr .lb{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:700}
@@ -437,10 +439,25 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
 .navbtn{display:none!important}
 .strip .chip.esta{box-shadow:inset 0 0 0 2px var(--ac)}
 .nivel-t{font-size:.78rem;font-weight:900;color:var(--mu);margin:0 0 2px}
-@media (max-width:860px){.shell{grid-template-columns:minmax(0,1fr);padding:8px 10px 0}
+/* Lo elegido: calipso lleno. Lo que lo contiene (su frase, su acorde): solo un borde calipso */
+.pt.padre,.cc.padre,.chip.esta{box-shadow:inset 0 0 0 2.5px var(--ac)}
+.chip{position:relative}
+/* El panel donde trabajas, destacado; los demás, más claritos (se pueden tocar igual) */
+.card.activo{box-shadow:0 0 0 3px var(--ac),var(--sh)}.rack.activo{outline:3px solid var(--ac);outline-offset:2px}
+.tenue{opacity:.45;transition:opacity .2s}.tenue:hover{opacity:.8}
+/* × y Duplicar en las esquinas de lo elegido (separados, para el dedo) */
+.cnr{position:absolute;top:-13px;width:32px;height:32px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--sf);z-index:3;box-shadow:0 2px 6px #0003}
+.cnr .ic{width:15px;height:15px;stroke-width:2.6}
+.cnr.cdel{right:-13px;background:var(--er);color:#fff}
+.cnr.cdup{left:-13px;background:#fff;color:var(--ack)}
+.strip{padding:18px 16px 10px 16px}
+.nr .nb{width:30px;height:30px;padding:0;border-radius:8px;background:#ffffff38;color:#fff;margin-left:6px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.nr .nb .ic{width:15px;height:15px}.nr .nb.nx{background:#ffffff38;margin-left:10px}
+.nr .nb:hover{background:#ffffff66}
+@media (max-width:860px){.shell{grid-template-columns:minmax(0,1fr);padding:0 10px}.tbar{margin:0 -10px 10px}
   .nav{display:none;position:fixed;z-index:30;top:var(--topH,110px);left:0;bottom:0;width:min(86vw,340px);max-height:none;border-radius:0 var(--r) var(--r) 0}
   body.navon .nav{display:block}.navbtn{display:inline-flex!important}}
-@media (max-width:560px){.tbar button .tl{display:none}.tbar button{padding:.45em .5em}.hdr .hplay span{display:none}.hdr .hplay{padding:.42em .6em}.tbar .tobj{display:none}}
+@media (max-width:560px){.pf-top{flex-wrap:wrap;row-gap:6px}.pf-top .t{order:10;flex-basis:100%;white-space:normal}.tbar button .tl{display:none}.tbar button{padding:.45em .5em}.hdr .hplay span{display:none}.hdr .hplay{padding:.42em .6em}.tbar .tobj{display:none}}
 </style>
 </head>
 <body>
@@ -473,9 +490,8 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
   <button class="gh" id="btnCfg" title="Ajustes (pedal, MIDI, red, letras, respaldo)"></button>
   <button class="hplay" id="btnPlay" title="Tocar lo que tienes elegido (pantalla completa)"></button>
 </div>
-<nav class="tbar" id="tbar"></nav>
 </div>
-<div class="shell"><aside class="nav" id="nav"></aside><main id="main"></main></div>
+<div class="shell"><aside class="nav" id="nav"></aside><div class="coled"><nav class="tbar" id="tbar"></nav><main id="main"></main></div></div>
 <script type="application/json" id="mnp">[[255,3,"Voice · PolyphonyMode",0,4,1],[255,5,"Voice · PortamentoRate",0,127],[255,8,"Mixer · WetLevel",0,127],[255,9,"Voice · PreGlide",52,76,1],[255,10,"FX · PanPosition",0,127],[255,12,"Voice · PortamentoMode",0,1,1],[255,14,"Voice · Unison",0,4,1],[255,15,"Voice · UnisonDetune",0,127],[255,16,"Osc123 · Drift",0,127],[255,17,"Osc123 · Phase",0,120,1],[255,18,"Osc123 · FixedTranspose",0,127,1],[255,19,"Osc 1 · Wave",0,71,1],[255,20,"Osc 1 · WaveInterpolate",0,127],[255,21,"Osc 1 · PulseWidthIndex",0,127],[255,22,"Osc 1 · VirtualSyncDepth",0,127],[255,23,"Osc 1 · Hardness",0,127],[255,24,"Osc 1 · Density",0,127],[255,25,"Osc 1 · DensityDetune",0,127],[255,26,"Osc 1 · Semitones",0,127,1],[255,27,"Osc 1 · Cents",0,127],[255,28,"Osc 1 · PitchBend",52,76,1],[255,29,"Osc 2 · Wave",0,71,1],[255,30,"Osc 2 · WaveInterpolate",0,127],[255,31,"Osc 2 · PulseWidthIndex",0,127],[255,33,"Osc 2 · VirtualSyncDepth",0,127],[255,34,"Osc 2 · Hardness",0,127],[255,35,"Osc 2 · Density",0,127],[255,36,"Osc 2 · DensityDetune",0,127],[255,37,"Osc 2 · Semitones",0,127,1],[255,39,"Osc 2 · Cents",0,127],[255,40,"Osc 2 · PitchBend",52,76,1],[255,41,"Osc 3 · Wave",0,71,1],[255,42,"Osc 3 · WaveInterpolate",0,127],[255,43,"Osc 3 · PulseWidthIndex",0,127],[255,44,"Osc 3 · VirtualSyncDepth",0,127],[255,45,"Osc 3 · Hardness",0,127],[255,46,"Osc 3 · Density",0,127],[255,47,"Osc 3 · DensityDetune",0,127],[255,48,"Osc 3 · Semitones",0,127,1],[255,49,"Osc 3 · Cents",0,127],[255,50,"Osc 3 · PitchBend",52,76,1],[255,51,"Mixer · Osc1Level",0,127],[255,52,"Mixer · Osc2Level",0,127],[255,53,"Mixer · Osc3Level",0,127],[255,54,"Mixer · RingModLevel13",0,127],[255,55,"Mixer · RingModLevel23",0,127],[255,56,"Mixer · NoiseLevel",0,127],[255,57,"Mixer · NoiseColour",0,3,1],[255,58,"Mixer · PreFXLevel",52,82],[255,59,"Mixer · PostFXLevel",52,82],[255,60,"Filter · Routing",0,5,1],[255,61,"Filter · Balance",0,127],[255,63,"Filter 1 · Drive",0,127],[0,122,"Filter · FreqLink",42,43,1],[0,122,"Filter · ResLink",44,45,1],[255,65,"Filter 1 · DriveType",0,6,1],[255,68,"Filter 1 · Type",0,13,1],[255,69,"Filter 1 · Track",0,127,1],[255,70,"Envelope 1 · Sustain",0,127],[255,71,"Filter 1 · Resonance",0,127],[255,72,"Envelope 1 · Release",0,127],[255,73,"Envelope 1 · Attack",0,127],[255,74,"Filter 1 · Frequency",0,127],[255,75,"Envelope 1 · Decay",0,127],[255,76,"Osc · VibratoSpeed",0,127],[255,77,"Osc · VibratoDepth",0,127],[255,78,"Filter 1 · QNormalise",0,127],[255,79,"Filter 1 · Env2ToFreq",0,127],[255,80,"Filter 2 · Drive",0,127],[255,81,"Filter 2 · DriveType",0,6,1],[255,82,"Filter 2 · Type",0,13,1],[255,83,"Filter 2 · Frequency",0,127],[255,84,"Filter 2 · Track",0,127,1],[255,85,"Filter 2 · Resonance",0,127],[255,86,"Filter 2 · QNormalise",0,127],[60,0,"Animate 1 · Hold",0,127,1],[60,1,"Animate 2 · Hold",0,127,1],[60,2,"Animate 3 · Hold",0,127,1],[60,3,"Animate 4 · Hold",0,127,1],[60,4,"Animate 5 · Hold",0,127,1],[60,5,"Animate 6 · Hold",0,127,1],[60,6,"Animate 7 · Hold",0,127,1],[60,7,"Animate 8 · Hold",0,127,1],[0,122,"Envelope 1 · Trigger",0,1,1],[0,122,"Envelope 2 · Trigger",2,3,1],[0,122,"Envelope 3 · Trigger",4,5,1],[0,122,"Envelope 4 · Trigger",6,7,1],[0,122,"Envelope 5 · Trigger",8,9,1],[0,122,"Envelope 6 · Trigger",10,11,1],[255,87,"Filter 2 · Env2ToFreq",0,127],[255,88,"FX · PanRate",0,127],[255,89,"FX · PanSync",0,35,1],[255,90,"FX · PanModDepth",0,127],[255,91,"FX 1 · Level",0,127],[255,92,"FX 2 · Level",0,127],[255,93,"FX 3 · Level",0,127],[255,94,"FX 4 · Level",0,127],[255,95,"FX 5 · Level",0,127],[255,106,"Envelope · TrackCentre",0,127],[255,108,"Envelope 1 · Velocity",0,127],[255,109,"Envelope 1 · SustainRate",0,127],[255,110,"Envelope 1 · SustainTime",0,127],[255,111,"Envelope 1 · ADRepeats",0,127],[255,112,"Envelope 1 · AttackTrack",0,127,1],[0,0,"Envelope 2 · Velocity",0,127],[0,1,"Envelope 2 · Attack",0,127],[0,2,"Envelope 2 · Decay",0,127],[0,3,"Envelope 2 · Sustain",0,127],[0,4,"Envelope 2 · Release",0,127],[0,5,"Envelope 2 · SustainRate",0,127],[0,6,"Envelope 2 · SustainTime",0,127],[0,7,"Envelope 2 · ADRepeats",0,127],[0,8,"Envelope 2 · AttackTrack",0,127,1],[0,9,"Envelope 2 · DecayTrack",0,127,1],[0,10,"Envelope 2 · LevelTrack",0,127,1],[0,11,"Envelope 2 · AttackSlope",0,127],[0,12,"Envelope 2 · DecaySlope",0,127],[0,13,"Envelope 2 · AnimTrigger",0,24,1],[0,14,"Envelope 3 · Delay",0,127],[0,15,"Envelope 3 · Attack",0,127],[0,16,"Envelope 3 · Decay",0,127],[0,17,"Envelope 3 · Sustain",0,127],[0,18,"Envelope 3 · Release",0,127],[0,19,"Envelope 3 · SustainRate",0,127],[0,20,"Envelope 3 · SustainTime",0,127],[0,21,"Envelope 3 · ADRepeats",0,127],[0,22,"Envelope 3 · AttackTrack",0,127,1],[0,23,"Envelope 3 · DecayTrack",0,127,1],[0,24,"Envelope 3 · LevelTrack",0,127,1],[0,25,"Envelope 3 · AttackSlope",0,127],[0,26,"Envelope 3 · DecaySlope",0,127],[0,27,"Envelope 3 · AnimTrigger",0,24,1],[0,28,"Envelope 4 · Delay",0,127],[0,29,"Envelope 4 · Attack",0,127],[0,30,"Envelope 4 · Decay",0,127],[0,31,"Envelope 4 · Sustain",0,127],[0,32,"Envelope 4 · Release",0,127],[0,33,"Envelope 4 · SustainRate",0,127],[0,34,"Envelope 4 · SustainTime",0,127],[0,35,"Envelope 4 · ADRepeats",0,127],[0,36,"Envelope 4 · AttackTrack",0,127,1],[0,37,"Envelope 4 · DecayTrack",0,127,1],[0,38,"Envelope 4 · LevelTrack",0,127,1],[0,39,"Envelope 4 · AttackSlope",0,127],[0,40,"Envelope 4 · DecaySlope",0,127],[0,41,"Envelope 4 · AnimTrigger",0,24,1],[0,42,"Envelope 5 · Delay",0,127],[0,43,"Envelope 5 · Attack",0,127],[0,44,"Envelope 5 · Decay",0,127],[0,45,"Envelope 5 · Sustain",0,127],[0,46,"Envelope 5 · Release",0,127],[0,47,"Envelope 5 · SustainRate",0,127],[0,48,"Envelope 5 · SustainTime",0,127],[0,49,"Envelope 5 · ADRepeats",0,127],[0,50,"Envelope 5 · AttackTrack",0,127,1],[0,51,"Envelope 5 · DecayTrack",0,127,1],[0,52,"Envelope 5 · LevelTrack",0,127,1],[0,53,"Envelope 5 · AttackSlope",0,127],[0,54,"Envelope 5 · DecaySlope",0,127],[0,55,"Envelope 5 · AnimTrigger",0,24,1],[0,56,"Envelope 6 · Delay",0,127],[0,57,"Envelope 6 · Attack",0,127],[0,58,"Envelope 6 · Decay",0,127],[0,59,"Envelope 6 · Sustain",0,127],[0,60,"Envelope 6 · Release",0,127],[0,61,"Envelope 6 · SustainRate",0,127],[0,62,"Envelope 6 · SustainTime",0,127],[0,63,"Envelope 6 · ADRepeats",0,127],[0,64,"Envelope 6 · AttackTrack",0,127,1],[0,65,"Envelope 6 · DecayTrack",0,127,1],[0,66,"Envelope 6 · LevelTrack",0,127,1],[0,67,"Envelope 6 · AttackSlope",0,127],[0,68,"Envelope 6 · DecaySlope",0,127],[0,69,"Envelope 6 · AnimTrigger",0,24,1],[0,70,"LFO 1 · Waveform",0,37,1],[0,71,"LFO 1 · PhaseOffset",0,119],[0,72,"LFO 1 · SlewRate",0,127],[0,74,"LFO 1 · Delay",0,127],[0,75,"LFO 1 · DelaySync",0,35,1],[0,76,"LFO 1 · Rate",0,127],[0,77,"LFO 1 · RateSync",0,35,1],[0,122,"LFO 1 · OneShot",12,13,1],[0,122,"LFO 1 · KeySync",14,15,1],[0,122,"LFO 1 · CommonSync",16,17,1],[0,122,"LFO 1 · DelayTrigger",18,19,1],[0,123,"LFO 1 · FadeMode",0,3,1],[0,79,"LFO 2 · Waveform",0,37,1],[0,80,"LFO 2 · PhaseOffset",0,119],[0,81,"LFO 2 · SlewRate",0,127],[0,83,"LFO 2 · Delay",0,127],[0,84,"LFO 2 · DelaySync",0,35,1],[0,85,"LFO 2 · Rate",0,127],[0,86,"LFO 2 · RateSync",0,35,1],[0,122,"LFO 2 · OneShot",22,23,1],[0,122,"LFO 2 · KeySync",24,25,1],[0,122,"LFO 2 · CommonSync",26,27,1],[0,122,"LFO 2 · DelayTrigger",28,29,1],[0,123,"LFO 2 · FadeMode",4,7,1],[0,88,"LFO 3 · Waveform",0,37,1],[0,89,"LFO 3 · PhaseOffset",0,119],[0,90,"LFO 3 · SlewRate",0,127],[0,92,"LFO 3 · Delay",0,127],[0,93,"LFO 3 · DelaySync",0,35,1],[0,94,"LFO 3 · Rate",0,127],[0,95,"LFO 3 · RateSync",0,35,1],[0,122,"LFO 3 · OneShot",32,33,1],[0,122,"LFO 3 · KeySync",34,35,1],[0,122,"LFO 3 · CommonSync",36,37,1],[0,122,"LFO 3 · DelayTrigger",38,39,1],[0,123,"LFO 3 · FadeMode",8,11,1],[0,97,"FX · Routing",0,7,1],[0,98,"FX · Feedback",0,127],[0,99,"FX 1 · Select",0,14,1],[0,100,"FX 2 · Select",0,14,1],[0,101,"FX 3 · Select",0,14,1],[0,102,"FX 4 · Select",0,14,1],[0,103,"FX 5 · Select",0,14,1],[255,113,"Envelope 1 · DecayTrack",0,127,1],[255,114,"Envelope 1 · LevelTrack",0,127,1],[255,115,"Envelope 1 · AttackSlope",0,127],[255,116,"Envelope 1 · DecaySlope",0,127],[255,117,"Envelope 1 · AnimTrigger",0,8,1],[0,104,"Equaliser · BassFrequency",0,127],[0,105,"Equaliser · BassLevel",0,127],[0,106,"Equaliser · MidFrequency",0,127],[0,107,"Equaliser · MidLevel",0,127],[0,108,"Equaliser · TrebleFrequency",0,127],[0,109,"Equaliser · TrebleLevel",0,127],[0,110,"Compressor 1 · Ratio",0,127],[0,111,"Compressor 1 · Threshold",0,60],[0,112,"Compressor 1 · Attack",0,127],[0,113,"Compressor 1 · Release",0,127],[0,114,"Compressor 1 · Hold",0,127],[0,115,"Compressor 1 · Gain",0,127],[0,116,"Compressor 2 · Ratio",0,127],[0,117,"Compressor 2 · Threshold",0,60],[0,118,"Compressor 2 · Attack",0,127],[0,119,"Compressor 2 · Release",0,127],[0,120,"Compressor 2 · Hold",0,127],[0,121,"Compressor 2 · Gain",0,127],[1,0,"Distortion 1 · Type",0,6,1],[1,1,"Distortion 1 · Compensation",0,127],[1,2,"Distortion 1 · Level",52,82],[1,3,"Distortion 2 · Type",0,6,1],[1,4,"Distortion 2 · Compensation",0,127],[1,5,"Distortion 2 · Level",52,82],[1,6,"Delay 1 · Time",0,127],[1,7,"Delay 1 · TimeSync",0,35,1],[1,8,"Delay 1 · Feedback",0,127],[1,9,"Delay 1 · Width",0,127],[1,10,"Delay 1 · LRRatio",0,12,1],[1,11,"Delay 1 · SlewRate",0,127],[1,12,"Delay 2 · Time",0,127],[1,13,"Delay 2 · TimeSync",0,35,1],[1,14,"Delay 2 · Feedback",0,127],[1,15,"Delay 2 · Width",0,127],[1,16,"Delay 2 · LRRatio",0,12,1],[1,17,"Delay 2 · SlewRate",0,127],[1,18,"Reverb 1 · Type",0,5,1],[1,19,"Reverb 1 · Decay",0,127],[1,20,"Reverb 1 · Damping",0,127],[1,21,"Reverb 2 · Type",0,5,1],[1,22,"Reverb 2 · Decay",0,127],[1,23,"Reverb 2 · Damping",0,127],[1,24,"Chorus 1 · Type",0,1,1],[1,25,"Chorus 1 · Rate",0,127],[1,26,"Chorus 1 · RateSync",0,35,1],[1,27,"Chorus 1 · Feedback",0,127],[1,28,"Chorus 1 · ModDepth",0,127],[1,29,"Chorus 1 · Delay",0,127],[1,30,"Chorus 2 · Type",0,1,1],[1,31,"Chorus 2 · Rate",0,127],[1,32,"Chorus 2 · RateSync",0,35,1],[1,33,"Chorus 2 · Feedback",0,127],[1,34,"Chorus 2 · ModDepth",0,127],[1,35,"Chorus 2 · Delay",0,127],[1,36,"Chorus 3 · Type",0,1,1],[1,37,"Chorus 3 · Rate",0,127],[1,38,"Chorus 3 · RateSync",0,35,1],[1,39,"Chorus 3 · Feedback",0,127],[1,40,"Chorus 3 · ModDepth",0,127],[1,41,"Chorus 3 · Delay",0,127],[1,42,"Chorus 4 · Type",0,1,1],[1,43,"Chorus 4 · Rate",0,127],[1,44,"Chorus 4 · RateSync",0,35,1],[1,45,"Chorus 4 · Feedback",0,127],[1,46,"Chorus 4 · ModDepth",0,127],[1,47,"Chorus 4 · Delay",0,127],[0,122,"Gator · On",52,53,1],[0,122,"Gator · KeySync",54,55,1],[0,122,"Gator · KeyLatch",56,57,1],[1,49,"Gator · RateSync",0,35,1],[1,50,"Gator · Mode",0,5,1],[1,52,"Gator · EdgeSlew",0,127],[1,53,"Gator · Hold",0,127],[1,54,"Gator · LRDelay",0,127],[0,122,"Vocoder · On",58,59,1],[0,122,"Vocoder · SibilanceType",60,61,1],[0,122,"Vocoder · Freeze",62,63,1],[0,122,"Vocoder · AllMax",64,65,1],[0,122,"Vocoder · VocoderInput",66,67,1],[1,57,"Vocoder · Width",0,127],[1,58,"Vocoder · Sibilance",0,127],[1,59,"Vocoder · SpecShift",0,127],[1,60,"Vocoder · SpecSpread",0,127],[0,122,"Arp · On",46,47,1],[0,122,"Arp · KeyLatch",50,51,1],[1,62,"Arp · Octaves",0,3,1],[1,63,"Arp · RateSync",0,18,1],[1,64,"Arp · Gate",1,127],[1,65,"Arp · Mode",0,6,1],[1,66,"Arp · Pattern",0,32,1],[1,68,"Arp · Swing",1,99],[60,40,"Arp · Length",2,8,1],[60,32,"Arp 1 · Step",0,127,1],[60,33,"Arp 2 · Step",0,127,1],[60,34,"Arp 3 · Step",0,127,1],[60,35,"Arp 4 · Step",0,127,1],[60,36,"Arp 5 · Step",0,127,1],[60,37,"Arp 6 · Step",0,127,1],[60,38,"Arp 7 · Step",0,127,1],[60,39,"Arp 8 · Step",0,127,1],[1,71,"Vocoder · Level",0,127],[1,72,"Vocoder · CarrierLevel",0,127],[1,73,"Vocoder · ModulatorLevel",0,127],[1,74,"Vocoder · Resonance",0,127],[1,75,"Vocoder · Decay",0,127],[1,76,"Vocoder · GateThreshold",0,96],[1,77,"Vocoder · GateRelease",0,127],[1,78,"Chorder · Transpose",53,75,1],[1,79,"Chorder · On",0,1,1],[7,16,"Chorder · Chorder Count",0,10,1],[1,80,"VocalTune · Shift",40,88],[1,81,"VocalTune · Bend",40,88],[1,83,"ModMatrix 1 · Source1",0,18,1],[1,84,"ModMatrix 1 · Source2",0,18,1],[1,85,"ModMatrix 1 · AnimTrigger",0,8,1],[1,86,"ModMatrix 1 · Depth",0,127],[1,87,"ModMatrix 1 · Destination",0,69,1],[1,88,"ModMatrix 2 · Source1",0,18,1],[1,89,"ModMatrix 2 · Source2",0,18,1],[1,90,"ModMatrix 2 · AnimTrigger",0,8,1],[1,91,"ModMatrix 2 · Depth",0,127],[1,92,"ModMatrix 2 · Destination",0,69,1],[1,93,"ModMatrix 3 · Source1",0,18,1],[1,94,"ModMatrix 3 · Source2",0,18,1],[1,95,"ModMatrix 3 · AnimTrigger",0,8,1],[1,96,"ModMatrix 3 · Depth",0,127],[1,97,"ModMatrix 3 · Destination",0,69,1],[1,98,"ModMatrix 4 · Source1",0,18,1],[1,99,"ModMatrix 4 · Source2",0,18,1],[1,100,"ModMatrix 4 · AnimTrigger",0,8,1],[1,101,"ModMatrix 4 · Depth",0,127],[1,102,"ModMatrix 4 · Destination",0,69,1],[1,103,"ModMatrix 5 · Source1",0,18,1],[1,104,"ModMatrix 5 · Source2",0,18,1],[1,105,"ModMatrix 5 · AnimTrigger",0,8,1],[1,106,"ModMatrix 5 · Depth",0,127],[1,107,"ModMatrix 5 · Destination",0,69,1],[1,108,"ModMatrix 6 · Source1",0,18,1],[1,109,"ModMatrix 6 · Source2",0,18,1],[1,110,"ModMatrix 6 · AnimTrigger",0,8,1],[1,111,"ModMatrix 6 · Depth",0,127],[1,112,"ModMatrix 6 · Destination",0,69,1],[1,113,"ModMatrix 7 · Source1",0,18,1],[1,114,"ModMatrix 7 · Source2",0,18,1],[1,115,"ModMatrix 7 · AnimTrigger",0,8,1],[1,116,"ModMatrix 7 · Depth",0,127],[1,117,"ModMatrix 7 · Destination",0,69,1],[1,118,"ModMatrix 8 · Source1",0,18,1],[1,119,"ModMatrix 8 · Source2",0,18,1],[1,120,"ModMatrix 8 · AnimTrigger",0,8,1],[1,121,"ModMatrix 8 · Depth",0,127],[1,122,"ModMatrix 8 · Destination",0,69,1],[1,123,"ModMatrix 9 · Source1",0,18,1],[1,124,"ModMatrix 9 · Source2",0,18,1],[1,125,"ModMatrix 9 · AnimTrigger",0,8,1],[1,126,"ModMatrix 9 · Depth",0,127],[1,127,"ModMatrix 9 · Destination",0,69,1],[2,0,"ModMatrix10 · Source1",0,18,1],[2,1,"ModMatrix10 · Source2",0,18,1],[2,2,"ModMatrix10 · AnimTrigger",0,8,1],[2,3,"ModMatrix10 · Depth",0,127],[2,4,"ModMatrix10 · Destination",0,69,1],[2,5,"ModMatrix11 · Source1",0,18,1],[2,6,"ModMatrix11 · Source2",0,18,1],[2,7,"ModMatrix11 · AnimTrigger",0,8,1],[2,8,"ModMatrix11 · Depth",0,127],[2,9,"ModMatrix11 · Destination",0,69,1],[2,10,"ModMatrix12 · Source1",0,18,1],[2,11,"ModMatrix12 · Source2",0,18,1],[2,12,"ModMatrix12 · AnimTrigger",0,8,1],[2,13,"ModMatrix12 · Depth",0,127],[2,14,"ModMatrix12 · Destination",0,69,1],[2,15,"ModMatrix13 · Source1",0,18,1],[2,16,"ModMatrix13 · Source2",0,18,1],[2,17,"ModMatrix13 · AnimTrigger",0,8,1],[2,18,"ModMatrix13 · Depth",0,127],[2,19,"ModMatrix13 · Destination",0,69,1],[2,20,"ModMatrix14 · Source1",0,18,1],[2,21,"ModMatrix14 · Source2",0,18,1],[2,22,"ModMatrix14 · AnimTrigger",0,8,1],[2,23,"ModMatrix14 · Depth",0,127],[2,24,"ModMatrix14 · Destination",0,69,1],[2,25,"ModMatrix15 · Source1",0,18,1],[2,26,"ModMatrix15 · Source2",0,18,1],[2,27,"ModMatrix15 · AnimTrigger",0,8,1],[2,28,"ModMatrix15 · Depth",0,127],[2,29,"ModMatrix15 · Destination",0,69,1],[2,30,"ModMatrix16 · Source1",0,18,1],[2,31,"ModMatrix16 · Source2",0,18,1],[2,32,"ModMatrix16 · AnimTrigger",0,8,1],[2,33,"ModMatrix16 · Depth",0,127],[2,34,"ModMatrix16 · Destination",0,69,1],[2,35,"ModMatrix17 · Source1",0,18,1],[2,36,"ModMatrix17 · Source2",0,18,1],[2,37,"ModMatrix17 · AnimTrigger",0,8,1],[2,38,"ModMatrix17 · Depth",0,127],[2,39,"ModMatrix17 · Destination",0,69,1],[2,40,"ModMatrix18 · Source1",0,18,1],[2,41,"ModMatrix18 · Source2",0,18,1],[2,42,"ModMatrix18 · AnimTrigger",0,8,1],[2,43,"ModMatrix18 · Depth",0,127],[2,44,"ModMatrix18 · Destination",0,69,1],[2,45,"ModMatrix19 · Source1",0,18,1],[2,46,"ModMatrix19 · Source2",0,18,1],[2,47,"ModMatrix19 · AnimTrigger",0,8,1],[2,48,"ModMatrix19 · Depth",0,127],[2,49,"ModMatrix19 · Destination",0,69,1],[2,50,"ModMatrix20 · Source1",0,18,1],[2,51,"ModMatrix20 · Source2",0,18,1],[2,52,"ModMatrix20 · AnimTrigger",0,8,1],[2,53,"ModMatrix20 · Depth",0,127],[2,54,"ModMatrix20 · Destination",0,69,1],[0,123,"VocalTune · Mode",16,19,1],[0,123,"VocalTune · Insert",20,22,1],[2,56,"VocalTune · ScaleType",0,5,1],[2,57,"VocalTune · ScaleKey",0,11,1],[2,58,"VocalTune · CorrectionTime",0,127],[2,59,"VocalTune · Level",0,127],[2,60,"VocalTune · Vibrato",0,127],[2,61,"VocalTune · VibratoModWheel",0,127],[2,62,"VocalTune · VibratoRate",0,127],[5,0,"Gator · Paso 1",0,7,1],[5,1,"Gator · Paso 2",0,7,1],[5,2,"Gator · Paso 3",0,7,1],[5,3,"Gator · Paso 4",0,7,1],[5,4,"Gator · Paso 5",0,7,1],[5,5,"Gator · Paso 6",0,7,1],[5,6,"Gator · Paso 7",0,7,1],[5,7,"Gator · Paso 8",0,7,1],[5,8,"Gator · Paso 9",0,7,1],[5,9,"Gator · Paso 10",0,7,1],[5,10,"Gator · Paso 11",0,7,1],[5,11,"Gator · Paso 12",0,7,1],[5,12,"Gator · Paso 13",0,7,1],[5,13,"Gator · Paso 14",0,7,1],[5,14,"Gator · Paso 15",0,7,1],[5,15,"Gator · Paso 16",0,7,1],[5,16,"Gator · Paso 17",0,7,1],[5,17,"Gator · Paso 18",0,7,1],[5,18,"Gator · Paso 19",0,7,1],[5,19,"Gator · Paso 20",0,7,1],[5,20,"Gator · Paso 21",0,7,1],[5,21,"Gator · Paso 22",0,7,1],[5,22,"Gator · Paso 23",0,7,1],[5,23,"Gator · Paso 24",0,7,1],[5,24,"Gator · Paso 25",0,7,1],[5,25,"Gator · Paso 26",0,7,1],[5,26,"Gator · Paso 27",0,7,1],[5,27,"Gator · Paso 28",0,7,1],[5,28,"Gator · Paso 29",0,7,1],[5,29,"Gator · Paso 30",0,7,1],[5,30,"Gator · Paso 31",0,7,1],[5,31,"Gator · Paso 32",0,7,1],[7,17,"Chorder · Tecla 2",0,127,1],[7,18,"Chorder · Tecla 3",0,127],[7,19,"Chorder · Tecla 4",0,127],[7,20,"Chorder · Tecla 5",0,127],[7,21,"Chorder · Tecla 6",0,127],[7,22,"Chorder · Tecla 7",0,127],[7,23,"Chorder · Tecla 8",0,127],[7,24,"Chorder · Tecla 9",0,127],[7,25,"Chorder · Tecla 10",0,127]]</script>
 <script>
 "use strict";
@@ -598,7 +614,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.02-1028';
+const QM_VERSION='2026.10.02-1045';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -958,24 +974,29 @@ function renderNav(){const nv=$('#nav');if(!nv)return;const y=nv.scrollTop;nv.in
   const tw=(k,ab,hay=true)=>h('button',{class:'tw'+(hay?'':' no'),title:ab?'Cerrar':'Abrir',onclick:e=>{e.stopPropagation();ab?navOpen.delete(k):navOpen.add(k);saveNav();renderNav();}},ic('right',ab?'transform:rotate(90deg)':''));
   const nr=(on,ms,kids,click,cl='')=>h('div',{class:'nr '+cl+(on?' on':'')+(ms?' msel':''),onclick:click},kids);
   const pdot=x=>x?h('span',{class:'pdot',title:'Tiene ajustes propios'}):null;
+  const acc=(on,foco,cosa,dup=true)=>on?[dup?h('button',{class:'nb',title:'Duplicar '+cosa,onclick:e=>{e.stopPropagation();lastFocus=foco;duplicar();}},ic('dup')):null,
+    h('button',{class:'nb nx',title:'Borrar '+cosa,onclick:e=>{e.stopPropagation();lastFocus=foco;borrar();}},ic('close'))]:null;
   // Canciones
   nv.append(h('div',{class:'nh'},'Canciones',h('span',{class:'sp'}),h('button',{title:'Canción nueva',onclick:()=>nuevaCancion()},ic('plus'))));
   const ls=h('div',{class:'nk'});
   M.songs.forEach((s,si)=>{const ks='s'+s.id,ab=navOpen.has(ks),it=h('div',{'data-idx':si});
-    it.append(nr(nivel==='cancion'&&si===edSong&&!multiX.size,multiX.has('cancion:'+si),[tw(ks,ab,s.phrases.length>0),h('span',{class:'lb'},s.name),h('small',null,s.phrases.length+'')],
+    const onS=nivel==='cancion'&&si===edSong&&!multiX.size;
+    it.append(nr(onS,multiX.has('cancion:'+si),[tw(ks,ab,s.phrases.length>0),h('span',{class:'lb'},s.name),h('small',null,s.phrases.length+''),acc(onS,'phrase','esta canción')],
       e=>navClick(e,'cancion',si,()=>irA('cancion',{s:si}))));
     if(ab){const lp=h('div',{class:'nk'});
       s.phrases.forEach((p,pi)=>{const kp='p'+s.id+'.'+pi,abp=navOpen.has(kp),ip=h('div',{'data-idx':pi}),aqui=si===edSong;
-        ip.append(nr(aqui&&nivel==='frase'&&edSel.p===pi&&!multiX.size,aqui&&multiX.has('frase:'+pi),[tw(kp,abp,p.chords.length>0),h('span',{class:'csw',style:'background:'+PCOL[p.color%8]}),h('span',{class:'lb'},p.name),pdot(!defVacia(p.def)||p.sound),h('small',null,p.chords.length+'')],
-          e=>{if(si!==edSong)return irA('frase',{s:si,p:pi});navClick(e,'frase',pi,()=>irA('frase',{s:si,p:pi}));}));
+        const onP=aqui&&nivel==='frase'&&edSel.p===pi&&!multiX.size&&lastFocus!=='form',padP=aqui&&edSel.p===pi&&(lastFocus==='form'||nivel==='acorde'||nivel==='nota');
+        ip.append(nr(onP,aqui&&multiX.has('frase:'+pi),[tw(kp,abp,p.chords.length>0),h('span',{class:'csw',style:'background:'+PCOL[p.color%8]}),h('span',{class:'lb'},p.name),pdot(!defVacia(p.def)||p.sound),h('small',null,p.chords.length+''),acc(onP,'phrase','esta frase')],
+          e=>{if(si!==edSong)return irA('frase',{s:si,p:pi});navClick(e,'frase',pi,()=>irA('frase',{s:si,p:pi}));},padP?'padre':''));
         if(abp){const lc=h('div',{class:'nk'});
           p.chords.forEach((c,ci)=>{const kc='c'+s.id+'.'+pi+'.'+ci,abc=navOpen.has(kc),ic2=h('div',{'data-idx':ci}),ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||!!c.nv||nPar(c)>0||!!c.reset;
-            const onC=aqui&&!multiMode&&nivel==='acorde'&&edSel.p===pi&&edSel.c===ci,msC=aqui&&multiMode&&multi.has(pi+'.'+ci);
-            ic2.append(nr(onC,msC,[tw(kc,abc,c.notes.length>0),h('span',{class:'lb'},c.notes.length?stepLabel(c):'silencio'),pdot(ov)],
+            const onC=aqui&&!multiMode&&nivel==='acorde'&&edSel.p===pi&&edSel.c===ci&&lastFocus!=='form',msC=aqui&&multiMode&&multi.has(pi+'.'+ci);
+            ic2.append(nr(onC,msC,[tw(kc,abc,c.notes.length>0),h('span',{class:'lb'},c.notes.length?stepLabel(c):'silencio'),pdot(ov),acc(onC,'chords','este acorde')],
               e=>{if(si!==edSong||edSel.p!==pi)return irA('acorde',{s:si,p:pi,c:ci});navClick(e,'acorde',pi+'.'+ci,()=>irA('acorde',{s:si,p:pi,c:ci}));}));
             if(abc&&c.notes.length){const ln=h('div',{class:'nk'});
               [...c.notes].sort((a,b)=>b-a).forEach(n=>{const d=c.nv&&c.nv[n];
-                ln.append(nr(aqui&&nivel==='nota'&&edSel.p===pi&&edSel.c===ci&&notaSel===n&&!multiX.size,aqui&&edSel.p===pi&&edSel.c===ci&&multiX.has('nota:'+n),[h('span',{class:'tw no'}),h('span',{class:'lb'},noteName(n)),d?h('small',null,'vel '+(d>0?'+':'')+d):null],
+                const onN=aqui&&nivel==='nota'&&edSel.p===pi&&edSel.c===ci&&notaSel===n&&!multiX.size;
+                ln.append(nr(onN,aqui&&edSel.p===pi&&edSel.c===ci&&multiX.has('nota:'+n),[h('span',{class:'tw no'}),h('span',{class:'lb'},noteName(n)),d?h('small',null,'vel '+(d>0?'+':'')+d):null,acc(onN,'chords','esta nota',false)],
                   e=>{if(si!==edSong||edSel.p!==pi||edSel.c!==ci||nivel!=='nota')return irA('nota',{s:si,p:pi,c:ci,n});navClick(e,'nota',n,()=>irA('nota',{s:si,p:pi,c:ci,n}));}));});
               ic2.append(ln);}
             lc.append(ic2);});
@@ -991,11 +1012,13 @@ function renderNav(){const nv=$('#nav');if(!nv)return;const y=nv.scrollTop;nv.in
   nv.append(h('div',{class:'nh'},'Presentaciones',h('span',{class:'sp'}),h('button',{title:'Presentación nueva',onclick:()=>nuevoShow()},ic('plus'))));
   const lt=h('div',{class:'nk'});
   M.sets.forEach((S,ti)=>{const kt='t'+ti,ab=navOpen.has(kt),it=h('div',{'data-idx':ti});const nS=S.entries.filter(e=>e.k===0).length;
-    it.append(nr(nivel==='show'&&editSet===ti&&!multiX.size,multiX.has('show:'+ti),[tw(kt,ab,S.entries.length>0),h('span',{class:'lb'},S.name),h('small',null,nS+'')],e=>navClick(e,'show',ti,()=>irA('show',{set:ti}))));
+    const onT=nivel==='show'&&editSet===ti&&!multiX.size;
+    it.append(nr(onT,multiX.has('show:'+ti),[tw(kt,ab,S.entries.length>0),h('span',{class:'lb'},S.name),h('small',null,nS+''),acc(onT,'phrase','esta presentación')],e=>navClick(e,'show',ti,()=>irA('show',{set:ti}))));
     if(ab){const le=h('div',{class:'nk'});
       S.entries.forEach((e,ei)=>{const so=e.k===0?M.songs[e.s]:null;const ie=h('div',{'data-idx':ei});
         ie.append(nr(nivel==='entrada'&&editSet===ti&&entSel===ei&&!multiX.size,editSet===ti&&multiX.has('entrada:'+ei),[h('span',{class:'tw no'}),
-          h('span',{class:'lb'},e.k===0?(so?so.name:'¿?'):'— '+(e.label||'Intermedio')+' —'),e.k===0&&e.t?h('small',null,(e.t>0?'+':'')+e.t):e.notas&&e.notas.length?h('small',null,e.notas.length+' nota'+(e.notas.length===1?'':'s')):null],
+          h('span',{class:'lb'},e.k===0?(so?so.name:'¿?'):'— '+(e.label||'Intermedio')+' —'),e.k===0&&e.t?h('small',null,(e.t>0?'+':'')+e.t):e.notas&&e.notas.length?h('small',null,e.notas.length+' nota'+(e.notas.length===1?'':'s')):null,
+          acc(nivel==='entrada'&&editSet===ti&&entSel===ei&&!multiX.size,'phrase',e.k===0?'esta canción del show':'este intermedio')],
           ev=>{if(editSet!==ti)return irA('entrada',{set:ti,e:ei});navClick(ev,'entrada',ei,()=>irA('entrada',{set:ti,e:ei}));},e.k===0?'':'sepr'));
         le.append(ie);});
       sortable(le,(a,b)=>edit(()=>{moveArr(S.entries,a,b);if(editSet===ti)entSel=b;}),'y');
@@ -1171,15 +1194,15 @@ function vEdit(m){
   const fs=h('div',{class:'strip','data-sk':'form'+s.id});
   s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip'+(i>=fLo&&i<=fHi&&s.form.length&&(lastFocus==='form'||fVarios)?' on':'')+(f.p===edSel.p&&nivel!=='cancion'&&lastFocus!=='form'?' esta':''),'data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0],
     onclick:ev=>{lastFocus='form';if(fVarios){if(fFin==null)fSel=i;fFin=i;renderAll();return;}if(ev.shiftKey&&s.form[fSel]){fFin=i;renderAll();return;}
-      fSel=i;fFin=null;if(p){if(edSel.p!==f.p)edSel={p:f.p,c:0};nivel='frase';multi.clear();multiX.clear();multiMode=false;}renderAll();lastFocus='form';updTop();}},p?p.name:'?',f.r>1?h('b',null,'×'+f.r):null));});
+      fSel=i;fFin=null;if(p){if(edSel.p!==f.p)edSel={p:f.p,c:0};nivel='frase';multi.clear();multiX.clear();multiMode=false;}renderAll();lastFocus='form';updTop();}},i===fSel&&lastFocus==='form'&&fFin==null?esquinas('form','este paso'):null,p?p.name:'?',f.r>1?h('b',null,'×'+f.r):null));});
   sortable(fs,(a,b)=>edit(()=>{moveArr(s.form,a,b);fSel=b;fFin=null;}));
   const fc=s.form[fSel],fp=fc&&s.phrases[fc.p];
   const fMover=d=>edit(()=>{if(d<0){const x=s.form.splice(fLo-1,1)[0];s.form.splice(fHi,0,x);}else{const x=s.form.splice(fHi+1,1)[0];s.form.splice(fLo,0,x);}
     fSel+=d;if(fFin!=null)fFin+=d;});
   const addF=h('select',{title:'Agregar un paso después del elegido'},h('option',{value:''},'＋ Paso…'),s.phrases.map((p,i)=>h('option',{value:i},p.name)));
   addF.onchange=()=>{if(addF.value===''||s.form.length>=255)return;const at=s.form.length?fSel+1:0;edit(()=>{s.form.splice(at,0,{p:+addF.value,r:1});fSel=at;});};
-  m.append(h('div',{class:'card'},
-    panelHead('Forma',fN>1?[fN+' pasos elegidos']:fp?[fp.name,PCOL[fp.color%8]]:null,[addF,
+  m.append(h('div',{class:'card'+(lastFocus==='form'?' activo':' tenue')},
+    panelHead('Forma',lastFocus!=='form'?null:fN>1?[fN+' pasos elegidos']:fp?[fp.name,PCOL[fp.color%8]]:null,[addF,
       tb('left','',()=>fMover(-1),{off:!fc||fLo===0,title:fN>1?'Mover los pasos a la izquierda':'Mover el paso a la izquierda'}),
       tb('right','',()=>fMover(1),{off:!fc||fHi>=s.form.length-1,title:fN>1?'Mover los pasos a la derecha':'Mover el paso a la derecha'}),
       tb('minus','',()=>edit(()=>fBloque.forEach(f=>f.r=clamp(f.r-1,1,99))),{off:!fc||fBloque.every(f=>f.r<=1),title:'Una repetición menos'}),
@@ -1192,30 +1215,35 @@ function vEdit(m){
   const uses=pi=>s.form.filter(f=>f.p===pi).reduce((a,f)=>a+f.r,0);
   const pstrip=h('div',{class:'strip','data-sk':'phr'+s.id});
   s.phrases.forEach((p,pi)=>{const on=edSel.p===pi,u=uses(pi);
-    pstrip.append(h('div',{class:'pt'+(on&&(nivel!=='frase'||!multiX.size)?' on':'')+(nivel==='frase'&&multiX.has('frase:'+pi)?' on':''),'data-idx':pi,style:'--pc:'+PCOL[p.color%8],onclick:()=>{if(suppressClick)return;if(multiMode&&nivel==='frase'){const k='frase:'+pi;if(!multiX.size)multiX.add('frase:'+edSel.p);multiX.has(k)?multiX.delete(k):multiX.add(k);renderAll();return;}irA('frase',{p:pi});}},
+    const ful=nivel==='frase'&&lastFocus!=='form'&&(multiX.size?multiX.has('frase:'+pi):on),pad=on&&(nivel==='acorde'||nivel==='nota');
+    pstrip.append(h('div',{class:'pt'+(ful?' on':pad?' padre':''),'data-idx':pi,style:'--pc:'+PCOL[p.color%8],onclick:()=>{if(suppressClick)return;if(multiMode&&nivel==='frase'){const k='frase:'+pi;if(!multiX.size)multiX.add('frase:'+edSel.p);multiX.has(k)?multiX.delete(k):multiX.add(k);renderAll();return;}irA('frase',{p:pi});}},
+      ful&&!multiX.size?esquinas('phrase','esta frase'):null,
       h('b',null,p.name),h('small',null,`${p.chords.length} acorde${p.chords.length===1?'':'s'}`+(u>1?` · suena ×${u}`:u===0?' · no está en la forma':'')+(p.sound?' · '+sndLabel(p.sound):''))));});
   sortable(pstrip,(a,b)=>edit(()=>{movePhrase(s,a,b);}));
-  const p=s.phrases[edSel.p],pi=edSel.p;
-  const phCard=h('div',{class:'card'},
+  const pi=edSel.p,p=nivel==='cancion'?null:s.phrases[pi],pAct=s.phrases[pi];   // con la canción elegida, no hay frase elegida
+  const enAcorde=nivel==='acorde'||nivel==='nota',enFrase=nivel==='frase'&&lastFocus!=='form';
+  const phCard=h('div',{class:'card'+(enFrase?' activo':'')},
     panelHead('Frases',p?[p.name,PCOL[p.color%8]]:null,[
       tb('left','',()=>edit(()=>movePhrase(s,pi,pi-1)),{off:!p||pi===0,title:'Mover la frase a la izquierda'}),
       tb('right','',()=>edit(()=>movePhrase(s,pi,pi+1)),{off:!p||pi>=s.phrases.length-1,title:'Mover la frase a la derecha'}),
       p?h('button',{title:'Color de la frase',onclick:e=>colorPop(e.currentTarget,p.color%8,v=>edit(()=>p.color=v))},h('span',{class:'sw',style:'background:'+PCOL[p.color%8]}),'Color'):null,
       tb('dots','Más',e=>phraseMenu(s,p,pi,e.currentTarget),{off:!p,title:'Nombre, sonido, grabar e ir en vivo'})]),
-    h('p',{class:'mu sm hint'},'Partes de la canción (estrofa, coro…). Toca una para elegirla y ver sus acordes aquí abajo; mantén presionado para moverla.'),pstrip);
+    h('p',{class:'mu sm hint'},nivel==='cancion'?'Partes de la canción (estrofa, coro…). Toca una para elegirla y ver sus acordes.':'Partes de la canción (estrofa, coro…). Toca una para elegirla y ver sus acordes aquí abajo; mantén presionado para moverla.'),pstrip);
+  if(enAcorde||nivel==='cancion'||lastFocus==='form')for(const x of [...phCard.children])x.classList.add('tenue');   // trabajas en otro panel
   if(p){
     const strip=h('div',{class:'strip','data-sk':'ph'+s.id+'.'+pi});
     p.chords.forEach((c,ci)=>strip.append(chordCard(s,p,pi,c,ci)));
     sortable(strip,(a,b)=>edit(()=>{moveArr(p.chords,a,b);edSel.c=b;}));
-    phCard.append(h('div',{class:'rack',id:'chordsCard',style:'--pc:'+PCOL[p.color%8]},
+    phCard.append(h('div',{class:'rack'+(enAcorde?' activo':lastFocus==='form'?' tenue':''),id:'chordsCard',style:'--pc:'+PCOL[p.color%8]},
       rackHead(s,p,pi),
       h('p',{class:'mu sm hint'},multiMode&&nivel==='acorde'?'Toca los acordes que quieras elegir.':'Toca un acorde para elegirlo y editarlo abajo. Mantén presionado para moverlo.'),strip));
   }
   m.append(phCard);
-  // ④ El panel del nivel elegido: canción, frase, acorde o nota
-  if(nivel==='cancion')m.append(songCard);
-  else if(nivel==='frase')m.append(phraseEditor(s,p,pi));
-  else{if(nivel==='nota'){const np=notaPanel(s,p&&p.chords[edSel.c]);if(np)m.append(np);}m.append(chordEditor(s));}
+  // ④ El panel del nivel elegido: canción, frase, acorde o nota (destacado; si trabajas en la Forma, más clarito)
+  const pnl=nivel==='cancion'?songCard:nivel==='frase'?phraseEditor(s,p,pi):chordEditor(s);
+  pnl.classList.add(lastFocus==='form'?'tenue':'activo');
+  if(nivel==='nota'){const np=notaPanel(s,p&&p.chords[edSel.c]);if(np){np.classList.add('activo');m.append(np);}pnl.classList.remove('activo');}
+  m.append(pnl);
 }
 /* Ajustes de la frase: valen para todos sus acordes (salvo los que tengan el suyo); lo que no define viene de la canción */
 function phraseEditor(s,p,pi){const card=h('div',{class:'card',id:'peditor'});if(!p)return card;
@@ -1379,22 +1407,20 @@ function fraseEntera(pi){const s=M.songs[edSong],p=s&&s.phrases[pi];if(!p)return
   const ed=document.getElementById('ceditor');if(ed)ed.scrollIntoView({block:'start',behavior:'smooth'});}
 function chordCard(s,p,pi,c,ci){
   const hb=bendHeard(s,pi,ci),key=pi+'.'+ci,sel=!multiMode&&(nivel==='acorde'||nivel==='nota')&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.bend!=null||!!c.nv||(c.ctl&&Object.keys(c.ctl).length>0)||!!(c.mn&&c.mn.length)||!!c.reset||!!c.trT;
-  return h('div',{class:'cc'+(sel?' sel':'')+(multiMode&&multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
+  return h('div',{class:'cc'+(sel&&nivel==='acorde'?' sel':sel?' padre':'')+(multiMode&&multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
       const card=ev.currentTarget;lastFocus='chords';
       if(suppressClick)return;
       if(multiMode&&nivel==='acorde'){multi.has(key)?multi.delete(key):multi.add(key);renderAll();return;}
       if(nivel!=='acorde'||multiMode){irA('acorde',{p:pi,c:ci});audition(c,s);return;}
       selectChord(s,pi,ci,card);renderNav();audition(c,s);}},
-    ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel?delBtn(s,pi,ci):null,h('div',{class:'nm'},hb?'↗ '+chordName(hb):stepLabel(c)),
+    ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel&&nivel==='acorde'?esquinas('chords','este acorde'):null,h('div',{class:'nm'},hb?'↗ '+chordName(hb):stepLabel(c)),
     h('div',{class:'nt'},hb?'pitch '+((c.bend||0)>0?'+':'')+(c.bend||0):(c.notes.length?c.notes.map(noteName).join(' '):'silencio')+(c.notes.length&&(c.trans===1||(c.trans==null&&s.trans===1))?' ~':'')),
     s.hasLyr?(()=>{const x=own(c,0),r0=lyrRes(s,pi,ci,0);return x&&x!==LCUT?h('div',{class:'ly'},x):r0&&x!==LCUT?h('div',{class:'ly cont'},'↳ '+r0):null;})():null);}
-const delBtn=(s,pi,ci)=>h('button',{class:'del nodrag',title:'Borrar este acorde',onclick:e=>{e.stopPropagation();edit(()=>{s.phrases[pi].chords.splice(ci,1);fixSel();});}},ic('close'));
+// × y Duplicar en las esquinas de lo elegido (actúan como Borrar y Duplicar de la barra de arriba)
+const esquinas=(foco,cosa)=>[h('button',{class:'cnr cdup nodrag',title:'Duplicar '+cosa,onclick:e=>{e.stopPropagation();if(foco)lastFocus=foco;duplicar();}},ic('dup')),
+  h('button',{class:'cnr cdel nodrag',title:'Borrar '+cosa,onclick:e=>{e.stopPropagation();if(foco)lastFocus=foco;borrar();}},ic('close'))];
 function selectChord(s,pi,ci,card){
-  edSel={p:pi,c:ci};lastFocus='chords';nivel='acorde';
-  document.querySelectorAll('#chordsCard .cc').forEach((x,k)=>{const on=k===ci;x.classList.toggle('sel',on);const d=x.querySelector('.del');if(d&&!on)d.remove();
-    if(on&&!d)x.insertBefore(delBtn(s,pi,ci),x.firstChild);});
-  const rk=document.getElementById('chordsCard');if(rk)rk.querySelector(':scope>.pnh').replaceWith(rackHead(s,s.phrases[pi],pi));
-  const old=document.getElementById('ceditor');if(old)old.replaceWith(chordEditor(s));updTop();saveUi();}
+  edSel={p:pi,c:ci};lastFocus='chords';nivel='acorde';renderAll();}
 /* Menú "Más" de la frase */
 function phraseMenu(s,p,pi,btn){const old=$('.sndmenu');if(old)old.remove();const r=btn.getBoundingClientRect();
   const it=(icn,t,fn,cl)=>h('button',{class:cl||'',onclick:()=>{mn.remove();fn();}},ic(icn),t);
@@ -1853,7 +1879,7 @@ function nextSongInfo(){if(st.set!=null&&st.set<255&&M.sets[st.set]){const E=M.s
 function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set,st.se,st.sep,st.sp,st.end,prefs.view,pfLocked,st.bpm].join();if(sig===lastPfSig)return;lastPfSig=sig;
   const s=liveSong();const mapTop=(pfEl.querySelector('.map')||{}).scrollTop||0;pfEl.innerHTML='';if(!s){pfEl.append(h('button',{onclick:closePerf},'Salir'));return;}
   const tr=liveTr(),seq=flatten(s),pi=posIndex(seq),F=formOf(s);const cur=pi.i>=0?seq[pi.i]:null,nx=pi.next!=null?seq[pi.next]:null,pv=pi.i>0?seq[pi.i-1]:null;
-  const inSet=st.set!=null&&st.set<255&&M.sets[st.set];let pos='';if(inSet){const E=M.sets[st.set].entries;const songsOnly=E.filter(e=>e.k===0);pos=`${E.slice(0,st.se+1).filter(e=>e.k===0).length}/${songsOnly.length} · `;}
+  const inSet=st.set!=null&&st.set<255&&M.sets[st.set];let pos='';if(inSet){const E=M.sets[st.set].entries;const songsOnly=E.filter(e=>e.k===0);pos=`${M.sets[st.set].name} · ${E.slice(0,st.se+1).filter(e=>e.k===0).length}/${songsOnly.length} · `;}
   pfEl.append(h('div',{class:'pf-top'},h('span',{class:'pulse',id:'pls'}),h('span',{class:'t grow'},pos+(st.sep&&inSet?((M.sets[st.set].entries[st.se]||{}).label||'Intermedio'):s.name+(tr?` (${tr>0?'+':''}${tr})`:''))),h('span',{class:'bpm'},`♩ ${st.bpm||s.bpm}`),
     pfLocked?null:h('button',{title:'Volver al inicio de la canción',onclick:()=>cmd('restart')},ic('restart')),
     pfLocked?null:h('button',{class:st.thru?'on':'',title:st.thru?'MIDI Thru encendido: Quack MIDI deja pasar todo y no toca (toca para apagarlo)':'MIDI Thru: dejar pasar todo lo que entra, sin tocar acordes',onclick:()=>cmd('thru',st.thru?0:1).then(()=>{lastPfSig='';})},'Thru'),
