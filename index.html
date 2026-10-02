@@ -529,7 +529,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.01-2330';
+const QM_VERSION='2026.10.01-2346';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1122,6 +1122,8 @@ function phraseMenu(s,p,pi,btn){const old=$('.sndmenu');if(old)old.remove();cons
    en el Mininova por USB. Los nombres se guardan en este dispositivo y viajan a los demás con la sincronización. */
 const STUDIO_URL='http://127.0.0.1:8770';
 const STUDIO={ok:false};
+// Abrir Quack Studio en su ventana de aplicación (o traerla al frente), como el acceso directo; si no se puede, en una pestaña
+function abrirStudio(ev){if(ev)ev.preventDefault();studio('abrir',{app:'studio'}).then(r=>{if(!r||!r.ok)window.open(STUDIO_URL,'quackstudio');}).catch(()=>window.open(STUDIO_URL,'quackstudio'));}
 let sndNames={t:0,slots:{}};try{sndNames=JSON.parse(localStorage.getItem('qm_sndnames'))||sndNames;}catch(e){}
 function saveSndNames(){try{localStorage.setItem('qm_sndnames',JSON.stringify(sndNames));}catch(e){}}
 async function studio(path,body){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),body?3000:900);
@@ -1169,7 +1171,7 @@ function elegirSonidoDlg(actual,onPick,extra){let banco=actual&&actual.bank?actu
     hay?h('p',{class:'mu sm',style:'margin-top:0'},STUDIO.ok&&usarStudio()?'Toca un sonido para escucharlo en el Mininova (por Quack Studio).':'Los nombres vienen de Quack Studio.'+(STUDIO.ok?'':' Ábrelo en el PC para escucharlos al elegir.'))
        :h('p',{class:'mu sm',style:'margin-top:0'},'Todavía no conozco los nombres: abre Quack Studio en el PC con el Mininova conectado (en Sonidos, "Leer y respaldar"). Mientras, eliges por número.'),
     h('div',{class:'row',style:'gap:8px;align-items:center'},tabs,inp),lista,
-    STUDIO.ok?h('p',{class:'sm',style:'margin:8px 0 0'},h('a',{href:STUDIO_URL,target:'_blank',rel:'noopener'},'Abrir Quack Studio ↗')):null);
+    STUDIO.ok?h('p',{class:'sm',style:'margin:8px 0 0'},h('a',{href:STUDIO_URL,target:'_blank',rel:'noopener',onclick:abrirStudio},'Abrir Quack Studio ↗')):null);
   draw();
   modal(extra&&extra.titulo||'Elegir sonido',h('div',null,extra&&extra.nota?h('p',{class:'mu sm',style:'margin-top:0'},extra.nota):null,body),
     [['Cancelar'],extra&&extra.quitar?[extra.quitar[0],extra.quitar[1],'er']:null,['Usar este sonido',()=>{if(!sel){toast('Elige un sonido');return false;}onPick(sel);},'ac']].filter(Boolean));}
@@ -1323,7 +1325,7 @@ async function ajustarEnStudio(s,ctx){
   const titulo=s.name+(c?` · ${p.name} · acorde ${ctx.c+1} (${chordName(c.notes)})`:' · toda la canción');
   let r;try{r=await studio('quack/ajustar',{tipo:ctx.tipo,titulo,paso,ctlCancion:s.ctl||{}});}catch(e){return toast('Quack Studio no respondió');}
   if(!r.ok)return toast(r.error||'Quack Studio no pudo preparar el ajuste');
-  window.open(STUDIO_URL+'/#ajustar','quackstudio');
+  abrirStudio();   // la ventana de Studio pasa sola al panel (revisa si hay un ajuste pedido)
   let tm=null;
   const dlg=modal('Ajustando en Quack Studio',h('div',null,h('p',null,'Se abrió Quack Studio con el sonido de '+(c?'este acorde':'esta canción')+'. Mueve lo que quieras de oído y aprieta "Llevar a Quack MIDI".'),
     h('p',{class:'mu sm'},'Puedes dejar esta ventana abierta: el ajuste llega solo.')),[['Cancelar',()=>{clearInterval(tm);studio('quack/ajuste',{cancelar:true}).catch(()=>{});}]]);
@@ -1428,7 +1430,7 @@ function vCfg(m0){const S=M.settings;const m=h('div');
     h('p',{class:'mu sm',style:'margin-top:12px'},'Al editar, los acordes suenan solos por el mejor camino: por el Arduino si está conectado; si no, por Quack Studio (el Mininova por USB, en el PC); si no, un tono simple en este dispositivo. Ahora: ',h('b',null,rutaTxt()),'. El parlante de arriba los silencia.')));
   m.append(h('div',{class:'card'},h('h2',null,'Quack Studio (en el PC)'),
     h('p',{class:'mu sm',style:'margin-top:0'},STUDIO.ok?'Quack Studio está abierto en este computador.':'No encuentro Quack Studio en este dispositivo (solo funciona en el PC donde está conectado el Mininova por USB).'),
-    STUDIO.ok?h('div',{class:'row',style:'gap:14px;align-items:center'},h('a',{class:'btn',href:STUDIO_URL,target:'_blank',rel:'noopener'},'Abrir Quack Studio ↗')):null,
+    STUDIO.ok?h('div',{class:'row',style:'gap:14px;align-items:center'},h('a',{class:'btn',href:STUDIO_URL,target:'_blank',rel:'noopener',onclick:abrirStudio},'Abrir Quack Studio ↗')):null,
     h('p',{class:'mu sm'},`Nombres de sonidos conocidos: ${Object.keys(sndNames.slots).length}${sndNames.t?' (actualizados '+new Date(sndNames.t).toLocaleDateString('es-CL')+')':''}. Con el Arduino conectado, los acordes suenan por él y no por Quack Studio.`)));
   m.append(h('div',{class:'card'},h('h2',null,'Letras (opcional)'),h('p',{class:'mu sm',style:'margin-top:0'},'Cada canción activa su letra en Editar → Canción → Letra. Aquí eliges dónde se guardan y qué tan grande se ve.'),
     h('div',{class:'row',style:'margin:6px 0 10px;gap:14px'},knob({label:'Tamaño mínimo',value:prefs.lyrMin||5,min:2,max:10,step:.5,onInput:v=>{prefs.lyrMin=v;savePrefs();}}),
@@ -1719,6 +1721,7 @@ if(window.APPMODE){
 
 /* ---------- Ayuda ---------- */
 $('#btnSnd').onclick=toggleMute;updSnd();
+$('#btnStudio').onclick=abrirStudio;
 $('#btnCloud').onclick=()=>syncNow(true);
 $('#btnHelp').append(ic('info','width:22px;height:22px'));
 $('#btnHelp').onclick=()=>modal('Cómo usar Quack MIDI',h('div',{class:'col sm'},
