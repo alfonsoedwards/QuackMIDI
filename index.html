@@ -423,7 +423,11 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
 .nr{display:flex;align-items:center;gap:5px;padding:2px 6px 2px 2px;border-radius:9px;cursor:pointer;white-space:nowrap;min-height:31px;user-select:none}
 .nr:hover{background:var(--sf2)}
 .nr.on{background:var(--ac);color:#fff}
-.nr.msel{background:var(--acl2)}.nr.padre{box-shadow:inset 0 0 0 2px var(--ac)}
+.nr.msel{background:var(--acl2)}
+.nr.lifting{opacity:.4}.nr.dropin{background:var(--acl2);box-shadow:inset 0 0 0 2px var(--ac)}.nr.dropantes{box-shadow:inset 0 3px 0 var(--ac)}.nr.dropdesp{box-shadow:inset 0 -3px 0 var(--ac)}
+.ndghost{position:fixed;pointer-events:none;z-index:99;background:var(--ac);color:#fff;padding:5px 12px;border-radius:9px;font-weight:800;box-shadow:var(--sh);white-space:nowrap}
+.nav .nq{display:flex;align-items:center;gap:6px;margin:2px 2px 4px;padding:0 8px;background:var(--sf2);border-radius:10px}
+.nav .nq .ic{width:18px;height:18px;color:var(--mu);flex:none}.nav .nq input{border:0;background:transparent;flex:1;padding:.45em 0;outline:0;min-width:0}.nr.padre{box-shadow:inset 0 0 0 2px var(--ac)}
 .nr .tw{width:24px;height:24px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:7px;background:transparent;padding:0;color:inherit;opacity:.7}
 .nr .tw .ic{width:15px;height:15px}.nr .tw.no{visibility:hidden}
 .nr .lb{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:700}
@@ -537,6 +541,7 @@ const ICONS={
   tele:'<rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M9 12h6"/>',
   close:'<path d="M6 6l12 12M18 6L6 18"/>', music:'<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/>',
   tempo:'<path d="M8 20l3-15h2l3 15z"/><path d="M12 13l5-6"/>',
+  search:'<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/>',
   dots:'<circle cx="5.5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18.5" cy="12" r="1.2" fill="currentColor"/>',
   cog:'<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/><circle cx="12" cy="12" r="6.6"/>',
   tree:'<path d="M4 5h7M8 12h12M8 19h12M6 5v14M6 12h2M6 19h2"/>'};
@@ -616,7 +621,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.02-1053';
+const QM_VERSION='2026.10.02-1102';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -975,64 +980,129 @@ function navClick(ev,kind,key,go){if(suppressClick)return;
   go();}
 const actualKey=k=>k==='cancion'?edSong:k==='frase'?edSel.p:k==='nota'?notaSel:k==='show'?editSet:k==='entrada'?entSel:'';
 const xSel=k=>[...multiX].filter(x=>x.startsWith(k+':')).map(x=>x.slice(k.length+1));
-function renderNav(){const nv=$('#nav');if(!nv)return;const y=nv.scrollTop;nv.innerHTML='';if(!M)return;
+let navQ='';
+function renderNav(){const nav=$('#nav');if(!nav)return;
+  if(!$('#navq')){nav.innerHTML='';const q=h('input',{type:'search',id:'navq',placeholder:'Buscar canción o presentación…',value:navQ,oninput:e=>{navQ=e.target.value;renderNav();}});
+    nav.append(h('div',{class:'nq'},ic('search'),q),h('div',{id:'navt'}));navArrastre(nav);}
+  const nv=$('#navt');const y=nav.scrollTop;nv.innerHTML='';if(!M)return;const fq=navQ.trim().toLowerCase(),ve=x=>!fq||x.toLowerCase().includes(fq);
   const tw=(k,ab,hay=true)=>h('button',{class:'tw'+(hay?'':' no'),title:ab?'Cerrar':'Abrir',onclick:e=>{e.stopPropagation();ab?navOpen.delete(k):navOpen.add(k);saveNav();renderNav();}},ic('right',ab?'transform:rotate(90deg)':''));
-  const nr=(on,ms,kids,click,cl='')=>h('div',{class:'nr '+cl+(on?' on':'')+(ms?' msel':''),onclick:click},kids);
+  const nr=(on,ms,kids,click,cl='',d=null)=>{const r=h('div',{class:'nr '+cl+(on?' on':'')+(ms?' msel':''),onclick:click},kids);r._d=d;return r;};
   const pdot=x=>x?h('span',{class:'pdot',title:'Tiene ajustes propios'}):null;
   const acc=(on,foco,cosa,dup=true)=>on?[dup?h('button',{class:'nb',title:'Duplicar '+cosa,onclick:e=>{e.stopPropagation();lastFocus=foco;duplicar();}},ic('dup')):null,
     h('button',{class:'nb nx',title:'Borrar '+cosa,onclick:e=>{e.stopPropagation();lastFocus=foco;borrar();}},ic('close'))]:null;
   // Canciones
   nv.append(h('div',{class:'nh'},'Canciones',h('span',{class:'sp'}),h('button',{title:'Canción nueva',onclick:()=>nuevaCancion()},ic('plus'))));
   const ls=h('div',{class:'nk'});
-  M.songs.forEach((s,si)=>{const ks='s'+s.id,ab=navOpen.has(ks),it=h('div',{'data-idx':si});
+  M.songs.forEach((s,si)=>{if(!ve(s.name))return;const ks='s'+s.id,ab=navOpen.has(ks),it=h('div',{'data-idx':si});
     const onS=nivel==='cancion'&&si===edSong&&!multiX.size;
     it.append(nr(onS,multiX.has('cancion:'+si),[tw(ks,ab,s.phrases.length>0),h('span',{class:'lb'},s.name),h('small',null,s.phrases.length+''),acc(onS,'phrase','esta canción')],
-      e=>navClick(e,'cancion',si,()=>irA('cancion',{s:si}))));
+      e=>navClick(e,'cancion',si,()=>irA('cancion',{s:si})),'',{k:'cancion',s:si,o:ks}));
     if(ab){const lp=h('div',{class:'nk'});
       s.phrases.forEach((p,pi)=>{const kp='p'+s.id+'.'+pi,abp=navOpen.has(kp),ip=h('div',{'data-idx':pi}),aqui=si===edSong;
         const onP=aqui&&nivel==='frase'&&edSel.p===pi&&!multiX.size&&lastFocus!=='form',padP=aqui&&edSel.p===pi&&(lastFocus==='form'||nivel==='acorde'||nivel==='nota');
         ip.append(nr(onP,aqui&&multiX.has('frase:'+pi),[tw(kp,abp,p.chords.length>0),h('span',{class:'csw',style:'background:'+PCOL[p.color%8]}),h('span',{class:'lb'},p.name),pdot(!defVacia(p.def)||p.sound),h('small',null,p.chords.length+''),acc(onP,'phrase','esta frase')],
-          e=>{if(si!==edSong)return irA('frase',{s:si,p:pi});navClick(e,'frase',pi,()=>irA('frase',{s:si,p:pi}));},padP?'padre':''));
+          e=>{if(si!==edSong)return irA('frase',{s:si,p:pi});navClick(e,'frase',pi,()=>irA('frase',{s:si,p:pi}));},padP?'padre':'',{k:'frase',s:si,p:pi,o:kp}));
         if(abp){const lc=h('div',{class:'nk'});
           p.chords.forEach((c,ci)=>{const kc='c'+s.id+'.'+pi+'.'+ci,abc=navOpen.has(kc),ic2=h('div',{'data-idx':ci}),ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||!!c.nv||nPar(c)>0||!!c.reset;
             const onC=aqui&&!multiMode&&nivel==='acorde'&&edSel.p===pi&&edSel.c===ci&&lastFocus!=='form',msC=aqui&&multiMode&&multi.has(pi+'.'+ci);
             ic2.append(nr(onC,msC,[tw(kc,abc,c.notes.length>0),h('span',{class:'lb'},c.notes.length?stepLabel(c):'silencio'),pdot(ov),acc(onC,'chords','este acorde')],
-              e=>{if(si!==edSong||edSel.p!==pi)return irA('acorde',{s:si,p:pi,c:ci});navClick(e,'acorde',pi+'.'+ci,()=>irA('acorde',{s:si,p:pi,c:ci}));}));
+              e=>{if(si!==edSong||edSel.p!==pi)return irA('acorde',{s:si,p:pi,c:ci});navClick(e,'acorde',pi+'.'+ci,()=>irA('acorde',{s:si,p:pi,c:ci}));},'',{k:'acorde',s:si,p:pi,c:ci,o:kc}));
             if(abc&&c.notes.length){const ln=h('div',{class:'nk'});
               [...c.notes].sort((a,b)=>b-a).forEach(n=>{const d=c.nv&&c.nv[n];
                 const onN=aqui&&nivel==='nota'&&edSel.p===pi&&edSel.c===ci&&notaSel===n&&!multiX.size;
                 ln.append(nr(onN,aqui&&edSel.p===pi&&edSel.c===ci&&multiX.has('nota:'+n),[h('span',{class:'tw no'}),h('span',{class:'lb'},noteName(n)),d?h('small',null,'vel '+(d>0?'+':'')+d):null,acc(onN,'chords','esta nota',false)],
-                  e=>{if(si!==edSong||edSel.p!==pi||edSel.c!==ci||nivel!=='nota')return irA('nota',{s:si,p:pi,c:ci,n});navClick(e,'nota',n,()=>irA('nota',{s:si,p:pi,c:ci,n}));}));});
+                  e=>{if(si!==edSong||edSel.p!==pi||edSel.c!==ci||nivel!=='nota')return irA('nota',{s:si,p:pi,c:ci,n});navClick(e,'nota',n,()=>irA('nota',{s:si,p:pi,c:ci,n}));},'',{k:'nota',s:si,p:pi,c:ci,n}));});
               ic2.append(ln);}
             lc.append(ic2);});
-          if(aqui)sortable(lc,(a,b)=>edit(()=>{moveArr(p.chords,a,b);edSel={p:pi,c:b};}),'y');
           ip.append(lc);}
         lp.append(ip);});
-      if(si===edSong)sortable(lp,(a,b)=>edit(()=>movePhrase(s,a,b)),'y');
       it.append(lp);}
     ls.append(it);});
-  sortable(ls,(f,to)=>edit(()=>{moveArr(M.songs,f,to);remapSets(x=>{if(x===f)return to;if(f<to&&x>f&&x<=to)return x-1;if(f>to&&x>=to&&x<f)return x+1;return x;});if(edSong===f)edSong=to;}),'y');
   nv.append(ls);if(!M.songs.length)nv.append(h('div',{class:'vacio mu'},'Sin canciones: crea una con ＋.'));
   // Presentaciones
   nv.append(h('div',{class:'nh'},'Presentaciones',h('span',{class:'sp'}),h('button',{title:'Presentación nueva',onclick:()=>nuevoShow()},ic('plus'))));
   const lt=h('div',{class:'nk'});
-  M.sets.forEach((S,ti)=>{const kt='t'+ti,ab=navOpen.has(kt),it=h('div',{'data-idx':ti});const nS=S.entries.filter(e=>e.k===0).length;
+  M.sets.forEach((S,ti)=>{if(!ve(S.name)&&!S.entries.some(e=>e.k===0&&M.songs[e.s]&&ve(M.songs[e.s].name)))return;const kt='t'+ti,ab=navOpen.has(kt)||!!fq,it=h('div',{'data-idx':ti});const nS=S.entries.filter(e=>e.k===0).length;
     const onT=nivel==='show'&&editSet===ti&&!multiX.size;
-    it.append(nr(onT,multiX.has('show:'+ti),[tw(kt,ab,S.entries.length>0),h('span',{class:'lb'},S.name),h('small',null,nS+''),acc(onT,'phrase','esta presentación')],e=>navClick(e,'show',ti,()=>irA('show',{set:ti}))));
+    it.append(nr(onT,multiX.has('show:'+ti),[tw(kt,ab,S.entries.length>0),h('span',{class:'lb'},S.name),h('small',null,nS+''),acc(onT,'phrase','esta presentación')],e=>navClick(e,'show',ti,()=>irA('show',{set:ti})),'',{k:'show',t:ti,o:kt}));
     if(ab){const le=h('div',{class:'nk'});
       S.entries.forEach((e,ei)=>{const so=e.k===0?M.songs[e.s]:null;const ie=h('div',{'data-idx':ei});
         ie.append(nr(nivel==='entrada'&&editSet===ti&&entSel===ei&&!multiX.size,editSet===ti&&multiX.has('entrada:'+ei),[h('span',{class:'tw no'}),
           h('span',{class:'lb'},e.k===0?(so?so.name:'¿?'):'— '+(e.label||'Intermedio')+' —'),e.k===0&&e.t?h('small',null,(e.t>0?'+':'')+e.t):e.notas&&e.notas.length?h('small',null,e.notas.length+' nota'+(e.notas.length===1?'':'s')):null,
           acc(nivel==='entrada'&&editSet===ti&&entSel===ei&&!multiX.size,'phrase',e.k===0?'esta canción del show':'este intermedio')],
-          ev=>{if(editSet!==ti)return irA('entrada',{set:ti,e:ei});navClick(ev,'entrada',ei,()=>irA('entrada',{set:ti,e:ei}));},e.k===0?'':'sepr'));
+          ev=>{if(editSet!==ti)return irA('entrada',{set:ti,e:ei});navClick(ev,'entrada',ei,()=>irA('entrada',{set:ti,e:ei}));},e.k===0?'':'sepr',{k:'entrada',t:ti,e:ei}));
         le.append(ie);});
-      sortable(le,(a,b)=>edit(()=>{moveArr(S.entries,a,b);if(editSet===ti)entSel=b;}),'y');
       it.append(le);}
     lt.append(it);});
-  sortable(lt,(a,b)=>edit(()=>{moveArr(M.sets,a,b);if(editSet===a)editSet=b;}),'y');
   nv.append(lt);
-  nv.scrollTop=y;
+  if(fq&&!nv.querySelector('.nr'))nv.append(h('div',{class:'vacio mu'},'Nada con "'+navQ.trim()+'".'));
+  nav.scrollTop=y;
   const on=nv.querySelector('.nr.on');if(on&&renderNav.revelar){renderNav.revelar=false;on.scrollIntoView({block:'nearest'});}}
+/* Arrastrar en el explorador: un acorde a otra frase, una frase a otra canción, una canción a una presentación…
+   Se suelta antes/después de otro del mismo tipo, o "dentro" de su carpeta. Con Mayús apretado al soltar: copia en vez de mover. */
+let ndrag=null;
+function navArrastre(nav){
+  nav.addEventListener('pointerdown',e=>{const r=e.target.closest('.nr');if(!r||!r._d||e.button>0||e.target.closest('button,input'))return;
+    ndrag={r,d:r._d,x:e.clientX,y:e.clientY,live:false,mouse:e.pointerType==='mouse',t:null,tgt:null};
+    if(!ndrag.mouse)ndrag.t=setTimeout(()=>{if(ndrag&&!ndrag.live)navDragStart();},380);});
+  addEventListener('pointermove',e=>{const g=ndrag;if(!g)return;
+    if(!g.live){const dd=Math.hypot(e.clientX-g.x,e.clientY-g.y);if(g.mouse&&dd>6)navDragStart();else if(!g.mouse&&dd>9){clearTimeout(g.t);ndrag=null;}if(!g.live)return;}
+    g.gh.style.left=(e.clientX+12)+'px';g.gh.style.top=(e.clientY+8)+'px';g.gh.textContent=g.txt+(e.shiftKey?' (copia)':'');
+    document.querySelectorAll('#nav .dropin,#nav .dropantes,#nav .dropdesp').forEach(x=>x.classList.remove('dropin','dropantes','dropdesp'));
+    const el=document.elementFromPoint(e.clientX,e.clientY),row=el&&el.closest('#nav .nr');g.tgt=null;
+    if(row&&row!==g.r&&row._d){const rc=row.getBoundingClientRect(),modo=dropModo(g.d,row._d,e.clientY<rc.top+rc.height/2);if(modo){g.tgt={d:row._d,modo};row.classList.add(modo==='dentro'?'dropin':modo==='antes'?'dropantes':'dropdesp');}}
+    const nb=nav.getBoundingClientRect();if(e.clientY<nb.top+30)nav.scrollTop-=10;if(e.clientY>nb.bottom-30)nav.scrollTop+=10;});
+  const fin=e=>{const g=ndrag;ndrag=null;if(!g)return;clearTimeout(g.t);if(!g.live)return;g.gh.remove();g.r.classList.remove('lifting');
+    document.querySelectorAll('#nav .dropin,#nav .dropantes,#nav .dropdesp').forEach(x=>x.classList.remove('dropin','dropantes','dropdesp'));
+    suppressClick=true;setTimeout(()=>suppressClick=false,60);if(g.tgt&&e.type==='pointerup')soltar(g.d,g.tgt.d,g.tgt.modo,e.shiftKey);};
+  addEventListener('pointerup',fin);addEventListener('pointercancel',fin);
+  nav.addEventListener('touchmove',e=>{if(ndrag&&ndrag.live)e.preventDefault();},{passive:false});}
+function navDragStart(){const g=ndrag;if(!g)return;g.live=true;g.r.classList.add('lifting');g.txt=(g.r.querySelector('.lb')||g.r).textContent;
+  g.gh=h('div',{class:'ndghost'},g.txt);document.body.append(g.gh);g.gh.style.left=(g.x+12)+'px';g.gh.style.top=(g.y+8)+'px';try{navigator.vibrate&&navigator.vibrate(12);}catch(_){}}
+// ¿Dónde se puede soltar? antes/después (mismo tipo) o dentro (la carpeta que lo contiene)
+function dropModo(d,t,arriba){const ba=arriba?'antes':'despues';
+  if(d.k==='acorde')return t.k==='acorde'?ba:t.k==='frase'?'dentro':null;
+  if(d.k==='nota')return t.k==='acorde'&&!(t.s===d.s&&t.p===d.p&&t.c===d.c)?'dentro':null;
+  if(d.k==='frase')return t.k==='frase'?ba:t.k==='cancion'?'dentro':null;
+  if(d.k==='cancion')return t.k==='cancion'?ba:t.k==='show'?'dentro':t.k==='entrada'?ba:null;
+  if(d.k==='entrada')return t.k==='entrada'?ba:t.k==='show'?'dentro':null;
+  if(d.k==='show')return t.k==='show'?ba:null;return null;}
+function soltar(d,t,modo,copiar){const des=modo==='despues'?1:0;let ir=null;
+  edit(()=>{
+    if(d.k==='acorde'){const S=M.songs[d.s].phrases[d.p],T=M.songs[t.s].phrases[t.p],x=S.chords[d.c];let at=modo==='dentro'?T.chords.length:t.c+des;
+      if(!copiar){S.chords.splice(d.c,1);if(S===T&&d.c<at)at--;}T.chords.splice(at,0,copiar?copy(x):x);ir=['acorde',{s:t.s,p:t.p,c:at}];}
+    else if(d.k==='nota'){const S=M.songs[d.s].phrases[d.p].chords[d.c],T=M.songs[t.s].phrases[t.p].chords[t.c];
+      if(T.notes.includes(d.n)){toast('Ese acorde ya tiene esa nota');return;}if(T.notes.length>=7){toast('Un acorde tiene hasta 7 notas');return;}
+      T.notes.push(d.n);T.notes.sort((a,b)=>a-b);if(S.nv&&S.nv[d.n]){T.nv=T.nv||{};T.nv[d.n]=S.nv[d.n];}
+      if(!copiar){S.notes=S.notes.filter(n=>n!==d.n);if(S.nv){delete S.nv[d.n];if(!Object.keys(S.nv).length)delete S.nv;}}ir=['nota',{s:t.s,p:t.p,c:t.c,n:d.n}];}
+    else if(d.k==='frase'){const SS=M.songs[d.s],TS=M.songs[t.s];let at=modo==='dentro'?TS.phrases.length:t.p+des;
+      if(SS===TS&&!copiar){const b=at>d.p?at-1:at;movePhrase(SS,d.p,b);ir=['frase',{s:t.s,p:b}];}
+      else{const x=copiar?copy(SS.phrases[d.p]):SS.phrases[d.p];if(copiar&&SS===TS)x.name=freeName(TS,x.name);
+        if(!copiar){SS.phrases.splice(d.p,1);SS.form=SS.form.filter(f=>f.p!==d.p).map(f=>({p:f.p>d.p?f.p-1:f.p,r:f.r}));}
+        TS.phrases.splice(at,0,x);for(const f of TS.form)if(f.p>=at)f.p++;TS.form.push({p:at,r:1});ir=['frase',{s:t.s,p:at}];}}
+    else if(d.k==='cancion'){
+      if(t.k==='cancion'){let at=t.s+des;
+        if(copiar){const x=copy(M.songs[d.s]);x.id=newId();x.name=(x.name+' (copia)').slice(0,24);M.songs.splice(at,0,x);remapSets(v=>v>=at?v+1:v);}
+        else{const f=d.s,to=at>f?at-1:at;moveArr(M.songs,f,to);remapSets(v=>{if(v===f)return to;if(f<to&&v>f&&v<=to)return v-1;if(f>to&&v>=to&&v<f)return v+1;return v;});at=to;}
+        ir=['cancion',{s:at}];}
+      else{const S=M.sets[t.t],at=t.k==='show'?S.entries.length:t.e+des;S.entries.splice(at,0,{k:0,s:d.s,t:0,note:''});navOpen.add('t'+t.t);ir=['entrada',{set:t.t,e:at}];}}
+    else if(d.k==='entrada'){const S=M.sets[d.t],T=M.sets[t.t],x=S.entries[d.e];let at=t.k==='show'?T.entries.length:t.e+des;
+      if(!copiar){S.entries.splice(d.e,1);if(S===T&&d.e<at)at--;}T.entries.splice(at,0,copiar?copy(x):x);ir=['entrada',{set:t.t,e:at}];}
+    else if(d.k==='show'){let at=t.t+des;if(copiar){const x=copy(M.sets[d.t]);x.name=(x.name+' (copia)').slice(0,24);M.sets.splice(at,0,x);}else{at=at>d.t?at-1:at;moveArr(M.sets,d.t,at);}ir=['show',{set:at}];}
+  },false);
+  if(ir){if(ir[1].s!=null&&ir[1].s!==edSong){edSong=ir[1].s;}irA(ir[0],ir[1]);if(copiar)toast('Copiado');}else renderAll();}
+// Teclado (PC): flechas para recorrer el explorador
+function navTecla(e){const rows=[...document.querySelectorAll('#navt .nr')].filter(r=>r._d);if(!rows.length)return;
+  let i=rows.findIndex(r=>r.classList.contains('on'));if(i<0){const ps=rows.filter(r=>r.classList.contains('padre'));i=ps.length?rows.indexOf(ps[ps.length-1]):0;}
+  const prof=r=>{let n=0,x=r.parentElement;while(x&&x.id!=='navt'){if(x.classList.contains('nk'))n++;x=x.parentElement;}return n;};
+  const ir=r=>{const d=r._d;renderNav.revelar=true;
+    if(d.k==='cancion')irA('cancion',{s:d.s});else if(d.k==='frase')irA('frase',{s:d.s,p:d.p});else if(d.k==='acorde')irA('acorde',{s:d.s,p:d.p,c:d.c});
+    else if(d.k==='nota')irA('nota',{s:d.s,p:d.p,c:d.c,n:d.n});else if(d.k==='show')irA('show',{set:d.t});else irA('entrada',{set:d.t,e:d.e});};
+  const r=rows[i];e.preventDefault();
+  if(e.key==='ArrowDown'&&rows[i+1])ir(rows[i+1]);
+  else if(e.key==='ArrowUp'&&rows[i-1])ir(rows[i-1]);
+  else if(e.key==='ArrowRight'){if(r._d.o&&!navOpen.has(r._d.o)){navOpen.add(r._d.o);saveNav();renderNav();}else if(rows[i+1]&&prof(rows[i+1])>prof(r))ir(rows[i+1]);}
+  else if(e.key==='ArrowLeft'){if(r._d.o&&navOpen.has(r._d.o)){navOpen.delete(r._d.o);saveNav();renderNav();}else{const p0=prof(r);for(let j=i-1;j>=0;j--)if(prof(rows[j])<p0){ir(rows[j]);break;}}}}
 function nuevaCancion(){if(M.songs.length>=255)return toast('Máximo 255 canciones');const at=M.songs.length?edSong+1:0;
   edit(()=>{M.songs.splice(at,0,newSong());remapSets(x=>x>=at?x+1:x);},false);irA('cancion',{s:at});renderNav.revelar=true;}
 function nuevoShow(){edit(()=>{M.sets.push({name:'Presentación nueva',entries:[]});},false);irA('show',{set:M.sets.length-1});}
@@ -1275,7 +1345,7 @@ function phraseEditor(s,p,pi){const card=h('div',{class:'card',id:'peditor'});if
     card.append(sec('f:sonido','music','Sonido del Mininova',[p.sound?sndLabel(p.sound):'el de la canción',nPar(d)?nPar(d)+' parámetro'+(nPar(d)===1?'':'s')+' al entrar':null].filter(Boolean).join(' · '),()=>[
       srow('Sonido de la frase','Al llegar a esta frase el Mininova cambia a este sonido (el cambio corta lo que suena). Sin sonido propio, usa el de la canción.',p.sound?[h('b',null,sndLabel(p.sound)),h('button',{onclick:elegir},'Cambiar…'),h('button',{class:'gh',onclick:()=>edit(()=>{delete p.sound;})},ic('close'),'Quitar')]:h('button',{onclick:elegir},ic('piano'),'Elegir sonido…')),
       h('h3',null,'Parámetros al entrar a la frase'),
-      paramBloque(s,d,{tipo:'frase'})]));}
+      paramBloque(s,d,{tipo:'frase',p:pi})]));}
   else card.append(h('p',{class:'mu sm'},'El sonido y los parámetros del Mininova se eligen de a una frase.'));
   return card;}
 /* La nota elegida: solo su velocity (más fuerte o más suave que el resto del acorde) */
@@ -1621,8 +1691,8 @@ function paramBloque(s,t,ctx){const acorde=ctx.tipo==='acorde',frase=ctx.tipo===
     const x=mnInfo(a,b),enCancion=acorde?((s.mn||[]).find(e=>e[0]===a&&e[1]===b)||[])[2]:null;
     edit(()=>{t.mn=t.mn||[];t.mn.push([a,b,primero(enCancion,baseVal(s,a,b),Math.round((x[3]+x[4])/2))]);});};
   cont.append(h('div',{class:'row',style:'gap:8px;margin-top:8px;align-items:center'},add,
-    STUDIO.ok&&!frase?h('button',{class:'ac',onclick:()=>ajustarEnStudio(s,ctx)},'🎛 Ajustar en Quack Studio'):null));
-  if(STUDIO.ok&&!frase)cont.append(h('p',{class:'mu sm'},'"Ajustar en Quack Studio" abre el Panel Mininova con este sonido: mueve lo que quieras de oído y, con "Llevar a Quack MIDI", queda guardado aquí solo lo que cambiaste.'));
+    STUDIO.ok?h('button',{class:'ac',onclick:()=>ajustarEnStudio(s,ctx)},'🎛 Ajustar en Quack Studio'):null));
+  if(STUDIO.ok)cont.append(h('p',{class:'mu sm'},'"Ajustar en Quack Studio" abre el Panel Mininova con este sonido: mueve lo que quieras de oído y, con "Llevar a Quack MIDI", queda guardado aquí solo lo que cambiaste.'));
   return cont;}
 /* "Volver a como empieza la canción" sin recargar el sonido: para cada parámetro que cambia algún acorde (y la canción no fija),
    la canción guarda cómo viene en su sonido ("base"). Esos valores los lee Quack Studio de lo guardado en el slot; se revisan solos
@@ -1653,27 +1723,30 @@ function volverAviso(s){
     h('small',null,STUDIO.ok?'Quack Studio no tiene ese sonido leído: en Quack Studio, Sonidos → "Leer y respaldar".':'Se completa solo al abrir Quack MIDI en el PC con Quack Studio. O fíjalos tú en la canción (Canción → Sonido del Mininova).'),
     h('div',{class:'row',style:'margin-top:6px'},h('button',{onclick:()=>{edit(()=>{s.mn=s.mn||[];for(const[a,b]of f){if(s.mn.length>=40)break;const k=a===255?CTRL.findIndex(x=>x[1]===b):-1;if(k>=0){s.ctl=s.ctl||{};s.ctl[k]=CTRL[k][3];continue;}const x=mnInfo(a,b);s.mn.push([a,b,Math.round((x[3]+x[4])/2)]);}});toast('Agregados a la canción: ajusta sus valores en Canción → Sonido del Mininova');}},'Fijarlos en la canción'))));}
 async function ajustarEnStudio(s,ctx){
-  const p=ctx.tipo==='acorde'?s.phrases[ctx.p]:null,c=p?p.chords[ctx.c]:null;
+  const fr=ctx.tipo==='frase',p=ctx.tipo==='acorde'||fr?s.phrases[ctx.p]:null;
+  // la frase se ajusta como un acorde: sus parámetros "al entrar", sonando con su primer acorde
+  const c=fr?Object.assign({},p.def||{},{notes:(p.chords.find(x=>x.notes.length)||{notes:[]}).notes}):p?p.chords[ctx.c]:null;
   const paso=pasoStudio(s,c||{notes:[]},p,{});
-  const titulo=s.name+(c?` · ${p.name} · acorde ${ctx.c+1} (${chordName(c.notes)})`:' · toda la canción');
-  let r;try{r=await studio('quack/ajustar',{tipo:ctx.tipo,titulo,paso,ctlCancion:s.ctl||{}});}catch(e){return toast('Quack Studio no respondió');}
+  const titulo=s.name+(fr?` · frase ${p.name}`:c?` · ${p.name} · acorde ${ctx.c+1} (${chordName(c.notes)})`:' · toda la canción');
+  let r;try{r=await studio('quack/ajustar',{tipo:fr?'acorde':ctx.tipo,titulo,paso,ctlCancion:s.ctl||{}});}catch(e){return toast('Quack Studio no respondió');}
   if(!r.ok)return toast(r.error||'Quack Studio no pudo preparar el ajuste');
   abrirStudio();   // la ventana de Studio pasa sola al panel (revisa si hay un ajuste pedido)
   let tm=null;
-  const dlg=modal('Ajustando en Quack Studio',h('div',null,h('p',null,'Se abrió Quack Studio con el sonido de '+(c?'este acorde':'esta canción')+'. Mueve lo que quieras de oído y aprieta "Llevar a Quack MIDI".'),
+  const dlg=modal('Ajustando en Quack Studio',h('div',null,h('p',null,'Se abrió Quack Studio con el sonido de '+(fr?'esta frase':c?'este acorde':'esta canción')+'. Mueve lo que quieras de oído y aprieta "Llevar a Quack MIDI".'),
     h('p',{class:'mu sm'},'Puedes dejar esta ventana abierta: el ajuste llega solo.')),[['Cancelar',()=>{clearInterval(tm);studio('quack/ajuste',{cancelar:true}).catch(()=>{});}]]);
   tm=setInterval(async()=>{if(!document.body.contains(dlg)){clearInterval(tm);return;}let q;try{q=await studio('quack/ajuste');}catch(e){return;}
     if(q.estado==='listo'){clearInterval(tm);dlg.remove();aplicarAjuste(s,ctx,q.resultado);}
     else if(q.estado==='cancelado'){clearInterval(tm);dlg.remove();toast('Ajuste cancelado en Quack Studio');}},1000);}
 function aplicarAjuste(s,ctx,res){
-  const t=ctx.tipo==='acorde'?(s.phrases[ctx.p]&&s.phrases[ctx.p].chords[ctx.c]):s;if(!t)return toast('Ese acorde ya no existe');
+  const fr=ctx.tipo==='frase',ph=s.phrases[ctx.p];if(fr&&ph&&!ph.def)ph.def={};
+  const t=fr?(ph&&ph.def):ctx.tipo==='acorde'?(ph&&ph.chords[ctx.c]):s;if(!t)return toast(fr?'Esa frase ya no existe':'Ese acorde ya no existe');
   edit(()=>{const ctl={};for(const[id,v]of Object.entries(res.ctl||{}))ctl[id]=v;
-    if(ctx.tipo==='acorde'){if(Object.keys(ctl).length)t.ctl=ctl;else delete t.ctl;
+    if(ctx.tipo==='acorde'||fr){if(Object.keys(ctl).length)t.ctl=ctl;else delete t.ctl;
       if(t.ctlT){for(const id of Object.keys(t.ctlT))if(ctl[id]==null)delete t.ctlT[id];if(!Object.keys(t.ctlT).length)delete t.ctlT;}}
     else{if(Object.keys(ctl).length)s.ctl=ctl;else delete s.ctl;}
     if(res.mn&&res.mn.length)t.mn=res.mn.slice(0,40);else delete t.mn;
     if(t.mnT){const ks=new Set((t.mn||[]).map(e=>e[0]+':'+e[1]));for(const k of Object.keys(t.mnT))if(!ks.has(k))delete t.mnT[k];if(!Object.keys(t.mnT).length)delete t.mnT;}});
-  toast(res.n?`Listo: ${res.n} ajuste${res.n===1?'':'s'} guardado${res.n===1?'':'s'} en ${ctx.tipo==='acorde'?'el acorde':'la canción'}.`:'No cambiaste nada: quedó como estaba.');}
+  toast(res.n?`Listo: ${res.n} ajuste${res.n===1?'':'s'} guardado${res.n===1?'':'s'} en ${fr?'la frase':ctx.tipo==='acorde'?'el acorde':'la canción'}.`:'No cambiaste nada: quedó como estaba.');}
 /* Velocity de cada nota, bajo su tecla: arrastrar arriba/abajo, tocar el número para escribirlo, mantener = la del acorde */
 function velLane(one,s){const lane=h('div',{class:'vlane'});if(!one.notes.length)return lane;
   const W=[0,2,4,5,7,9,11],whites=[];for(let n=pianoBase;n<pianoBase+36;n++)if(W.includes(n%12))whites.push(n);const ww=100/whites.length;
@@ -2110,7 +2183,15 @@ $('#btnHelp').onclick=()=>modal('Cómo usar Quack MIDI',h('div',{class:'col sm'}
   h('p',null,h('b',null,'Presentaciones: '),'arma el orden del show y toca "Performar". En un show, los switches 3 y 4 recorren la presentación.'),h('p',{class:'mu'},'Versión '+QM_VERSION)));
 $('#pill').onclick=()=>{if(st.fe)modal('No se pudo guardar en el Arduino',h('p',null,'Lo que cambiaste ya suena, pero falló la grabación en su memoria. Intenta de nuevo; si sigue fallando, guarda un respaldo en un archivo (Ajustes).'),[['Ahora no'],[ic('save'),'Intentar de nuevo',()=>{doSave();},'ac']]);
   else if(st.dirty||pendingUp)toast('Se guarda solo en el Arduino unos segundos después de tu último cambio');else if(lastErr)toast(lastErr);};
-document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,select'))return;if(tab==='edit'&&(e.key==='Delete'||e.key==='Backspace')&&M){const s=M.songs[edSong],p=s&&s.phrases[edSel.p];if(p&&p.chords[edSel.c]){e.preventDefault();edit(()=>{p.chords.splice(edSel.c,1);fixSel();});}return;}if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();e.shiftKey?redo():undo();}else if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();redo();}});
+// Atajos (PC): Ctrl+Z / Ctrl+Y, Ctrl+C / Ctrl+V, Ctrl+D duplicar, Supr borrar, flechas para recorrer el explorador
+document.addEventListener('keydown',e=>{if((e.target.matches&&e.target.matches('input,textarea,select'))||document.querySelector('.modal,.mbg'))return;const mod=e.ctrlKey||e.metaKey,k=e.key.toLowerCase();
+  if(mod&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}if(mod&&k==='y'){e.preventDefault();redo();return;}
+  if(perfOn||tab!=='edit'||!M)return;
+  if(mod&&k==='c'){if(String(getSelection()||''))return;if(['frase','acorde','paso'].includes(blanco())){e.preventDefault();copiar();}}
+  else if(mod&&k==='v'){const s=M.songs[edSong];if(s&&clip&&esCancion()){e.preventDefault();pasteClip(s);}}
+  else if(mod&&k==='d'){e.preventDefault();duplicar();}
+  else if(!mod&&(e.key==='Delete'||e.key==='Backspace')){e.preventDefault();borrar();}
+  else if(!mod&&!e.altKey&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))navTecla(e);});
 window.addEventListener('beforeunload',e=>{if(pendingUp){e.preventDefault();e.returnValue='';}});
 
 
