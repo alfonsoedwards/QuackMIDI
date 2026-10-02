@@ -548,7 +548,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.02-0901';
+const QM_VERSION='2026.10.02-0952';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -944,24 +944,30 @@ function vEdit(m){
       srow('Esta canción tiene letra','Muestra un fragmento de letra bajo cada acorde (y en el Modo Performance). Las letras no se mandan al Arduino.',toggle('',!!s.hasLyr,v=>edit(()=>{if(v)s.hasLyr=true;else delete s.hasLyr;}))),
       s.hasLyr?srow('Escribir de corrido','Escribe la letra de una frase entera, una línea por acorde, y se reparte sola. Para dos líneas en un acorde usa \" / \".',h('button',{onclick:()=>lyrDialog(s)},ic('paste'),'Escribir la letra de la frase')):null])));
   // ② Forma: el orden en que suenan las frases. Sus herramientas actúan sobre el paso elegido.
-  fSel=clamp(fSel,0,Math.max(0,s.form.length-1));
+  fSel=clamp(fSel,0,Math.max(0,s.form.length-1));if(fFin!=null)fFin=clamp(fFin,0,Math.max(0,s.form.length-1));
+  // con "Varios" (o Mayús + clic) se eligen varios pasos seguidos: de fSel a fFin
+  const fLo=Math.min(fSel,fFin??fSel),fHi=Math.max(fSel,fFin??fSel),fN=fHi-fLo+1,fBloque=s.form.slice(fLo,fHi+1);
   const fs=h('div',{class:'strip','data-sk':'form'+s.id});
-  s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip'+(i===fSel?' on':''),'data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0],
-    onclick:()=>{fSel=i;lastFocus='phrase';if(p&&edSel.p!==f.p){edSel={p:f.p,c:0};multi.clear();}renderAll();}},p?p.name:'?',f.r>1?h('b',null,'×'+f.r):null));});
-  sortable(fs,(a,b)=>edit(()=>{moveArr(s.form,a,b);fSel=b;}));
+  s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip'+(i>=fLo&&i<=fHi&&s.form.length?' on':''),'data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0],
+    onclick:ev=>{lastFocus='phrase';if(fVarios){if(fFin==null)fSel=i;fFin=i;renderAll();return;}if(ev.shiftKey&&s.form[fSel]){fFin=i;renderAll();return;}
+      fSel=i;fFin=null;if(p&&edSel.p!==f.p){edSel={p:f.p,c:0};multi.clear();}renderAll();}},p?p.name:'?',f.r>1?h('b',null,'×'+f.r):null));});
+  sortable(fs,(a,b)=>edit(()=>{moveArr(s.form,a,b);fSel=b;fFin=null;}));
   const fc=s.form[fSel],fp=fc&&s.phrases[fc.p];
+  const fMover=d=>edit(()=>{if(d<0){const x=s.form.splice(fLo-1,1)[0];s.form.splice(fHi,0,x);}else{const x=s.form.splice(fHi+1,1)[0];s.form.splice(fLo,0,x);}
+    fSel+=d;if(fFin!=null)fFin+=d;});
   const addF=h('select',{title:'Agregar un paso después del elegido'},h('option',{value:''},'＋ Paso…'),s.phrases.map((p,i)=>h('option',{value:i},p.name)));
   addF.onchange=()=>{if(addF.value===''||s.form.length>=255)return;const at=s.form.length?fSel+1:0;edit(()=>{s.form.splice(at,0,{p:+addF.value,r:1});fSel=at;});};
   m.append(h('div',{class:'card'},
-    panelHead('Forma',fp?[fp.name,PCOL[fp.color%8]]:null,[addF,
-      tb('dup','Duplicar',()=>edit(()=>{s.form.splice(fSel+1,0,copy(fc));fSel++;}),{off:!fc,title:'Duplicar el paso elegido'}),
-      tb('left','',()=>edit(()=>{moveArr(s.form,fSel,fSel-1);fSel--;}),{off:!fc||fSel===0,title:'Mover el paso a la izquierda'}),
-      tb('right','',()=>edit(()=>{moveArr(s.form,fSel,fSel+1);fSel++;}),{off:!fc||fSel>=s.form.length-1,title:'Mover el paso a la derecha'}),
-      tb('minus','',()=>edit(()=>fc.r=clamp(fc.r-1,1,99)),{off:!fc||fc.r<=1,title:'Una repetición menos'}),
-      h('span',{class:'cnt',title:'Veces que suena este paso'},fc?'×'+fc.r:''),
-      tb('plus','',()=>edit(()=>fc.r=clamp(fc.r+1,1,99)),{off:!fc,title:'Una repetición más'}),
-      tb('trash','Quitar',()=>edit(()=>{s.form.splice(fSel,1);fSel=Math.max(0,fSel-1);}),{off:!fc,title:'Quitar el paso elegido de la forma (la frase no se borra)'})]),
-    h('p',{class:'mu sm hint'},'El orden en que suenan las frases, de izquierda a derecha. Toca un paso para elegirlo; mantén presionado para moverlo. Repetir una frase no la copia.'),fs));
+    panelHead('Forma',fN>1?[fN+' pasos elegidos']:fp?[fp.name,PCOL[fp.color%8]]:null,[addF,
+      tb('dup','Duplicar',()=>{if(s.form.length+fN>255)return toast('La forma tiene un máximo de 255 pasos');edit(()=>{s.form.splice(fHi+1,0,...copy(fBloque));fSel=fHi+1;fFin=fN>1?fHi+fN:null;});},{off:!fc,title:fN>1?'Duplicar los pasos elegidos (quedan juntos, a continuación)':'Duplicar el paso elegido'}),
+      tb('left','',()=>fMover(-1),{off:!fc||fLo===0,title:fN>1?'Mover los pasos a la izquierda':'Mover el paso a la izquierda'}),
+      tb('right','',()=>fMover(1),{off:!fc||fHi>=s.form.length-1,title:fN>1?'Mover los pasos a la derecha':'Mover el paso a la derecha'}),
+      tb('minus','',()=>edit(()=>fBloque.forEach(f=>f.r=clamp(f.r-1,1,99))),{off:!fc||fBloque.every(f=>f.r<=1),title:'Una repetición menos'}),
+      h('span',{class:'cnt',title:'Veces que suena este paso'},fc&&fN===1?'×'+fc.r:''),
+      tb('plus','',()=>edit(()=>fBloque.forEach(f=>f.r=clamp(f.r+1,1,99))),{off:!fc,title:'Una repetición más'}),
+      tb('trash','Quitar',()=>edit(()=>{s.form.splice(fLo,fN);fSel=Math.max(0,fLo-1);fFin=null;}),{off:!fc,title:fN>1?'Quitar los pasos elegidos de la forma (las frases no se borran)':'Quitar el paso elegido de la forma (la frase no se borra)'}),
+      tb('check','Varios',()=>{fVarios=!fVarios;fFin=null;lastFocus='phrase';renderAll();},{cl:fVarios?'on':'',title:'Elegir varios pasos seguidos (para duplicarlos, moverlos o quitarlos juntos)'})]),
+    h('p',{class:'mu sm hint'},fVarios?'Varios: toca el primer paso y después el último; quedan elegidos todos los de entremedio. Duplicar los copia juntos, a continuación.':'El orden en que suenan las frases, de izquierda a derecha. Toca un paso para elegirlo; mantén presionado para moverlo. Repetir una frase no la copia. Con "Varios" eliges varios pasos seguidos.'),fs));
 
   // ③ Frases, con los acordes de la frase elegida adentro (como un Combinator)
   const uses=pi=>s.form.filter(f=>f.p===pi).reduce((a,f)=>a+f.r,0);
@@ -1006,13 +1012,14 @@ function rackHead(s,p,pi){
     const cur=p.chords[edSel.c],many=multiMode&&multi.size;
     const insertAt=arr=>edit(()=>{const at=p.chords.length?edSel.c+1:0;p.chords.splice(at,0,...arr);edSel.c=at+arr.length-1;revealSel=true;});
   return panelHead('Acordes',multiMode?[multi.size+' elegidos']:cur?[stepLabel(cur)]:null,[
-        tb('plus','Acorde',()=>insertAt([{notes:buildChord(0,4,0,0)}]),{title:'Agregar un acorde nuevo (Do mayor) después del elegido; cámbialo con el piano o con Armar'}),
+        tb('plus','Acorde',()=>insertAt([heredar(p,{notes:buildChord(0,4,0,0)})]),{title:'Agregar un acorde nuevo (Do mayor) después del elegido; cámbialo con el piano o con Armar'}),
         tb('minus','Silencio',()=>insertAt([{notes:[]}]),{title:'Agregar un silencio después del elegido'}),
         tb('dup','Duplicar',()=>insertAt([copy(cur)]),{off:!cur||multiMode,title:'Duplicar el acorde elegido'}),
         tb('left','',()=>edit(()=>{moveArr(p.chords,edSel.c,edSel.c-1);edSel.c--;revealSel=true;}),{off:!cur||multiMode||edSel.c===0,title:'Mover el acorde a la izquierda'}),
         tb('right','',()=>edit(()=>{moveArr(p.chords,edSel.c,edSel.c+1);edSel.c++;revealSel=true;}),{off:!cur||multiMode||edSel.c>=p.chords.length-1,title:'Mover el acorde a la derecha'}),
         tb('trash','Borrar',()=>edit(()=>{if(multiMode){const ks=[...multi].map(k=>k.split('.').map(Number)).sort((a,b)=>b[1]-a[1]);for(const[pp,cc]of ks)s.phrases[pp]&&s.phrases[pp].chords.splice(cc,1);multi.clear();}else p.chords.splice(edSel.c,1);fixSel();}),{off:multiMode?!many:!cur,title:multiMode?'Borrar los acordes elegidos':'Borrar el acorde elegido'}),
         tb('check','Varios',()=>{multiMode=!multiMode;multi.clear();lastFocus='chords';renderAll();},{cl:multiMode?'on':'',title:'Elegir varios acordes a la vez (para cambiarlos, copiarlos o borrarlos juntos)'}),
+        multiMode?tb('check','Toda la frase',()=>fraseEntera(pi),{title:'Elegir todos los acordes de esta frase (para ponerles sostén, ligado, tempo… de una vez)'}):null,
         st.cap?h('button',{class:'on',onclick:()=>cmd('cap',0)},st.cap===2?'Detener grabación':'Cancelar captura'):null],'chTgt');}
 
 /* Encabezado común de todos los paneles: título · lo elegido · herramientas de ese panel */
@@ -1119,6 +1126,12 @@ function bendHeard(s,pi,ci){const c=s.phrases[pi]&&s.phrases[pi].chords[ci];if(!
 // Valor que tenía una perilla antes de este acorde (el último que la cambió, o el de la canción)
 function prevCtl(s,pi,ci,id){const seq=flatten(s);let k=seq.findIndex(x=>x.p===pi&&x.ci===ci);
   if(!(k>=0&&seq[k].c.reset))for(let j=k-1;j>=0;j--){const x=seq[j].c;if(x.ctl&&x.ctl[id]!=null)return x.ctl[id];if(x.reset)break;}return primero(s.ctl&&s.ctl[id],baseVal(s,255,CTRL[id][1]),CTRL[id][3]);}
+const HEREDA=['hold','tie','bpm','vel','trans','glide'];
+function heredar(p,c){const cs=p.chords.filter(x=>x.notes.length);if(!cs.length||!c.notes.length)return c;
+  for(const k of HEREDA){const v=cs[0][k];if(v!=null&&cs.every(x=>x[k]===v))c[k]=v;}return c;}
+function fraseEntera(pi){const s=M.songs[edSong],p=s&&s.phrases[pi];if(!p)return;edSel={p:pi,c:0};multiMode=true;
+  multi=new Set(p.chords.map((_,ci)=>pi+'.'+ci));lastFocus='chords';renderAll();
+  const ed=document.getElementById('ceditor');if(ed)ed.scrollIntoView({block:'start',behavior:'smooth'});}
 function chordCard(s,p,pi,c,ci){
   const hb=bendHeard(s,pi,ci),key=pi+'.'+ci,sel=!multiMode&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.bend!=null||!!c.nv||(c.ctl&&Object.keys(c.ctl).length>0)||!!(c.mn&&c.mn.length)||!!c.reset||!!c.trT;
   return h('div',{class:'cc'+(sel?' sel':'')+(multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
@@ -1143,6 +1156,7 @@ function phraseMenu(s,p,pi,btn){const old=$('.sndmenu');if(old)old.remove();cons
     it('piano',p.sound?'Sonido: '+sndLabel(p.sound):'Sonido propio…',()=>elegirSonidoDlg(p.sound||null,x=>edit(()=>{p.sound={bank:x.bank,pc:x.pc};}),
       {titulo:'Sonido de "'+p.name+'"',nota:'Al llegar a esta frase el Mininova cambia a este sonido (el cambio corta lo que suena). '+(s.sendPC?'Sin sonido propio usa el de la canción: '+sndLabel({bank:s.bank||0,pc:s.pc})+'.':'La canción no tiene sonido: sin sonido propio, deja el que esté.'),
        quitar:p.sound?['Quitar (usar el de la canción)',()=>edit(()=>{delete p.sound;})]:null})),
+    it('check','Ajustes de toda la frase (sostén, ligado…)',()=>fraseEntera(pi)),
     it('rec','Grabar acordes desde teclado MIDI',()=>{edSel={p:pi,c:Math.max(0,p.chords.length-1)};cmd('cap',2);toast('Grabando: toca acordes en tu teclado MIDI');}),
     it('jump','Ir a esta frase en vivo',()=>{const st2=s.form.findIndex(f=>f.p===pi);cmd('song',edSong).then(()=>st2>=0&&cmd('jump',st2));}));
   document.body.append(mn);setTimeout(()=>document.addEventListener('pointerdown',function f(e){if(!mn.contains(e.target)){mn.remove();}document.removeEventListener('pointerdown',f);}),0);}
@@ -1232,7 +1246,7 @@ function irow(title,expl,sel,key,songTxt,songVal,control){
     h('div',{class:'sc'},sw),own?h('div',{class:'own'},control(cur)):null);}
 const transExpl=(t,ms,bend)=>t===1?`Entra antes de soltar el anterior: el MiniNova desliza sin re-atacar, en ${ms} ms.`:t===2?`No toca notas nuevas: mueve la rueda de pitch ${bend>0?'+':''}${bend} semitonos en ${ms} ms.`:'Suelta el acorde anterior y toca este (con Ligado, las notas repetidas no se re-atacan).';
 
-let bRoot=0,bOct=4,bType=0,bInv=0,pianoBase=48,fSel=0;
+let bRoot=0,bOct=4,bType=0,bInv=0,pianoBase=48,fSel=0,fFin=null,fVarios=false;
 function chordEditor(s){
   const sel=selChords(s);const card=h('div',{class:'card',id:'ceditor'});
   if(!sel.length){card.append(h('p',{class:'mu'},multiMode?'Toca varios acordes para seleccionarlos.':'Selecciona un acorde.'));return card;}
@@ -1458,7 +1472,7 @@ function capNv(notes,vels){if(!vels||vels.length!==notes.length)return null;cons
   notes.forEach((n,k)=>{const d=Math.round(vels[k]-avg);if(Math.abs(d)>=4)o[n]=clamp(d,-126,126);});return Object.keys(o).length?o:null;}
 function onCapture(notes,vels){if(!M||!notes.length)return;const s=M.songs[edSong];if(!s)return;const p=s.phrases[edSel.p];if(!p)return;
   notes=notes.slice(0,7);const nv=capNv(notes,vels&&vels.slice(0,7));
-  if(st.cap===2||(st.cap===0&&lastCapMode===2)){edit(()=>{const at=p.chords.length?edSel.c+1:0;const c={notes};if(nv)c.nv=nv;p.chords.splice(at,0,c);edSel.c=at;});}
+  if(st.cap===2||(st.cap===0&&lastCapMode===2)){edit(()=>{const at=p.chords.length?edSel.c+1:0;const c=heredar(p,{notes});if(nv)c.nv=nv;p.chords.splice(at,0,c);edSel.c=at;});}
   else{const c=p.chords[edSel.c];if(c)edit(()=>{c.notes=notes;if(nv)c.nv=nv;else delete c.nv;});toast('Acorde capturado: '+chordName(notes));}}
 let lastCapMode=0;setInterval(()=>{if(st.cap)lastCapMode=st.cap;},100);
 
