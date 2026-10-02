@@ -432,6 +432,8 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
 .nr .csw{width:4px;height:18px;border-radius:2px;flex:none}
 .nr.sepr .lb{font-style:italic;color:var(--tx2)}.nr.on.sepr .lb{color:#fff}
 .nk .nk{margin-left:13px;padding-left:4px;border-left:1.5px solid var(--ln)}
+.nk .nk .nr{font-size:.92rem;min-height:29px}.nk .nk .nk .nr{font-size:.86rem;min-height:28px}.nk .nk .nk .nk .nr{font-size:.8rem;min-height:27px}
+.nk .nk .nk .nr .lb{font-weight:700}.nk .nk .nk .nk .nr .lb{font-weight:600}
 .nav .vacio{padding:4px 10px;font-size:.85rem}
 .ruta{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin:0 0 10px;font-weight:800;background:var(--sf);border-radius:var(--r);box-shadow:var(--sh);padding:6px 8px}
 .ruta button{background:transparent;padding:.3em .55em;color:var(--ack)}.ruta button.on{background:var(--acl2)}
@@ -446,10 +448,10 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
 .card.activo{box-shadow:0 0 0 3px var(--ac),var(--sh)}.rack.activo{outline:3px solid var(--ac);outline-offset:2px}
 .tenue{opacity:.45;transition:opacity .2s}.tenue:hover{opacity:.8}
 /* × y Duplicar en las esquinas de lo elegido (separados, para el dedo) */
-.cnr{position:absolute;top:-13px;width:32px;height:32px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--sf);z-index:3;box-shadow:0 2px 6px #0003}
-.cnr .ic{width:15px;height:15px;stroke-width:2.6}
-.cnr.cdel{right:-13px;background:var(--er);color:#fff}
-.cnr.cdup{left:-13px;background:#fff;color:var(--ack)}
+.cnr{position:absolute;top:-10px;width:24px;height:24px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--sf);z-index:3;box-shadow:0 2px 6px #0003}
+.cnr .ic{width:12px;height:12px;stroke-width:2.8}
+.cnr.cdel{right:-10px;background:var(--ac);color:#fff}
+.cnr.cdup{left:-10px;background:var(--ac);color:#fff}
 .strip{padding:18px 16px 10px 16px}
 .nr .nb{width:30px;height:30px;padding:0;border-radius:8px;background:#ffffff38;color:#fff;margin-left:6px;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .nr .nb .ic{width:15px;height:15px}.nr .nb.nx{background:#ffffff38;margin-left:10px}
@@ -614,7 +616,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.02-1045';
+const QM_VERSION='2026.10.02-1053';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -946,6 +948,9 @@ function renderMain(){renderNav();updTop();const m=$('#main');m.innerHTML='';if(
   if(nivel==='show'||nivel==='entrada'){const S=M.sets[editSet];if(!S){m.append(h('div',{class:'card'},h('p',{class:'mu',style:'margin:0'},M.sets.length?'Elige una presentación en el explorador.':'Todavía no hay presentaciones. Crea una con ＋ junto a "Presentaciones", en el explorador.')));return;}return vSetEdit(m,S);}
   vEdit(m);}
 const esCancion=()=>['cancion','frase','acorde','nota'].includes(nivel);
+// Tocar un panel clarito (fuera de sus botones y elementos) lo elige: se destaca y queda elegido su primer elemento (o el que ya estaba)
+const fueraDeControles=ev=>!ev.target.closest('button,input,select,textarea,label,a,.chip,.pt,.cc,.knob,.piano,.vlane,.sec,.seg,.tg');
+function elegirPanel(ev,el,fn){if(!el.classList.contains('tenue')&&!el.querySelector(':scope>.tenue'))return;if(!fueraDeControles(ev)||suppressClick)return;ev.stopPropagation();fn();}
 const saveNav=()=>{try{localStorage.setItem('qm_nav',JSON.stringify([...navOpen]));}catch(e){}};
 // Elegir un nivel (desde el explorador, la ruta o el editor). o: {s, p, c, n, set, e}
 function irA(n,o={}){tab='edit';nivel=n;
@@ -1201,7 +1206,7 @@ function vEdit(m){
     fSel+=d;if(fFin!=null)fFin+=d;});
   const addF=h('select',{title:'Agregar un paso después del elegido'},h('option',{value:''},'＋ Paso…'),s.phrases.map((p,i)=>h('option',{value:i},p.name)));
   addF.onchange=()=>{if(addF.value===''||s.form.length>=255)return;const at=s.form.length?fSel+1:0;edit(()=>{s.form.splice(at,0,{p:+addF.value,r:1});fSel=at;});};
-  m.append(h('div',{class:'card'+(lastFocus==='form'?' activo':' tenue')},
+  m.append(h('div',{class:'card'+(lastFocus==='form'?' activo':' tenue'),onclick:ev=>elegirPanel(ev,ev.currentTarget,()=>{if(!s.form.length)return;lastFocus='form';fSel=0;fFin=null;fVarios=false;multiMode=false;multi.clear();multiX.clear();const f0=s.form[0];if(f0){edSel={p:f0.p,c:0};nivel='frase';}renderAll();lastFocus='form';updTop();})},
     panelHead('Forma',lastFocus!=='form'?null:fN>1?[fN+' pasos elegidos']:fp?[fp.name,PCOL[fp.color%8]]:null,[addF,
       tb('left','',()=>fMover(-1),{off:!fc||fLo===0,title:fN>1?'Mover los pasos a la izquierda':'Mover el paso a la izquierda'}),
       tb('right','',()=>fMover(1),{off:!fc||fHi>=s.form.length-1,title:fN>1?'Mover los pasos a la derecha':'Mover el paso a la derecha'}),
@@ -1222,7 +1227,7 @@ function vEdit(m){
   sortable(pstrip,(a,b)=>edit(()=>{movePhrase(s,a,b);}));
   const pi=edSel.p,p=nivel==='cancion'?null:s.phrases[pi],pAct=s.phrases[pi];   // con la canción elegida, no hay frase elegida
   const enAcorde=nivel==='acorde'||nivel==='nota',enFrase=nivel==='frase'&&lastFocus!=='form';
-  const phCard=h('div',{class:'card'+(enFrase?' activo':'')},
+  const phCard=h('div',{class:'card'+(enFrase?' activo':''),onclick:ev=>elegirPanel(ev,ev.currentTarget,()=>{if(!s.phrases.length)return;irA('frase',{p:nivel==='cancion'?0:pi});})},
     panelHead('Frases',p?[p.name,PCOL[p.color%8]]:null,[
       tb('left','',()=>edit(()=>movePhrase(s,pi,pi-1)),{off:!p||pi===0,title:'Mover la frase a la izquierda'}),
       tb('right','',()=>edit(()=>movePhrase(s,pi,pi+1)),{off:!p||pi>=s.phrases.length-1,title:'Mover la frase a la derecha'}),
@@ -1234,7 +1239,8 @@ function vEdit(m){
     const strip=h('div',{class:'strip','data-sk':'ph'+s.id+'.'+pi});
     p.chords.forEach((c,ci)=>strip.append(chordCard(s,p,pi,c,ci)));
     sortable(strip,(a,b)=>edit(()=>{moveArr(p.chords,a,b);edSel.c=b;}));
-    phCard.append(h('div',{class:'rack'+(enAcorde?' activo':lastFocus==='form'?' tenue':''),id:'chordsCard',style:'--pc:'+PCOL[p.color%8]},
+    phCard.append(h('div',{class:'rack'+(enAcorde?' activo':lastFocus==='form'?' tenue':''),id:'chordsCard',style:'--pc:'+PCOL[p.color%8],
+      onclick:ev=>{if(!ev.currentTarget.classList.contains('tenue')||!fueraDeControles(ev)||suppressClick||!p.chords.length)return;ev.stopPropagation();irA('acorde',{p:pi,c:0});}},
       rackHead(s,p,pi),
       h('p',{class:'mu sm hint'},multiMode&&nivel==='acorde'?'Toca los acordes que quieras elegir.':'Toca un acorde para elegirlo y editarlo abajo. Mantén presionado para moverlo.'),strip));
   }
@@ -1242,6 +1248,7 @@ function vEdit(m){
   // ④ El panel del nivel elegido: canción, frase, acorde o nota (destacado; si trabajas en la Forma, más clarito)
   const pnl=nivel==='cancion'?songCard:nivel==='frase'?phraseEditor(s,p,pi):chordEditor(s);
   pnl.classList.add(lastFocus==='form'?'tenue':'activo');
+  if(lastFocus==='form')pnl.addEventListener('click',ev=>elegirPanel(ev,pnl,()=>{lastFocus=nivel==='acorde'||nivel==='nota'?'chords':'phrase';renderAll();}));
   if(nivel==='nota'){const np=notaPanel(s,p&&p.chords[edSel.c]);if(np){np.classList.add('activo');m.append(np);}pnl.classList.remove('activo');}
   m.append(pnl);
 }
@@ -2109,6 +2116,8 @@ window.addEventListener('beforeunload',e=>{if(pendingUp){e.preventDefault();e.re
 
 // Al entrar: anteojos "like a boss" en el pato de la barra
 setTimeout(()=>{const d=$('#hduck');if(d&&!matchMedia('(prefers-reduced-motion: reduce)').matches)d.classList.add('boss');},500);
+// …y de vez en cuando, al azar, le vuelven a caer los anteojos (y después se los saca)
+(function anteojos(){setTimeout(()=>{const d=$('#hduck');if(d&&!document.hidden&&!matchMedia('(prefers-reduced-motion: reduce)').matches){d.classList.remove('boss');void d.offsetWidth;d.classList.add('boss');}anteojos();},40000+Math.random()*80000);})();
 // El pato de la esquina guiña de vez en cuando, al azar
 (function winkLoop(){setTimeout(()=>{const a=$('#hdA'),b=$('#hdB');if(a&&b&&!matchMedia('(prefers-reduced-motion: reduce)').matches){a.hidden=true;b.hidden=false;setTimeout(()=>{a.hidden=false;b.hidden=true;},320);}winkLoop();},15000+Math.random()*45000);})();
 
