@@ -548,7 +548,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.02-0109';
+const QM_VERSION='2026.10.02-0112';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1857,7 +1857,8 @@ function prev(){if(S.sep&&S.sp>0){S.sp--;return;}if(S.sep){const E=m.sets[S.set]
     if(!p&&E&&S.se>0&&E[S.se-1].k!==0){S.se--;S.sep=1;S.sp=Math.max(0,(E[S.se].notas||[]).length-1);S.c=-1;}else set(p);}}
 function load(i,tr=0){S.sep=0;if(!m.songs.length)return;S.s=Math.max(0,Math.min(i,m.songs.length-1));S.tr=tr;S.st=0;S.r=0;S.c=-1;}
 function songStep(d){if(S.set<255&&m.sets[S.set]){const E=m.sets[S.set].entries;let i=S.se+d;while(i>=0&&i<E.length&&E[i].k!==0)i+=d;if(i>=0&&i<E.length){S.se=i;load(E[i].s,E[i].t);}}else load(S.s+d);}
-function enterSet(i){if(!m.sets[i]){S.set=255;return;}S.set=i;const E=m.sets[i].entries;const j=E.findIndex(e=>e.k===0);if(j>=0){S.se=j;load(E[j].s,E[j].t);}}
+function enterSet(i){if(!m.sets[i]){S.set=255;return;}S.set=i;const E=m.sets[i].entries;if(E[0]&&E[0].k!==0){S.se=0;S.sep=1;S.sp=0;S.c=-1;return;}   // empieza con un intermedio
+  const j=E.findIndex(e=>e.k===0);if(j>=0){S.se=j;load(E[j].s,E[j].t);}}
 function status(){if(blob!==S._ult){S._ult=blob;S._t=Date.now();}else if(flash!==blob&&Date.now()-S._t>4000){flash=blob;persist();}   // guardado automático (como el Arduino)
   const s=song();let end=0;if(s&&S.c>=0&&!s.repeat&&!nextPos(S.st,S.r,S.c))end=1;
   return{bv:S.bv,s:S.s,st:S.st,r:S.r,c:S.c,end,bpm:bpmNow(),thru:S.thru,dirty:+(blob.length!==flash.length||blob.some((x,i)=>x!==flash[i])),mem:blob.length,max:8112,
