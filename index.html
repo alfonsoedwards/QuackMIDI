@@ -706,7 +706,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.03-1330';
+const QM_VERSION='2026.10.03-1523';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -783,7 +783,11 @@ const cmd=(x,a,extra='')=>((x==='stop'||x==='mute'||x==='restart')&&(synthStop()
 
 // Las letras no van al Arduino: al releer sus datos se conservan las que ya tenemos (lo más nuevo es lo que está en pantalla)
 async function loadBlob(){const r=await api('/api/blob');const b=new Uint8Array(await r.arrayBuffer());if(M)lyrDoc=collectLyrics();M=dec(b);const mig=dec.migro;attachLyrics();knownBv=+(r.headers.get('X-Bv')||0);
-  if(mig){changed(false);toast('Canciones actualizadas: ahora cada acorde suena siempre igual, vengas de donde vengas');}}
+  if(mig){sinFechaNueva();changed(false);toast('Canciones actualizadas: ahora cada acorde suena siempre igual, vengas de donde vengas');}}
+// La conversión (migrarH2) no es una edición: no les pone fecha nueva a las canciones (si no, la copia de un dispositivo
+// viejo -por ejemplo con las canciones de ejemplo- les "gana" a las de verdad al sincronizar). Cada dispositivo convierte igual.
+function sinFechaNueva(){if(!window.APPMODE||!M)return;const m=syncMeta();if(!m.hash)return;
+  for(const so of M.songs)if(m.hash[so.id]!=null)m.hash[so.id]=hash(so);m.settingsHash=hash(M.settings);setSyncMeta(m);}
 
 let upTimer=null,upRetry=0;
 function changed(render=true){try{trackChanges();}catch(e){}revisarBasesPronto();pendingUp=true;upRetry=0;clearTimeout(upTimer);upTimer=setTimeout(upload,350);saveLyricsSoon();if(render)renderAll();updPill();}
@@ -2247,8 +2251,10 @@ function mergeWith(R){const m=initMeta(),L={};M.songs.forEach(x=>L[x.id]=x);
   for(const[k,v]of Object.entries(m.deleted||{}))del[k]=Math.max(sane(v),sane(del[k]));
   const out={},times={},conflicts=[];
   for(const id of new Set([...Object.keys(L),...Object.keys(Rs)].map(Number))){
-    const l=L[id],r=Rs[id],tl=sane(m.t[id]),tr=r?sane(r._t):0;
-    let win=l,t=tl;if(!l||(r&&tr>tl)){win=r;t=tr;}
+    // Las canciones de ejemplo de un dispositivo nunca les ganan a las de Drive (ni vuelven si se borraron): tienen los
+    // mismos números que pueden tener tus canciones (así se perdió "Antes de las 6" el 2026-10-03)
+    const l=L[id],r=Rs[id],demo=!!l&&/^Demo: /.test(l.name),tl=demo?0:sane(m.t[id]),tr=r?sane(r._t):0;
+    let win=l,t=tl;if(!l||(r&&(tr>tl||demo))){win=r;t=tr;}
     if(sane(del[id])>t)continue;                             // borrada después de su último cambio
     if(l&&r&&tl>(m.lastSync||0)&&tr>(m.lastSync||0)&&hash(l)!==hash(strip(r)))conflicts.push(win.name);
     out[id]=strip(win);times[id]=t;}
