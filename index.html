@@ -623,7 +623,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   if(i!==b.length)throw Error('sobran bytes');return{settings:S,songs,sets};}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.02-2252';
+const QM_VERSION='2026.10.02-2325';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -758,8 +758,9 @@ async function tick(){let wait=perfOn?200:400;
       else synthStop();
       lastIt=it;lastSongIdx=s.s;}
     if(M&&window.SIM&&usarStudio()&&pos!==lastPosStudio)tocarEnStudio(s,pos);
-    const sig=[s.s,s.st,s.r,s.c,s.set,s.se,s.sep,s.sp,s.thru,s.warn,s.cap,s.end,s.dirty].join();
+    const sig=[s.s,s.st,s.r,s.c,s.set,s.se,s.sep,s.sp,s.thru,s.warn,s.cap,s.end,s.dirty,s.bt].join();
     if(sig!==lastSig||!was){lastSig=sig;renderLive();}
+    if(s.bt!==tick.bt){tick.bt=s.bt;if(tab==='cfg'&&!document.activeElement.matches('input,textarea,select'))renderAll();}   // el pedal se conectó o se desconectó
     if(perfOn)renderPerf();
   }catch(e){online=false;wait=1200;}
   updPill();return wait;}
@@ -790,8 +791,10 @@ async function puenteMidi(){
   try{PUENTE.acc=await navigator.requestMIDIAccess();}catch(e){puenteTxt('Chrome no dio permiso para usar MIDI: '+(e.message||e));return;}
   const enganchar=()=>{const ins=[...PUENTE.acc.inputs.values()];
     for(const i of ins)i.onmidimessage=ev=>{const[s,d1=0,d2=0]=ev.data;if(s<0x80||s>=0xF0)return;   // sin reloj ni sysex
-      PUENTE.n++;puenteTxt(`Conectado a: ${ins.map(x=>x.name).join(', ')}. Último mensaje: ${s.toString(16).toUpperCase()} ${d1} ${d2} (${PUENTE.n} recibidos)`);
-      PUENTE.cola=PUENTE.cola.then(()=>api(`/api/c?x=mi&s=${s}&d=${d1}&e=${d2}`,{timeout:1500}).catch(()=>{}));};   // en orden (pisar antes que soltar)
+      PUENTE.n++;const t0=performance.now(),eventoMs=Math.max(0,Math.round(t0-(ev.timeStamp||t0)));
+      PUENTE.cola=PUENTE.cola.then(()=>{const t1=performance.now();return api(`/api/c?x=mi&s=${s}&d=${d1}&e=${d2}`,{timeout:1500}).then(()=>{
+        const ms=Math.round(performance.now()-t1),esp=Math.round(t1-t0);PUENTE.ms=(PUENTE.ms||[]).concat(ms).slice(-20);const prom=Math.round(PUENTE.ms.reduce((a,b)=>a+b,0)/PUENTE.ms.length);
+        puenteTxt(`Conectado a: ${ins.map(x=>x.name).join(', ')}. Último: ${s.toString(16).toUpperCase()} ${d1} ${d2} (${PUENTE.n} recibidos). Envío al Arduino: ${ms} ms (promedio ${prom} ms)`+(esp>5?`, esperó ${esp} ms en la cola`:''));}).catch(()=>{});});};   // en orden (pisar antes que soltar)
     puenteTxt(ins.length?'Escuchando: '+ins.map(x=>x.name).join(', ')+'. Pisa un switch para probar.':'No veo ningún aparato MIDI. Empareja el pedal (por ejemplo con "MIDI BLE Connect") y vuelve a esta página.');};
   PUENTE.acc.onstatechange=enganchar;enganchar();}
 setTimeout(()=>{if(prefs.bleMidi)puenteMidi();},1500);
@@ -1875,8 +1878,11 @@ function vCfg(m0){const S=M.settings;const m=h('div');
     h('button',{class:'ac',onclick:()=>learn(k)},'Aprender'))));
   m.append(h('div',{class:'card'},h('h2',null,'Switches del Ampero'),h('p',{class:'mu sm',style:'margin-top:0'},'Pon los 4 switches en modo momentáneo (mandan un valor al pisar y otro al soltar). Toca "Aprender" y pisa el switch.'),tt,
     h('div',{class:'row',style:'margin-top:10px'},knob({label:'Mantener (ms)',value:S.longMs,min:300,max:2000,step:50,onInput:v=>edit(()=>S.longMs=v,false)}),h('span',{class:'mu sm grow'},'Tiempo que hay que mantener pisado el switch 3 o 4 para silenciar o reiniciar.'))));
-  m.append(h('div',{class:'card'},h('h2',null,'Pedal por Bluetooth (provisorio)'),
-    h('p',{class:'mu sm',style:'margin-top:0'},'Si el pedal está emparejado con esta tablet (por ejemplo con "MIDI BLE Connect"), esta página recibe sus pisadas y se las pasa al Arduino como si llegaran por el cable. Deja esta página abierta mientras tocas. Es provisorio: por cable es más rápido y no depende de la tablet.'),
+  m.append(h('div',{class:'card'},h('h2',null,'Pedal por Bluetooth'),
+    h('p',{style:'margin-top:0;font-weight:800'},st.bt===2?'✓ El Arduino está conectado al pedal "'+(st.btn||'pedal')+'" por Bluetooth.':st.bt===1?'El Arduino está buscando el pedal por Bluetooth… (el pedal no puede estar conectado a otro aparato, como esta tablet; si no aparece, ponlo en modo pareo: mantén pisados el 2 y el 3).':'El Bluetooth del Arduino no está activo.'),
+    h('p',{class:'mu sm'},'El Arduino se conecta solo al pedal y recibe sus pisadas directamente, sin pasar por la tablet. Si el pedal manda lo mismo por cable y por Bluetooth, cuenta una sola vez.'),
+    h('h3',null,'Alternativa: a través de esta tablet'),
+    h('p',{class:'mu sm',style:'margin-top:0'},'Solo si el Arduino no logra conectarse al pedal: con el pedal emparejado a esta tablet (por ejemplo con "MIDI BLE Connect"), esta página le pasa sus pisadas al Arduino. Tiene más retraso y depende de que la página quede abierta.'),
     srow('Usar el pedal por Bluetooth','',toggle('',!!prefs.bleMidi,v=>{prefs.bleMidi=v;savePrefs();puenteMidi();renderAll();})),
     h('p',{class:'sm',id:'bleEstado',style:'margin:6px 0 0'},PUENTE.txt)));
   m.append(h('div',{class:'card'},h('h2',null,'MIDI'),h('div',{class:'row',style:'gap:16px'},
