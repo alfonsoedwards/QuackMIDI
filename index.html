@@ -706,7 +706,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.03-1325';
+const QM_VERSION='2026.10.03-1330';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -767,7 +767,8 @@ tab='home';   // siempre se abre en Inicio (la portada); el editor y los ajustes
 /* ---------- Explorador: canciones y presentaciones como carpetas ----------
    nivel = lo que estás editando: 'cancion' > 'frase' > 'acorde' > 'nota', o 'show' > 'entrada' (una presentación y lo que tiene adentro) */
 let nivel=['cancion','frase','acorde','nota','show','entrada'].includes(uiSaved.nivel)?uiSaved.nivel:(uiSaved.tab==='sets'?'show':'acorde'),notaSel=uiSaved.notaSel??null,entSel=uiSaved.entSel??-1,multiX=new Set();
-let navOpen=new Set();try{navOpen=new Set(JSON.parse(localStorage.getItem('qm_nav')||'[]'));}catch(e){}
+// El explorador parte cerrado: solo se abre el camino hasta lo elegido (al subir de nivel, lo más profundo se cierra)
+let navOpen=new Set();
 let edSong=0,edSel={p:0,c:0},multi=new Set(),multiMode=false;
 let clip=null;       // {kind:'chords'|'phrase', data} (se recuerda aunque cierres la app)
 try{clip=JSON.parse(localStorage.getItem('qm_clip')||'null');}catch(e){}
@@ -1070,7 +1071,7 @@ const esCancion=()=>['cancion','frase','acorde','nota'].includes(nivel);
 // Tocar un panel clarito (fuera de sus botones y elementos) lo elige: se destaca y queda elegido su primer elemento (o el que ya estaba)
 const fueraDeControles=ev=>!ev.target.closest('button,input,select,textarea,label,a,.chip,.pt,.cc,.knob,.piano,.vlane,.sec,.seg,.tg');
 function elegirPanel(ev,el,fn){if(!el.classList.contains('tenue')&&!el.querySelector(':scope>.tenue'))return;if(!fueraDeControles(ev)||suppressClick)return;ev.stopPropagation();fn();}
-const saveNav=()=>{try{localStorage.setItem('qm_nav',JSON.stringify([...navOpen]));}catch(e){}};
+const saveNav=()=>{};
 // Elegir un nivel (desde el explorador, la ruta o el editor). o: {s, p, c, n, set, e}
 function irA(n,o={}){tab='edit';nivel=n;
   if(o.s!=null&&o.s!==edSong){edSong=o.s;fSel=0;fFin=null;}
@@ -1081,7 +1082,8 @@ function irA(n,o={}){tab='edit';nivel=n;
   if(!o.keep){multiX.clear();multi.clear();multiMode=false;fVarios=false;fFin=null;}
   lastFocus=n==='acorde'||n==='nota'?'chords':'phrase';
   const s=M.songs[edSong];
-  if(esCancion()&&s){navOpen.add('s'+s.id);if(n!=='cancion')navOpen.add('p'+s.id+'.'+edSel.p);if(n==='nota')navOpen.add('c'+s.id+'.'+edSel.p+'.'+edSel.c);}
+  navOpen.clear();                                  // abierto: solo el camino hasta lo elegido (lo elegido, abierto)
+  if(esCancion()&&s){navOpen.add('s'+s.id);if(n!=='cancion')navOpen.add('p'+s.id+'.'+edSel.p);if(n==='acorde'||n==='nota')navOpen.add('c'+s.id+'.'+edSel.p+'.'+edSel.c);}
   if((n==='entrada'||n==='show')&&M.sets[editSet])navOpen.add('t'+editSet);
   saveNav();document.body.classList.remove('navon');renderAll();
   if(n==='frase'||n==='acorde'||n==='nota')setTimeout(()=>{const x=document.querySelector(n==='frase'?'#peditor':'#ceditor');if(x&&x.getBoundingClientRect().top>innerHeight*.85)x.scrollIntoView({block:'start',behavior:'smooth'});},30);}
