@@ -714,7 +714,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.04-1251';
+const QM_VERSION='2026.10.04-1316';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1486,7 +1486,7 @@ function phraseEditor(s,p,pi){const card=h('div',{class:'card',id:'peditor'});if
   else card.append(h('p',{class:'mu sm'},'El sonido y los parámetros del Mininova se eligen de a una frase.'));
   if(!many){const fd=p.fade||{};
     card.append(sec('f:fade','tempo','Fade',[fd.in?'entra en '+tUn(fd.in.d,fd.in.b):null,fd.out?'sale en '+tUn(fd.out.d,fd.out.b):null].filter(Boolean).join(' · ')||'Sin fade',()=>[
-      h('p',{class:'mu sm',style:'margin:8px 0 0'},'Sube o baja el volumen del Mininova con su control Expression: el sonido no cambia, solo su volumen. El fade in empieza en el primer acorde de la frase; el fade out, en su último acorde con notas (si la frase se repite, en la última vuelta). Fuera de los fades, el volumen está siempre pleno.'),
+      h('p',{class:'mu sm',style:'margin:8px 0 0'},'Sube o baja el volumen del sonido moviendo juntos los niveles de su mezclador (osciladores, ring mod y ruido), desde 0 hasta como vienen en el sonido: el timbre no cambia. Quack Studio lee esos niveles del sonido guardado en el slot. El fade in empieza en el primer acorde de la frase; el fade out, en su último acorde con notas (si la frase se repite, en la última vuelta). Fuera de los fades, el volumen está siempre pleno.'),
       fadeFila(s,p,'in','Fade in','El volumen parte en 0 y sube hasta pleno en este tiempo.'),
       fadeFila(s,p,'out','Fade out','El volumen baja hasta 0 en este tiempo.')]));}
   return card;}
@@ -1719,7 +1719,7 @@ function pasoStudio(so,c,p,{ligado=false,trans=0,tr=0,modo='latch',notasBase=nul
   const ctlsFrase=ctlsDe(d,c),mnFrase=mnDe(d,c);
   return{cancion:so.id,slot:slotDe(snd),voz:so.voice!=null?so.voice:null,bendRange:so.bendRange||0,ctlCancion:so.ctl||{},
     notas:c.notes.map(n=>n+tr),vel:c.vel!=null?c.vel:so.vel,nv:nvShift(c,tr),ligado,trans,glide,bend:c.bend||0,modo,notasBase,
-    ctls:[...ctlsFrase,...ctlsDe(c)],mn:[...mnFrase,...mnDe(c)],ctlsFrase,mnFrase,mnCancion:so.mn||[],base:basesDe(so,p),expr};}
+    ctls:[...ctlsFrase,...ctlsDe(c)],mn:[...mnFrase,...mnDe(c)],ctlsFrase,mnFrase,mnCancion:!(p&&p.sound)||(so.sendPC&&p.sound.bank===(so.bank||0)&&p.sound.pc===so.pc)?so.mn||[]:[],base:basesDe(so,p),expr};}   /* (con otro sonido, los de la canción no valen) */
 // El volumen (fade) en un lugar de la canción, como lo hace el Arduino: {de, a, ms} o {a}; null en un silencio (no se toca)
 function exprEn(so,it){const p=so.phrases[it.p],c=p&&p.chords[it.ci];if(!c||!c.notes.length)return null;const fd=p.fade||{},F=formOf(so),reps=(F[it.st]&&F[it.st].r)||1;
   const ult=Math.max(-1,...p.chords.map((x,k)=>x.notes.length?k:-1)),bpm=c.bpm||(p.def&&p.def.bpm)||so.bpm||120,ms=x=>Math.round(x.b?x.d*60000/bpm:x.d*1000);
@@ -1887,8 +1887,10 @@ const abDe=k=>k[0]==='k'?[255,CTRL[+k.slice(1)][1]]:k.split(':').map(Number);
 // canción; {bank, pc} = las que tienen ese sonido propio. (La modulación nunca: si la canción no la fija, parte en 0.)
 function mnTocados(s,snd){const fij=new Set([...kvAj(s).keys()].map(k=>abDe(k).join(':'))),o=new Map();
   for(const p of s.phrases){if(snd!==undefined){const ps=p.sound||null;if(snd===null?ps:!(ps&&ps.bank===snd.bank&&ps.pc===snd.pc))continue;}
-    for(const c of [...p.chords,p.def||{}])for(const k of kvAj(c).keys()){const ab=abDe(k),kk=ab.join(':');if(kk==='255:1'||fij.has(kk))continue;o.set(kk,ab);}}
+    for(const c of [...p.chords,p.def||{}])for(const k of kvAj(c).keys()){const ab=abDe(k),kk=ab.join(':');if(kk==='255:1'||fij.has(kk))continue;o.set(kk,ab);}
+    if(p.fade&&(p.fade.in||p.fade.out))for(const x of FADE_CC)if(!fij.has('255:'+x))o.set('255:'+x,[255,x]);}   // los fades: los niveles del mezclador
   return[...o.values()];}
+const FADE_CC=[51,52,53,54,55,56];   /* osciladores 1-3, ring mod y ruido: el Mininova no tiene volumen por MIDI */
 const slotCancion=s=>s.sendPC?slotDe({bank:s.bank||0,pc:s.pc}):null;
 const sonidosFrase=s=>{const o=[];for(const p of s.phrases)if(p.sound&&p.sound.bank&&!o.some(x=>x.bank===p.sound.bank&&x.pc===p.sound.pc))o.push({bank:p.sound.bank,pc:p.sound.pc});return o;};
 function baseFaltan(s){const f=[],tiene=(l,a,b)=>(l||[]).some(e=>e[0]===a&&e[1]===b),add=(a,b)=>{if(!f.some(x=>x[0]===a&&x[1]===b))f.push([a,b]);};
