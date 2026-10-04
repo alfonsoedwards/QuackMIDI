@@ -708,7 +708,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.03-2243';
+const QM_VERSION='2026.10.03-2257';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -722,7 +722,7 @@ applyTheme();
    El tono simple: al editar es corto (se apaga solo en ~2 s); en vivo suena hasta el siguiente acorde y respeta Ligado y Mantener. */
 let actx=null;let voices=[];   // {note,o,g,until}
 let synthFade=false;
-const conArduino=()=>online&&!window.APPMODE&&!window.SIM;
+const conArduino=()=>online&&(window.ARD||!window.APPMODE&&!window.SIM);   // ARD: la app instalada encontró al Arduino
 const sndOn=()=>!prefs.mute&&!(typeof usarStudio==='function'&&(conArduino()||usarStudio()));
 const hz=n=>440*Math.pow(2,(n-69)/12);
 function relVoice(v,t){try{v.g.gain.cancelScheduledValues(t);v.g.gain.setValueAtTime(v.g.gain.value,t);v.g.gain.linearRampToValueAtTime(0,t+.08);v.o.stop(t+.1);}catch(e){}}
@@ -823,7 +823,7 @@ async function saveLyrics(){if(!M)return;lyrDoc=collectLyrics();const txt=JSON.s
 /* ---------- Indicador de estado ---------- */
 function updPill(){const p=$('#pill');let c='',t='Guardado';
   if(!online){c='off';t='Sin conexión';}else if(lastErr){c='er';t='Error';}else if(st.fe){c='er';t='No se guardó en el Arduino';}else if(pendingUp||st.dirty){c='un';t=conArduino()?'Guardando en el Arduino…':'Guardando…';}else if(conArduino())t='Guardado en el Arduino';
-  if(window.APPMODE&&online&&!lastErr){c=pendingUp?'un':'';t=pendingUp?'Guardando…':'Guardado en la tablet';}
+  if(window.APPMODE&&!window.ARD&&online&&!lastErr){c=pendingUp?'un':'';t=pendingUp?'Guardando…':'Guardado en la tablet';}
   p.className='pill '+c;p.lastChild.textContent=t;p.title=lastErr||'';
   // Barra de carga: cuánto falta para que el Arduino guarde en su memoria (se guarda 20 s después del último cambio)
   const sb=$('#savebar');if(sb){const on=conArduino()&&!st.fe&&(pendingUp||st.dirty);
@@ -895,7 +895,7 @@ async function puenteMidi(){
 setTimeout(()=>{if(prefs.bleMidi)puenteMidi();},1500);
 
 /* ---------- Utilidades de UI ---------- */
-function toast(m){const t=h('div',{class:'toast'},m);document.body.append(t);setTimeout(()=>t.remove(),2600);}
+function toast(m,ms=2600){const t=h('div',{class:'toast'},m);document.body.append(t);setTimeout(()=>t.remove(),ms);}
 function modal(title,body,btns=[['Cerrar']]){const bx=h('div',{class:'box'},h('h2',null,title),body,h('div',{class:'row',style:'justify-content:flex-end;margin-top:14px'},btns.map(([t,fn,cl])=>h('button',{class:cl||'',onclick:()=>{if(!fn||fn()!==false)m.remove();}},t))));const m=h('div',{class:'modal',onclick:e=>{if(e.target===m)m.remove();}},bx);document.body.append(m);return m;}
 function toggle(label,val,fn){return h('label',{class:'tg'},h('input',{type:'checkbox',checked:val,onchange:e=>fn(e.target.checked)}),h('span',{class:'sw'}),label);}
 function seg(opts,val,fn){return h('div',{class:'seg'},opts.map(([v,t])=>h('button',{class:v===val?'on':'',onclick:()=>fn(v)},t)));}
@@ -2423,7 +2423,46 @@ function cmd(q){const x=q.get('x'),a=q.has('a')?+q.get('a'):null;
   return{ok:1};}
 const J=o=>new Response(JSON.stringify(o),{headers:{'Content-Type':'application/json'}});
 const realFetch=window.fetch.bind(window);
+/* ===== El Arduino de verdad (en la app instalada): si la tablet está en su red, la app le habla directo =====
+   Necesita en Chrome la opción "Insecure origins treated as secure" con http://192.168.4.1 (la misma del pedal).
+   Al encontrarlo: si tiene canciones distintas, se le mandan las de la app (sus ajustes propios -switches, red- se quedan)
+   y se avisa. Mientras está conectado, todo va al Arduino y la copia de la app se mantiene al día. Si se pierde, la app
+   sigue sola con su copia. */
+const ARD_URL='http://192.168.4.1';
+window.ARD=false;let ardFallas=0,ardBuscando=false;
+const ardFetch=(path,opt={},ms=0)=>{const o=Object.assign({},opt,{mode:'cors',targetAddressSpace:'local'});
+  if(ms&&!o.signal){const c=new AbortController();setTimeout(()=>c.abort(),ms);o.signal=c.signal;}return realFetch(ARD_URL+path,o);};
+function pedCmd(x){if(window.ARD)ardFetch('/api/c?x='+x).catch(()=>{});else cmd(new URLSearchParams('x='+x));}
+function espejo(b){blob=b.slice();flash=b.slice();m=dec(blob);persist();}   // la copia de la app, igual a lo que hay en el Arduino
+async function buscarArduino(){
+  if(!window.APPMODE||window.ARD||ardBuscando||typeof M==='undefined'||!M)return;ardBuscando=true;let hallado=false;
+  try{
+    const r=await ardFetch('/api/s',{cache:'no-store'},1500);if(!r.ok)throw 0;await r.json();hallado=true;
+    const ab=new Uint8Array(await (await ardFetch('/api/blob',{cache:'no-store'},4000)).arrayBuffer());
+    const am=dec(ab);
+    // las canciones de la app, con los ajustes propios del Arduino
+    let nb=enc({settings:Object.assign({},am.settings,{h2:true}),songs:M.songs,sets:M.sets});
+    const igual=nb.length===ab.length&&nb.every((x,i)=>x===ab[i]);
+    const soloDemos=!M.songs.some(x=>!/^Demo: /.test(x.name)),arduinoReal=am.songs.some(x=>!/^Demo: /.test(x.name));
+    if(igual)toast('Conectado al Arduino: tiene las mismas canciones que la app.');
+    else if(soloDemos&&arduinoReal){nb=ab;toast('Conectado al Arduino. Esta app solo tenía las canciones de ejemplo: traje las del Arduino ('+am.songs.length+' canciones).',6000);}
+    else{
+      // lo que tenía el Arduino queda como copia (Ajustes → Copias automáticas), por si acaso
+      try{const a=getSnaps();a.unshift({t:Date.now(),b:b64(ab),n:am.songs.length,ly:collectLyrics(),ard:1});localStorage.setItem(SNAP_KEY,JSON.stringify(a.slice(0,20)));}catch(e){}
+      const r2=await ardFetch('/api/blob',{method:'POST',body:nb,headers:{'Content-Type':'application/octet-stream'}},8000);const j=await r2.json();
+      if(!j.ok)throw Error(j.e||'el Arduino no las aceptó');
+      toast('Conectado al Arduino. Le mandé las canciones de la app ('+M.songs.length+' canciones'+(M.sets.length?' y '+M.sets.length+(M.sets.length===1?' presentación':' presentaciones'):'')+'); sus switches y su red quedaron igual. Lo que tenía quedó como copia en Ajustes.',7000);}
+    espejo(nb);window.ARD=true;ardFallas=0;knownBv=-1;window.qmTick&&window.qmTick();   // (knownBv=-1: releer del Arduino)
+  }catch(e){if(hallado)toast('Encontré el Arduino, pero no pude pasarle las canciones'+(e&&e.message?': '+e.message:'')+'. Lo intento de nuevo en unos segundos.',5000);}
+  finally{ardBuscando=false;}}
+if(window.APPMODE){setTimeout(buscarArduino,1200);setInterval(()=>{if(!window.ARD)buscarArduino();},6000);}
+function ardPerdido(){window.ARD=false;try{if(M)espejo(enc(M));}catch(e){}S.bv++;knownBv=-1;toast('Se perdió la conexión con el Arduino: sigues con la copia de la app.',5000);}
 window.fetch=async function(path,opt={}){
+  if(window.ARD&&typeof path==='string'&&path.startsWith('/api/')){
+    try{const r=await ardFetch(path,opt);ardFallas=0;
+      if(path.startsWith('/api/blob')&&(opt.method||'GET')==='POST'&&opt.body){try{espejo(new Uint8Array(opt.body));}catch(e){}}
+      return r;}
+    catch(e){if(path.startsWith('/api/s')&&++ardFallas>=3)ardPerdido();throw e;}}
   if(typeof path!=='string'||!path.startsWith('/api/'))return realFetch(path,opt);
   await new Promise(r=>setTimeout(r,15));
   const u=new URL(path,'http://x');const p=u.pathname,post=(opt.method||'GET')==='POST';
@@ -2445,9 +2484,9 @@ function pedal(){
   const box=d.querySelector('.sw');const lab=['◀ acorde','acorde ▶','◀ canción','canción ▶'];
   lab.forEach((t,k)=>{const b=document.createElement('button');b.innerHTML='<b>'+(k+1)+'</b><small>'+t+'</small>';let t0=0,timer=null,long=false;
     const down=e=>{e.preventDefault();b.classList.add('on');t0=Date.now();long=false;
-      if(k<2){cmd(new URLSearchParams('x='+(k?'next':'prev')));window.qmTick&&window.qmTick();}
-      else timer=setTimeout(()=>{long=true;cmd(new URLSearchParams('x='+(k===2?'mute':'restart')));window.synthStop&&synthStop();window.qmTick&&window.qmTick();toastSim(k===2?'Silenciado (mantuviste el 3)':'Canción reiniciada (mantuviste el 4)');},(m.settings.longMs||600));};
-    const up=()=>{if(!b.classList.contains('on'))return;b.classList.remove('on');clearTimeout(timer);if(k<2&&window.qmPedalUp)window.qmPedalUp(k);if(k>=2&&!long){cmd(new URLSearchParams('x='+(k===2?'sprev':'snext')));window.qmTick&&window.qmTick();}};
+      if(k<2){pedCmd(k?'next':'prev');window.qmTick&&window.qmTick();}
+      else timer=setTimeout(()=>{long=true;pedCmd(k===2?'mute':'restart');window.synthStop&&synthStop();window.qmTick&&window.qmTick();toastSim(k===2?'Silenciado (mantuviste el 3)':'Canción reiniciada (mantuviste el 4)');},(m.settings.longMs||600));};
+    const up=()=>{if(!b.classList.contains('on'))return;b.classList.remove('on');clearTimeout(timer);if(k<2&&window.qmPedalUp)window.qmPedalUp(k);if(k>=2&&!long){pedCmd(k===2?'sprev':'snext');window.qmTick&&window.qmTick();}};
     b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointerleave',up);b.addEventListener('pointercancel',up);
     box.append(b);});
   d.querySelector('.tgp').onclick=()=>d.classList.toggle('min');
