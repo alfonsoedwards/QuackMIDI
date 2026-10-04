@@ -716,7 +716,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.04-1327';
+const QM_VERSION='2026.10.04-1905';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1489,6 +1489,8 @@ function phraseEditor(s,p,pi){const card=h('div',{class:'card',id:'peditor'});if
   if(!many){const fd=p.fade||{};
     card.append(sec('f:fade','tempo','Fade',[fd.in?(fd.in.w?'tras '+tUn(fd.in.w,fd.in.b)+', ':'')+'entra en '+tUn(fd.in.d,fd.in.b):null,fd.out?(fd.out.w?'tras '+tUn(fd.out.w,fd.out.b)+', ':'')+'sale en '+tUn(fd.out.d,fd.out.b):null].filter(Boolean).join(' · ')||'Sin fade',()=>[
       h('p',{class:'mu sm',style:'margin:8px 0 0'},'Sube o baja el volumen del sonido (con un retardo antes de empezar, si quieres, y la forma que elijas) moviendo juntos los niveles de su mezclador (osciladores, ring mod y ruido), desde 0 hasta como vienen en el sonido: el timbre no cambia. Quack Studio lee esos niveles del sonido guardado en el slot. El fade in empieza en el primer acorde de la frase; el fade out, en su último acorde con notas (si la frase se repite, en la última vuelta). Fuera de los fades, el volumen está siempre pleno.'),
+      faltaNivel(s,p)?h('div',{class:'warnb'},ic('info'),h('div',{class:'grow'},h('b',null,'Todavía no sé los niveles de este sonido, así que el fade no se va a escuchar.'),
+        h('small',null,'Abre Quack MIDI en el PC con Quack Studio encendido: los lee solo, en unos segundos.'))):null,
       fadeFila(s,p,'in','Fade in','El volumen parte en 0 y sube hasta pleno en este tiempo.'),
       fadeFila(s,p,'out','Fade out','El volumen baja hasta 0 en este tiempo.')]));}
   return card;}
@@ -1906,7 +1908,9 @@ function mnTocados(s,snd){const fij=new Set([...kvAj(s).keys()].map(k=>abDe(k).j
     for(const c of [...p.chords,p.def||{}])for(const k of kvAj(c).keys()){const ab=abDe(k),kk=ab.join(':');if(kk==='255:1'||fij.has(kk))continue;o.set(kk,ab);}
     if(p.fade&&(p.fade.in||p.fade.out))for(const x of FADE_CC)if(!fij.has('255:'+x))o.set('255:'+x,[255,x]);}   // los fades: los niveles del mezclador
   return[...o.values()];}
-const FADE_CC=[51,52,53,54,55,56];   /* osciladores 1-3, ring mod y ruido: el Mininova no tiene volumen por MIDI */
+const FADE_CC=[51,52,53,54,55,56];
+function faltaNivel(s,p){if(!p.fade||!(p.fade.in||p.fade.out))return false;const l=p.sound?((s.sndBases||[]).find(y=>y.bank===p.sound.bank&&y.pc===p.sound.pc)||{}).v:s.base;
+  return FADE_CC.some(x=>!(l||[]).some(e=>e[0]===255&&e[1]===x)&&!(s.mn||[]).some(e=>e[0]===255&&e[1]===x));}   /* osciladores 1-3, ring mod y ruido: el Mininova no tiene volumen por MIDI */
 const slotCancion=s=>s.sendPC?slotDe({bank:s.bank||0,pc:s.pc}):null;
 const sonidosFrase=s=>{const o=[];for(const p of s.phrases)if(p.sound&&p.sound.bank&&!o.some(x=>x.bank===p.sound.bank&&x.pc===p.sound.pc))o.push({bank:p.sound.bank,pc:p.sound.pc});return o;};
 function baseFaltan(s){const f=[],tiene=(l,a,b)=>(l||[]).some(e=>e[0]===a&&e[1]===b),add=(a,b)=>{if(!f.some(x=>x[0]===a&&x[1]===b))f.push([a,b]);};
@@ -1917,11 +1921,12 @@ let baseTimer=null;
 function revisarBasesPronto(ms=1500){clearTimeout(baseTimer);baseTimer=setTimeout(revisarBases,ms);}
 async function revisarBases(){if(!M)return;let cambio=false;
   const pedir=async(slot,need,prev)=>{const keep=new Set(need.map(e=>e[0]+':'+e[1]));let nb=(prev||[]).filter(e=>keep.has(e[0]+':'+e[1]));
-    if(slot&&need.length&&STUDIO.ok){try{const r=await studio('quack/base',{slot,params:need});if(r&&r.ok)nb=r.valores;}catch(e){}}return nb;};
+    if(!STUDIO.ok)return prev||[];   /* sin Studio no se sabe nada nuevo: lo que había queda tal cual (así se perdieron los niveles del fade) */
+    if(slot&&need.length){try{const r=await studio('quack/base',{slot,params:need});if(r&&r.ok)nb=r.valores;}catch(e){}}return nb;};
   for(const id of M.songs.map(x=>x.id)){const s=M.songs.find(x=>x.id===id);if(!s)continue;
     const slot=slotCancion(s),firma=JSON.stringify([slot,sonidosFrase(s)]);
     const nb=slot?await pedir(slot,mnTocados(s,null),s.base):[];
-    const nsb=[];for(const x of sonidosFrase(s)){const need=mnTocados(s,x);if(!need.length)continue;
+    const nsb=[];for(const x of sonidosFrase(s)){const need=mnTocados(s,x);if(!need.length&&STUDIO.ok)continue;
       const v=await pedir(slotDe(x),need,((s.sndBases||[]).find(y=>y.bank===x.bank&&y.pc===x.pc)||{}).v);if(v.length)nsb.push({bank:x.bank,pc:x.pc,v});}
     const s2=M.songs.find(x=>x.id===id);if(!s2||JSON.stringify([slotCancion(s2),sonidosFrase(s2)])!==firma)continue;   // cambió mientras preguntaba
     if(JSON.stringify(nb)!==JSON.stringify(s2.base||[])){if(nb.length)s2.base=nb;else delete s2.base;cambio=true;}
@@ -2337,7 +2342,7 @@ function mergeWith(R){const m=initMeta(),L={};M.songs.forEach(x=>L[x.id]=x);
     let win=l,t=tl;if(!l||(r&&(tr>tl||demo))){win=r;t=tr;}
     if(sane(del[id])>t)continue;                             // borrada después de su último cambio
     if(l&&r&&tl>(m.lastSync||0)&&tr>(m.lastSync||0)&&hash(l)!==hash(strip(r)))conflicts.push(win.name);
-    out[id]=strip(win);times[id]=t;}
+    out[id]=strip(conservarBases(win,win===l?r:l));times[id]=t;}
   const localOrder=sane(m.orderT)>=sane(R.orderT);
   const order=[...(localOrder?M.songs.map(x=>x.id):(R.order||[])),...(localOrder?(R.order||[]):M.songs.map(x=>x.id))];
   const songs=[...new Set(order)].filter(id=>out[id]).map(id=>out[id]);
@@ -2353,6 +2358,14 @@ function mergeWith(R){const m=initMeta(),L={};M.songs.forEach(x=>L[x.id]=x);
   return{model:{settings,songs,sets},times,deleted:del,conflicts,
     orderT:Math.max(sane(m.orderT),sane(R.orderT)),setsT:Math.max(sane(m.setsT),sane(R.setsT)),settingsT:Math.max(sane(m.settingsT),sane(R.settingsT))};}
 const strip=x=>{const c=copy(x);delete c._t;return c;};
+/* Si gana una versión de la canción sin los niveles (bases) de un sonido que la otra sí tiene, se le pasan: solo Quack Studio
+   los sabe leer, y una tablet sin Studio no los puede recuperar */
+function conservarBases(win,otra){if(!win||!otra||win===otra)return win;let w=win;
+  if(!w.base&&otra.base&&w.sendPC&&otra.sendPC&&(w.bank||0)===(otra.bank||0)&&w.pc===otra.pc){w=Object.assign({},w,{base:copy(otra.base)});}
+  const usa=x=>w.phrases.some(p=>p.sound&&p.sound.bank===x.bank&&p.sound.pc===x.pc),tiene=x=>(w.sndBases||[]).some(y=>y.bank===x.bank&&y.pc===x.pc);
+  const falta=(otra.sndBases||[]).filter(x=>usa(x)&&!tiene(x));
+  if(falta.length)w=Object.assign({},w,{sndBases:[...(w.sndBases||[]),...copy(falta)]});
+  return w;}
 
 async function syncNow(interactive){if(!window.APPMODE||syncBusy||!M)return;
   if(!navigator.onLine&&!syncLocal()){syncState='offline';syncMsg='Sin internet: se sincroniza cuando vuelva la conexión.';updCloud();return;}
@@ -2526,6 +2539,7 @@ function mezclarArd(am,lm,B){const A={},L={};am.songs.forEach(x=>A[x.id]=x);lm.s
     if(a&&l){const ha=hCan(a),hl=hCan(l);
       if(ha===hl||hl===b)out[id]=a;else if(ha===b){out[id]=l;lleva.push(l.name);}
       else{out[id]=a;choques.push(a.name);}
+      out[id]=conservarBases(out[id],out[id]===a?l:a);   // (los niveles que sabe una y no la otra no se pierden)
       if(ha!==hl&&hl===b)trae.push(a.name);}
     else if(a){if(b===undefined||hCan(a)!==b){out[id]=a;if(b===undefined)trae.push(a.name);}}   // nueva en el Arduino (o la borraste acá pero allá cambió)
     else{if(b===undefined||hCan(l)!==b){out[id]=l;lleva.push(l.name);}}}                      // nueva en la app (si no, se borró en el Arduino)
