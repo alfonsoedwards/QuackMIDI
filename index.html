@@ -601,7 +601,8 @@ function ic(n,extra){const e=document.createElementNS('http://www.w3.org/2000/sv
 const NN=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const TYPES=[['',[0,4,7],'Mayor'],['m',[0,3,7],'menor'],['7',[0,4,7,10],'7'],['maj7',[0,4,7,11],'maj7'],['m7',[0,3,7,10],'m7'],['6',[0,4,7,9],'6'],['m6',[0,3,7,9],'m6'],['9',[0,4,7,10,14],'9'],['m9',[0,3,7,10,14],'m9'],['add9',[0,4,7,14],'add9'],['sus2',[0,2,7],'sus2'],['sus4',[0,5,7],'sus4'],['7sus4',[0,5,7,10],'7sus4'],['dim',[0,3,6],'dim'],['dim7',[0,3,6,9],'dim7'],['m7b5',[0,3,6,10],'m7♭5'],['aug',[0,4,8],'aug'],['mMaj7',[0,3,7,11],'m(maj7)'],['5',[0,7],'5 (power)']];
 const noteName=n=>NN[n%12]+(Math.floor(n/12)-1);
-const TRANS_OPTS=[[0,'Normal'],[1,'Legato'],[2,'Pitch bend']];
+const TRANS_OPTS=[[0,'Normal'],[1,'Legato'],[2,'Pitch bend'],[3,'Como el sonido']];
+const conDeslizar=t=>t===1||t===2;   // ("Como el sonido" no manda tiempo: lo decide el Mininova)
 function stepLabel(c,tr=0){if(c.trans===2)return '↗ '+((c.bend||0)>0?'+':'')+(c.bend||0);return chordName(c.notes,tr);}
 function chordName(notes,tr=0){
   if(!notes.length)return '—';
@@ -712,7 +713,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.04-1142';
+const QM_VERSION='2026.10.04-1231';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -871,7 +872,7 @@ function tocarEnStudio(s,pos){lastPosStudio=pos;const so=M.songs[s.s];if(!so){la
   const p=it?so.phrases[it.p]:null,snd=(p&&p.sound)||(so.sendPC?{bank:so.bank||0,pc:so.pc}:null),slot=slotDe(snd);
   if(!it){studio('quack/parar',{olvidar:true}).catch(()=>{});if(lastSongStudio!==s.s&&slot)studio('quack/elegir',{slot}).catch(()=>{});}
   else{const same=lastItStudio&&lastSongStudio===s.s,c=it.e,tie=same?(lastItStudio.e.tie!=null?lastItStudio.e.tie:so.tie):false;
-    let trans=c.trans!=null?c.trans:(so.trans||0);if(trans===1&&!same)trans=0;
+    let trans=c.trans!=null?c.trans:(so.trans||0);if((trans===1||trans===3)&&!same)trans=0;
     const nb=trans===2?bendBaseNotas(so,it.p,it.ci):null;if(trans===2&&!nb)trans=0;   // (bend sin nada antes: se toca normal)
     studio('quack/paso',pasoStudio(so,c,p,{ligado:!!tie,trans,tr:liveTr(),notasBase:nb&&nb.map(n=>n+liveTr())})).catch(()=>{});}
   lastItStudio=it;lastSongStudio=s.s;}
@@ -1376,12 +1377,12 @@ function vEdit(m){
     h('div',{class:'row',style:'margin-top:10px;gap:6px',title:'Mueve las notas de todos los acordes. Se puede deshacer con ↶.'},h('span',{class:'mu sm',style:'font-weight:800'},'Transponer'),
       [[-12,'Octava abajo'],[-1,'−1'],[1,'+1'],[12,'Octava arriba']].map(([d,txt])=>h('button',{onclick:()=>transponer(s,d)},txt))),
     h('p',{class:'mu sm',style:'margin:8px 0 0'},'Estos ajustes valen para todas las frases y acordes de la canción. Cada frase y cada acorde pueden tener los suyos (en su propio panel).'),
-    sec('s:toca','tempo','Cómo se toca',[`${s.bpm} BPM`,'velocity '+s.vel,s.hold?'Mantener':'Latch',TRANS_OPTS[s.trans||0][1]+(s.trans?' '+gl+' ms':''),s.tie?'ligado':null,s.repeat?'repite':null].filter(Boolean).join(' · '),()=>[
+    sec('s:toca','tempo','Cómo se toca',[`${s.bpm} BPM`,'velocity '+s.vel,s.hold?'Mantener':'Latch',TRANS_OPTS[s.trans||0][1]+(conDeslizar(s.trans)?' '+gl+' ms':''),s.tie?'ligado':null,s.repeat?'repite':null].filter(Boolean).join(' · '),()=>[
       srow('Tempo','Velocidad de la canción. También marca el MIDI Clock que recibe el MiniNova.',knob({label:'Tempo',value:s.bpm,min:20,max:300,onInput:v=>edit(()=>s.bpm=v)})),
       srow('Velocity','Qué tan fuerte suenan las notas (1 a 127).',knob({label:'Velocity',value:s.vel,min:1,max:127,onInput:v=>edit(()=>s.vel=v)})),
       srow('Sostén','Latch: el acorde suena hasta la próxima pisada. Mantener: suena solo mientras el pie está abajo.',seg([[false,'Latch'],[true,'Mantener']],s.hold,v=>edit(()=>s.hold=v))),
       srow('Transición',transExpl(s.trans||0,gl,2),seg(TRANS_OPTS.map(([v,t])=>[v,t]),s.trans||0,v=>edit(()=>{s.trans=v||undefined;if(v===2&&s.bendRange==null)s.bendRange=12;}))),
-      s.trans?srow('Deslizar (ms)','Cuánto tarda el paso de un acorde al otro. Cada acorde puede tener el suyo.',knob({label:'Deslizar',value:gl,min:0,max:2550,step:10,onInput:v=>edit(()=>s.glide=v)})):null,
+      conDeslizar(s.trans)?srow('Deslizar (ms)','Cuánto tarda el paso de un acorde al otro. Cada acorde puede tener el suyo.',knob({label:'Deslizar',value:gl,min:0,max:2550,step:10,onInput:v=>edit(()=>s.glide=v)})):null,
       srow('Ligado','Las notas que se repiten en el acorde siguiente siguen sonando sin volver a atacar.',toggle('',s.tie,v=>edit(()=>s.tie=v))),
       srow('Repetir desde el inicio','Al terminar la canción vuelve al primer acorde. Apagado: se queda al final.',toggle('',s.repeat,v=>edit(()=>s.repeat=v)))]),
     sec('s:sonido','piano','Sonido del Mininova',[s.sendPC?sndLabel({bank:s.bank||0,pc:s.pc}):'No cambia el sonido',s.voice!=null?['Mono','Mono AG','Poly'][s.voice]||'':null,s.bendRange!=null?'rueda ±'+s.bendRange:null,nPar(s)?nPar(s)+' parámetro'+(nPar(s)===1?'':'s'):null].filter(Boolean).join(' · '),()=>{
@@ -1753,7 +1754,7 @@ function irow(title,expl,sel,key,songTxt,songVal,control,de='la canción',cosa='
   const sw=toggle('Igual que '+de,!own,on=>edit(()=>{for(const c of sel){if(on)delete c[key];else if(c[key]==null)c[key]=songVal;}}));
   return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,title),h('small',null,expl),h('small',null,own?(mix?'Valores distintos en los elegidos.':'Propio de '+cosa+'.'):'Usa el de '+de+': '+songTxt+'.')),
     h('div',{class:'sc'},sw),own?h('div',{class:'own'},control(cur)):null);}
-const transExpl=(t,ms,bend)=>t===1?`Entra antes de soltar el anterior: el MiniNova desliza sin re-atacar, en ${ms} ms.`:t===2?`No toca notas nuevas: mueve la rueda de pitch ${bend>0?'+':''}${bend} semitonos en ${ms} ms.`:'Suelta el acorde anterior y toca este (con Ligado, las notas repetidas no se re-atacan).';
+const transExpl=(t,ms,bend)=>t===3?'Lo decide el sonido del Mininova: las notas nuevas entran antes de soltar las anteriores (para que pueda ligar) y no se le manda tiempo de deslizamiento: usa el modo de voz, el portamento y el glide que tenga guardados.':t===1?`Entra antes de soltar el anterior: el MiniNova desliza sin re-atacar, en ${ms} ms.`:t===2?`No toca notas nuevas: mueve la rueda de pitch ${bend>0?'+':''}${bend} semitonos en ${ms} ms.`:'Suelta el acorde anterior y toca este (con Ligado, las notas repetidas no se re-atacan).';
 
 let bRoot=0,bOct=4,bType=0,bInv=0,pianoBase=48,fSel=0,fFin=null,fVarios=false;
 function chordEditor(s){
@@ -1797,9 +1798,9 @@ function chordEditor(s){
         h('div',null,h('button',{onclick:()=>edit(()=>addVar(p))},ic('plus'),'Agregar variación'))));})()]));
   // 2. Cómo se toca (cómo llega desde el anterior, sostén, ligado, tempo y velocity)
   const trOwn=sel.some(c=>c.trans!=null),d=one?diffs(one):[...new Set(sel.flatMap(diffs))];
-  card.append(sec('c:toca','right','Cómo se toca',[TRANS_OPTS[rTr][1]+(rTr?' '+rGl+' ms':'')+(rTr===2?' '+(rBend>0?'+':'')+rBend+' st':''),...d].join(' · ')+(trOwn||d.length?'':' (como '+(defVacia(pd)?'la canción':'la frase')+')'),()=>[
+  card.append(sec('c:toca','right','Cómo se toca',[TRANS_OPTS[rTr][1]+(conDeslizar(rTr)?' '+rGl+' ms':'')+(rTr===2?' '+(rBend>0?'+':'')+rBend+' st':''),...d].join(' · ')+(trOwn||d.length?'':' (como '+(defVacia(pd)?'la canción':'la frase')+')'),()=>[
     irow('Transición',transExpl(rTr,rGl,rBend),sel,'trans',TRANS_OPTS[sTr][1],sTr,cur=>seg(TRANS_OPTS,cur,v=>edit(()=>{for(const c of sel){c.trans=v;if(v===2&&c.bend==null)c.bend=2;}if(v===2&&s.bendRange==null)s.bendRange=12;})),deK('trans')),
-    rTr?irow('Deslizar (ms)','Cuánto tarda el paso desde el acorde anterior.',sel,'glide',sGl+' ms',sGl,cur=>knob({label:'Deslizar',value:cur,min:0,max:2550,step:10,onInput:v=>edit(()=>{for(const c of sel)c.glide=v;})}),deK('glide')):null,
+    conDeslizar(rTr)?irow('Deslizar (ms)','Cuánto tarda el paso desde el acorde anterior.',sel,'glide',sGl+' ms',sGl,cur=>knob({label:'Deslizar',value:cur,min:0,max:2550,step:10,onInput:v=>edit(()=>{for(const c of sel)c.glide=v;})}),deK('glide')):null,
     rTr===2?srow('Pitch (semitonos)',`Hasta dónde mueve la rueda (rango ±${s.bendRange||12}). Vuelve al centro en el siguiente acorde que no sea Pitch bend.`,knob({label:'Pitch',value:rBend,min:-(s.bendRange||12),max:s.bendRange||12,onInput:v=>edit(()=>{for(const c of sel)c.bend=v;})})):null,
     irow('Sostén','Latch: suena hasta la próxima pisada. Mantener: solo mientras el pie está abajo.',sel,'hold',par('hold')?'Mantener':'Latch',!!par('hold'),cur=>seg([[false,'Latch'],[true,'Mantener']],cur,v=>edit(()=>{for(const c of sel)c.hold=v;})),deK('hold')),
     irow('Ligado al siguiente','Las notas que se repiten en el acorde siguiente no se vuelven a atacar.',sel,'tie',par('tie')?'sí':'no',!!par('tie'),cur=>seg([[false,'No'],[true,'Sí']],cur,v=>edit(()=>{for(const c of sel)c.tie=v;})),deK('tie')),
