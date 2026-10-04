@@ -417,8 +417,10 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
 .hdr .hstop{background:transparent;color:#fff;border:2px solid #ffffffb0;font-weight:900;display:inline-flex;gap:.35em;align-items:center;padding:.32em .8em;border-radius:99px;margin-left:.2em}
 .hdr .hstop .ic{width:18px;height:18px}.hdr .hhome.on{background:#ffffff40}
 .hdr .hhome{display:inline-flex;align-items:center;gap:.3em;font-weight:900}.hdr .hhome .tl{font-size:.9rem}
-@media (max-width:700px){.hdr .hhome .tl{display:none}}
-@media (max-width:560px){.hdr .hstop .tl{display:none}.hdr .hstop{padding:.32em .5em}}
+@media (max-width:1100px){.hdr .hhome .tl{display:none}}
+@media (max-width:900px){.hdr .pill>span{display:none}.hdr .gh{padding:.35em .4em}.hdr .hplay>span{display:none}.hdr .hplay{padding:.42em .62em}}   /* que el encabezado quepa entero en la tablet */
+html,body{overflow-x:clip}   /* nada empuja la página hacia el lado (se veía una franja calipso a la derecha y abajo) */
+@media (max-width:1100px){.hdr .hstop .tl{display:none}.hdr .hstop{padding:.32em .5em}}
 /* Inicio */
 body.home .shell{grid-template-columns:minmax(0,1fr);max-width:1100px}
 body.home .nav,body.home .tbar{display:none!important}
@@ -708,7 +710,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.03-2257';
+const QM_VERSION='2026.10.03-2302';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
