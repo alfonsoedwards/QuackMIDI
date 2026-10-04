@@ -716,7 +716,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.04-1905';
+const QM_VERSION='2026.10.04-2019';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -2561,10 +2561,11 @@ async function buscarArduino(){
     let nb=enc({settings:Object.assign({},am.settings,{h2:true}),songs:mz.songs,sets:mz.sets});
     const igualArd=nb.length===ab.length&&nb.every((x,i)=>x===ab[i]);
     const appCambia=hash(mz.songs.map(hCan))!==hash(M.songs.map(hCan))||hash(mz.sets)!==hash(M.sets);
-    if(appCambia){   // lo que tenía la app queda como copia (Ajustes → Copias automáticas), por si acaso
-      try{const a=getSnaps();a.unshift({t:Date.now(),b:b64(enc(M)),n:M.songs.length,ly:collectLyrics()});localStorage.setItem(SNAP_KEY,JSON.stringify(a.slice(0,20)));}catch(e){}}
+    // (una copia igual a una de las recientes no se repite: si el envío falla, se reintenta cada 6 s y llenaría las copias)
+    const copia=(b,n,ard)=>{try{const a=getSnaps(),x=b64(b);if(a.slice(0,6).some(y=>y.b===x))return;a.unshift(Object.assign({t:Date.now(),b:x,n,ly:collectLyrics()},ard?{ard:1}:{}));localStorage.setItem(SNAP_KEY,JSON.stringify(a.slice(0,20)));}catch(e){}};
+    if(appCambia)copia(enc(M),M.songs.length);   // lo que tenía la app queda como copia (Ajustes → Copias automáticas), por si acaso
     if(!igualArd){   // y lo que tenía el Arduino, también
-      try{const a=getSnaps();a.unshift({t:Date.now(),b:b64(ab),n:am.songs.length,ly:collectLyrics(),ard:1});localStorage.setItem(SNAP_KEY,JSON.stringify(a.slice(0,20)));}catch(e){}
+      copia(ab,am.songs.length,1);
       const r2=await ardFetch('/api/blob',{method:'POST',body:nb,headers:{'Content-Type':'application/octet-stream'}},8000);const j=await r2.json();
       if(!j.ok)throw Error(j.e||'el Arduino no las aceptó');
       try{await ardFetch('/api/save',{method:'POST'},8000);}catch(e){}}
