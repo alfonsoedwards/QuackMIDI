@@ -711,7 +711,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.03-2350';
+const QM_VERSION='2026.10.03-2359';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1267,6 +1267,10 @@ function vHome(m){const w=h('div',{class:'home-w'});m.append(w);
       USB&&!window.ARD?h('button',{title:'Mandarle al Arduino (conectado por USB a este PC) las canciones de la app',onclick:enviarUSB},ic('up'),'Enviar al Arduino'):null),
     h('div',{class:'hst'},h('span',null,...bt),USB&&!window.ARD?h('span',null,h('span',{class:'hdot on'}),'Arduino por USB ('+USB+')'):null,st.max?h('span',{title:'Memoria del Arduino para canciones y presentaciones'},'Memoria ',h('span',{class:'hmem'},h('i',{style:'width:'+mem+'%'})),' '+mem+' %'):null,
       st.dirty?h('span',null,'Guardando…'):null,st.thru?h('span',null,'MIDI Thru encendido'):null)));
+  // App recién instalada (o con los datos borrados): parte vacía; de dónde traer las canciones
+  if(window.APPMODE&&!M.songs.length)w.append(h('div',{class:'card'},h('h2',{style:'margin:0 0 6px'},'Trae tus canciones'),
+    h('p',{class:'mu',style:'margin:0 0 10px'},'Esta app todavía no tiene canciones. Se traen solas de Google Drive (la nube de arriba), o del Arduino al conectarte a su red WiFi.'),
+    h('div',{class:'hnowb'},h('button',{class:'hbig',onclick:()=>syncNow(true)},ic('cloud'),'Traer de Google Drive'))));
   // Para revisar: canciones que no pueden volver a como empiezan sin recargar el sonido
   const avisos=M.songs.map((x,i)=>({x,i,f:x.sendPC?baseFaltan(x).length:0,sin:!x.sendPC&&x.phrases.some(p=>p.sound)})).filter(a=>a.f||a.sin);
   if(avisos.length)w.append(h('div',{class:'hsec'},h('h2',null,'Para revisar')),h('div',{class:'hwarn'},avisos.map(a=>h('button',{onclick:()=>irA('cancion',{s:a.i})},ic('info'),
@@ -2404,7 +2408,7 @@ setTimeout(()=>{const d=$('#hduck');if(d&&!matchMedia('(prefers-reduced-motion: 
 /* ===== Arduino simulado (solo en esta versión de prueba) ===== */
 window.SIM=true;window.APPMODE=true;
 (function(){
-const DEMO=new Uint8Array([0, 5, 60, 0, 0, 80, 0, 0, 81, 0, 0, 82, 0, 0, 83, 10, 81, 117, 97, 99, 107, 32, 77, 73, 68, 73, 10, 113, 117, 97, 99, 107, 113, 117, 97, 99, 107, 5, 0, 4, 1, 0, 15, 68, 101, 109, 111, 58, 32, 73, 45, 86, 45, 118, 105, 45, 73, 86, 4, 100, 0, 100, 0, 1, 6, 86, 117, 101, 108, 116, 97, 0, 4, 3, 60, 64, 67, 3, 55, 59, 62, 3, 57, 60, 64, 3, 53, 57, 60, 1, 0, 1, 2, 0, 20, 68, 101, 109, 111, 58, 32, 69, 115, 116, 114, 111, 102, 97, 32, 121, 32, 99, 111, 114, 111, 0, 92, 0, 96, 0, 3, 7, 69, 115, 116, 114, 111, 102, 97, 0, 4, 3, 57, 60, 64, 3, 53, 57, 60, 3, 60, 64, 67, 3, 55, 59, 62, 4, 67, 111, 114, 111, 1, 4, 4, 53, 57, 60, 64, 3, 55, 59, 62, 3, 52, 55, 59, 12, 1, 57, 60, 64, 67, 5, 70, 105, 110, 97, 108, 2, 2, 4, 60, 64, 67, 71, 0, 5, 0, 2, 1, 1, 0, 1, 1, 2, 2, 1, 3, 0, 12, 68, 101, 109, 111, 58, 32, 76, 105, 103, 97, 100, 111, 2, 80, 0, 90, 0, 1, 5, 86, 111, 99, 101, 115, 3, 4, 4, 48, 55, 64, 71, 4, 48, 55, 64, 69, 4, 48, 55, 64, 67, 0, 1, 0, 1, 4, 0, 24, 68, 101, 109, 111, 58, 32, 77, 101, 108, 111, 100, 195, 173, 97, 32, 99, 111, 110, 32, 103, 108, 105, 100, 101, 64, 90, 0, 100, 0, 31, 1, 12, 1, 15, 2, 0, 0, 1, 60, 1, 8, 77, 101, 108, 111, 100, 195, 173, 97, 4, 6, 1, 67, 1, 69, 129, 2, 40, 72, 129, 23, 2, 80, 253, 2, 0, 64, 1, 110, 72, 129, 17, 0, 2, 0, 0, 1, 60, 67, 0, 1, 0, 1, 1, 14, 83, 104, 111, 119, 32, 100, 101, 32, 112, 114, 117, 101, 98, 97, 4, 0, 0, 0, 0, 1, 10, 73, 110, 116, 101, 114, 109, 101, 100, 105, 111, 0, 1, 2, 20, 80, 114, 101, 115, 101, 110, 116, 97, 114, 32, 97, 32, 108, 97, 32, 98, 97, 110, 100, 97, 0, 2, 0, 0]);
+const DEMO=new Uint8Array([0, 7, 60, 0, 0, 80, 0, 0, 81, 0, 0, 82, 0, 0, 83, 10, 81, 117, 97, 99, 107, 32, 77, 73, 68, 73, 10, 113, 117, 97, 99, 107, 113, 117, 97, 99, 107, 5, 0, 0, 0]);
 const LS='qm_app_v1';
 let flash,blob;
 try{const s=JSON.parse(localStorage.getItem(LS)||'null');if(s){flash=new Uint8Array(s.f);blob=new Uint8Array(s.b);}}catch(e){}
@@ -2475,7 +2479,8 @@ async function buscarArduino(){
     const igual=nb.length===ab.length&&nb.every((x,i)=>x===ab[i]);
     const soloDemos=!M.songs.some(x=>!/^Demo: /.test(x.name)),arduinoReal=am.songs.some(x=>!/^Demo: /.test(x.name));
     if(igual)toast('Conectado al Arduino: tiene las mismas canciones que la app.');
-    else if(soloDemos&&arduinoReal){nb=ab;toast('Conectado al Arduino. Esta app solo tenía las canciones de ejemplo: traje las del Arduino ('+am.songs.length+' canciones).',6000);}
+    else if(soloDemos){nb=ab;   // una app sin canciones propias (vacía o con ejemplos) nunca le manda nada al Arduino: trae lo suyo
+      toast(arduinoReal?'Conectado al Arduino. Esta app no tenía canciones tuyas: traje las del Arduino ('+am.songs.length+(am.songs.length===1?' canción':' canciones')+').':'Conectado al Arduino.',6000);}
     else{
       // lo que tenía el Arduino queda como copia (Ajustes → Copias automáticas), por si acaso
       try{const a=getSnaps();a.unshift({t:Date.now(),b:b64(ab),n:am.songs.length,ly:collectLyrics(),ard:1});localStorage.setItem(SNAP_KEY,JSON.stringify(a.slice(0,20)));}catch(e){}
