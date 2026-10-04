@@ -482,7 +482,8 @@ body.home .nav,body.home .tbar{display:none!important}
 .nk .nk .nr{font-size:.92rem;min-height:29px}.nk .nk .nk .nr{font-size:.86rem;min-height:28px}.nk .nk .nk .nk .nr{font-size:.8rem;min-height:27px}
 .nk .nk .nk .nr .lb{font-weight:700}.nk .nk .nk .nk .nr .lb{font-weight:600}
 .nav .vacio{padding:4px 10px;font-size:.85rem}
-.ruta{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin:0 0 10px;font-weight:800;background:var(--sf);border-radius:var(--r);box-shadow:var(--sh);padding:6px 8px}
+.ruta{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin:0 0 10px;font-weight:800;background:var(--sf);border-radius:var(--r);box-shadow:var(--sh);padding:6px 8px;
+  position:sticky;top:calc(var(--topH,60px) + var(--tbarH,0px));z-index:14}   /* qué estás editando: siempre a la vista */
 .ruta button{background:transparent;padding:.3em .55em;color:var(--ack)}.ruta button.on{background:var(--acl2)}
 .ruta .gt{color:var(--mu);font-weight:900;font-size:1.25rem;line-height:1;padding:0 2px}
 .navbtn{display:none!important}
@@ -711,7 +712,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.03-2359';
+const QM_VERSION='2026.10.04-1142';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1074,6 +1075,7 @@ function renderMain(){renderNav();updTop();const m=$('#main');m.innerHTML='';if(
   document.documentElement.style.setProperty('--topH',$('#topw').offsetHeight+'px');
   const bc=$('#btnCfg');if(bc)bc.classList.toggle('on',tab==='cfg');
   const bh=$('#btnHome');if(bh)bh.classList.toggle('on',tab==='home');document.body.classList.toggle('home',tab==='home');
+  const tb=$('#tbar');document.documentElement.style.setProperty('--tbarH',(tb&&tb.offsetParent?tb.offsetHeight:0)+'px');   // (después de mostrar u ocultar la barra)
   if(tab==='home')return vHome(m);
   if(tab==='cfg'){m.append(h('div',{class:'row',style:'margin:0 0 10px'},h('button',{onclick:()=>{tab='edit';renderAll();}},ic('left'),'Volver al editor'),h('h2',{style:'margin:0'},'Ajustes')));vCfg(m);return;}
   if(nivel==='show'||nivel==='entrada'){const S=M.sets[editSet];if(!S){m.append(h('div',{class:'card'},h('p',{class:'mu',style:'margin:0'},M.sets.length?'Elige una presentación en el explorador.':'Todavía no hay presentaciones. Crea una con ＋ junto a "Presentaciones", en el explorador.')));return;}return vSetEdit(m,S);}
@@ -2137,8 +2139,10 @@ function pfMargen(){if(!pfEl)return;let pad=0;
 addEventListener('resize',pfMargen);document.addEventListener('fullscreenchange',()=>setTimeout(pfMargen,100));
 // La app instalada ya se abre sin la barra de Chrome: no se pide pantalla completa (Chrome mostraba un cartel encima de los botones)
 const appInstalada=()=>matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true;
-function openPerf(){perfOn=true;prefs.tocando=true;savePrefs();pfLocked=false;lastPfSig='';pfEl=h('div',{class:'perf'});document.body.append(pfEl);pfMargen();if(!appInstalada())try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{});}catch(e){}renderPerf();requestAnimationFrame(pulse);}
-function closePerf(){perfOn=false;prefs.tocando=false;savePrefs();pfEl&&pfEl.remove();pfEl=null;try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}tab='home';renderAll();scrollTo(0,0);}
+let perfVolver=null;   // de dónde se abrió Performance: al cerrar se vuelve ahí (el editor, en la misma frase y altura)
+function openPerf(){perfVolver={tab,y:scrollY};perfOn=true;prefs.tocando=true;savePrefs();pfLocked=false;lastPfSig='';pfEl=h('div',{class:'perf'});document.body.append(pfEl);pfMargen();if(!appInstalada())try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{});}catch(e){}renderPerf();requestAnimationFrame(pulse);}
+function closePerf(){perfOn=false;prefs.tocando=false;savePrefs();pfEl&&pfEl.remove();pfEl=null;try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}const v=perfVolver;perfVolver=null;
+  if(v&&v.tab==='edit'){tab='edit';renderAll();scrollTo(0,v.y);}else{tab='home';renderAll();scrollTo(0,0);}}
 function nextSongInfo(){if(st.set!=null&&st.set<255&&M.sets[st.set]){const E=M.sets[st.set].entries;let note='',sep='';for(let i=st.se+1;i<E.length;i++){if(E[i].k===1){sep=E[i].label;continue;}return{name:M.songs[E[i].s]?M.songs[E[i].s].name:'?',note:E[i].note,sep};}return{name:'(fin de la presentación)',note:'',sep};}
   const n=M.songs[st.s+1];return{name:n?n.name:'(última canción)',note:'',sep:''};}
 function renderPerf(){if(!pfEl||!M)return;const sig=[st.s,st.st,st.r,st.c,st.set,st.se,st.sep,st.sp,st.end,prefs.view,pfLocked,st.bpm].join();if(sig===lastPfSig)return;lastPfSig=sig;
@@ -2366,7 +2370,7 @@ $('#btnPlay').append(ic('play'),h('span',null,'Tocar'));$('#btnPlay').onclick=to
 $('#btnStop').append(ic('stop'),h('span',{class:'tl'},'Parar'));$('#btnStop').onclick=()=>{cmd('mute');synthStop();if(usarStudio())studio('quack/parar',{}).catch(()=>{});};
 $('#btnHome').append(ic('home','width:22px;height:22px'),h('span',{class:'tl'},'Inicio'));$('#btnHome').onclick=irInicio;
 $('.brand').onclick=irInicio;$('.brand').style.cursor='pointer';
-addEventListener('resize',()=>{const tw=$('#topw');if(tw)document.documentElement.style.setProperty('--topH',tw.offsetHeight+'px');});
+addEventListener('resize',()=>{const tw=$('#topw'),tb=$('#tbar');if(tw)document.documentElement.style.setProperty('--topH',tw.offsetHeight+'px');if(tb)document.documentElement.style.setProperty('--tbarH',(tb.offsetParent?tb.offsetHeight:0)+'px');});
 document.addEventListener('pointerdown',e=>{if(document.body.classList.contains('navon')&&!e.target.closest('#nav,.navbtn'))document.body.classList.remove('navon');});
 $('#btnHelp').onclick=()=>modal('Cómo usar Quack MIDI',h('div',{class:'col sm'},
   h('p',null,h('b',null,'Pedal: '),'switch 1 = acorde anterior · 2 = acorde siguiente · 3 = canción anterior (mantener: silenciar) · 4 = canción siguiente (mantener: reiniciar).'),
