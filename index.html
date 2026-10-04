@@ -711,7 +711,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.03-2324';
+const QM_VERSION='2026.10.03-2350';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1263,8 +1263,9 @@ function vHome(m){const w=h('div',{class:'home-w'});m.append(w);
     h('div',{class:'hnowb'},
       h('button',{class:'hbig',disabled:!so||null,onclick:()=>openPerf()},ic('play'),'Performance'),
       h('button',{title:'Apaga lo que está sonando',onclick:()=>cmd('mute')},ic('stop'),'Parar'),
-      h('button',{title:'La canción vuelve a como empieza y queda lista en el primer acorde',disabled:!so||null,onclick:()=>cmd('restart')},ic('restart'),'Reiniciar')),
-    h('div',{class:'hst'},h('span',null,...bt),st.max?h('span',{title:'Memoria del Arduino para canciones y presentaciones'},'Memoria ',h('span',{class:'hmem'},h('i',{style:'width:'+mem+'%'})),' '+mem+' %'):null,
+      h('button',{title:'La canción vuelve a como empieza y queda lista en el primer acorde',disabled:!so||null,onclick:()=>cmd('restart')},ic('restart'),'Reiniciar'),
+      USB&&!window.ARD?h('button',{title:'Mandarle al Arduino (conectado por USB a este PC) las canciones de la app',onclick:enviarUSB},ic('up'),'Enviar al Arduino'):null),
+    h('div',{class:'hst'},h('span',null,...bt),USB&&!window.ARD?h('span',null,h('span',{class:'hdot on'}),'Arduino por USB ('+USB+')'):null,st.max?h('span',{title:'Memoria del Arduino para canciones y presentaciones'},'Memoria ',h('span',{class:'hmem'},h('i',{style:'width:'+mem+'%'})),' '+mem+' %'):null,
       st.dirty?h('span',null,'Guardando…'):null,st.thru?h('span',null,'MIDI Thru encendido'):null)));
   // Para revisar: canciones que no pueden volver a como empiezan sin recargar el sonido
   const avisos=M.songs.map((x,i)=>({x,i,f:x.sendPC?baseFaltan(x).length:0,sin:!x.sendPC&&x.phrases.some(p=>p.sound)})).filter(a=>a.f||a.sin);
@@ -1649,12 +1650,33 @@ const STUDIO={ok:false};
 function abrirStudio(ev){if(ev)ev.preventDefault();studio('abrir',{app:'studio'}).then(r=>{if(!r||!r.ok)window.open(STUDIO_URL,'quackstudio');}).catch(()=>window.open(STUDIO_URL,'quackstudio'));}
 let sndNames={t:0,slots:{}};try{sndNames=JSON.parse(localStorage.getItem('qm_sndnames'))||sndNames;}catch(e){}
 function saveSndNames(){try{localStorage.setItem('qm_sndnames',JSON.stringify(sndNames));}catch(e){}}
-async function studio(path,body){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),body?3000:900);
+async function studio(path,body,ms){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),ms||(body?3000:900));
   try{const r=await fetch(STUDIO_URL+'/api/'+path,body?{method:'POST',body:JSON.stringify(body),headers:{'Content-Type':'text/plain'},signal:ctl.signal}:{signal:ctl.signal,cache:'no-store'});return await r.json();}
   finally{clearTimeout(to);}}
+/* ---------- El Arduino conectado por USB a este PC (lo ve Quack Studio) ----------
+   Desde la app del PC se le mandan las canciones por el cable, sin pasar por la tablet. Igual que por WiFi: van las
+   canciones de la app, el Arduino conserva sus ajustes propios (switches, red), lo que tenía queda como copia, y se avisa. */
+let USB=null;
+async function revisarUSB(){const antes=USB;
+  if(!window.APPMODE||!STUDIO.ok)USB=null;else try{const r=await studio('quack/arduino');USB=r&&r.ok?r.puerto:null;}catch(e){USB=null;}
+  if(USB!==antes&&tab==='home')renderAll();}
+let enviandoUSB=false;
+async function enviarUSB(){if(!M||enviandoUSB)return;enviandoUSB=true;toast('Enviando al Arduino por USB…');
+  try{const r=await studio('quack/arduino',{accion:'leer'},10000);if(!r||!r.ok)throw Error(r&&r.error||'Quack Studio no respondió');
+    const ab=Uint8Array.from(r.blob.match(/../g)||[],x=>parseInt(x,16)),am=dec(ab);
+    const nb=enc({settings:Object.assign({},am.settings,{h2:true}),songs:M.songs,sets:M.sets});
+    if(nb.length===ab.length&&nb.every((x,i)=>x===ab[i]))return toast('El Arduino ya tiene estas mismas canciones ✓',4000);
+    if(!M.songs.some(x=>!/^Demo: /.test(x.name)))return toast('Esta app solo tiene las canciones de ejemplo: no se las mando al Arduino.',5000);
+    try{const a=getSnaps();a.unshift({t:Date.now(),b:b64(ab),n:am.songs.length,ly:collectLyrics(),ard:1});localStorage.setItem(SNAP_KEY,JSON.stringify(a.slice(0,20)));}catch(e){}
+    const r2=await studio('quack/arduino',{accion:'enviar',blob:[...nb].map(x=>x.toString(16).padStart(2,'0')).join('')},20000);
+    if(!r2||!r2.ok)throw Error(r2&&r2.error||'Quack Studio no respondió');
+    toast('Listo: el Arduino ya tiene las canciones de la app ('+M.songs.length+(M.songs.length===1?' canción':' canciones')+(M.sets.length?' y '+M.sets.length+(M.sets.length===1?' presentación':' presentaciones'):'')+'), guardadas en su memoria. Sus switches y su red quedaron igual; lo que tenía quedó como copia en Ajustes.',8000);
+  }catch(e){toast('No se pudo enviar por USB: '+(e.message||e),7000);}
+  finally{enviandoUSB=false;}}
 async function buscarStudio(){const antes=STUDIO.ok;try{const r=await studio('ping');STUDIO.ok=!!(r&&r.app==='Quack Studio');STUDIO.sync=!!(r&&r.sync);}catch(e){STUDIO.ok=false;STUDIO.sync=false;}
   if(!antes&&STUDIO.ok&&syncLocal()&&M)setTimeout(()=>syncNow(false),300);
   if(!antes&&STUDIO.ok)revisarBasesPronto(600);   // recién encontrado: sincronizar sin Google
+  revisarUSB();
   if(STUDIO.ok){try{const n=await studio('quack/sonidos');if(n.ok&&hash(n.slots)!==hash(sndNames.slots)){sndNames={t:Date.now(),slots:n.slots};saveSndNames();scheduleSync(3000);}}catch(e){}}
   const b=$('#btnStudio');if(b)b.hidden=!STUDIO.ok;if(antes!==STUDIO.ok)updSnd();   // el botón "Studio" arriba: solo en el PC donde está abierto
   if(antes!==STUDIO.ok&&(tab==='cfg'||tab==='edit'))renderAll();}
@@ -2109,7 +2131,9 @@ function pfMargen(){if(!pfEl)return;let pad=0;
   if(/Win/.test(navigator.platform)&&screen.availHeight){pad=document.fullscreenElement?screen.height-screen.availHeight:(window.screenY+window.outerHeight)-((screen.availTop||0)+screen.availHeight);}
   pfEl.style.paddingBottom=(12+Math.max(0,Math.min(120,pad)))+'px';}
 addEventListener('resize',pfMargen);document.addEventListener('fullscreenchange',()=>setTimeout(pfMargen,100));
-function openPerf(){perfOn=true;prefs.tocando=true;savePrefs();pfLocked=false;lastPfSig='';pfEl=h('div',{class:'perf'});document.body.append(pfEl);pfMargen();try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{});}catch(e){}renderPerf();requestAnimationFrame(pulse);}
+// La app instalada ya se abre sin la barra de Chrome: no se pide pantalla completa (Chrome mostraba un cartel encima de los botones)
+const appInstalada=()=>matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true;
+function openPerf(){perfOn=true;prefs.tocando=true;savePrefs();pfLocked=false;lastPfSig='';pfEl=h('div',{class:'perf'});document.body.append(pfEl);pfMargen();if(!appInstalada())try{document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{});}catch(e){}renderPerf();requestAnimationFrame(pulse);}
 function closePerf(){perfOn=false;prefs.tocando=false;savePrefs();pfEl&&pfEl.remove();pfEl=null;try{document.fullscreenElement&&document.exitFullscreen();}catch(e){}tab='home';renderAll();scrollTo(0,0);}
 function nextSongInfo(){if(st.set!=null&&st.set<255&&M.sets[st.set]){const E=M.sets[st.set].entries;let note='',sep='';for(let i=st.se+1;i<E.length;i++){if(E[i].k===1){sep=E[i].label;continue;}return{name:M.songs[E[i].s]?M.songs[E[i].s].name:'?',note:E[i].note,sep};}return{name:'(fin de la presentación)',note:'',sep};}
   const n=M.songs[st.s+1];return{name:n?n.name:'(última canción)',note:'',sep:''};}
