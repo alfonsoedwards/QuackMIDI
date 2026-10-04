@@ -415,7 +415,8 @@ a.btn{display:inline-flex;align-items:center;gap:.4em;padding:.55em 1em;border-r
 .hdr .hplay{background:#fff;color:var(--ack);font-weight:900;display:inline-flex;gap:.35em;align-items:center;padding:.42em .95em;border-radius:99px;margin-left:.2em}
 .hdr .hplay .ic{width:20px;height:20px}
 .hdr .hstop{background:transparent;color:#fff;border:2px solid #ffffffb0;font-weight:900;display:inline-flex;gap:.35em;align-items:center;padding:.32em .8em;border-radius:99px;margin-left:.2em}
-.hdr .hstop .ic{width:18px;height:18px}.hdr .hhome.on{background:#ffffff40}
+.hdr .hstop .ic{width:18px;height:18px}
+.banner.bchico{padding:.3em .7em;font-size:.82rem;gap:6px;min-height:0}.banner.bchico button{padding:.25em .6em;font-size:.8rem}.banner.bchico .ic{width:16px;height:16px}.hdr .hhome.on{background:#ffffff40}
 .hdr .hhome{display:inline-flex;align-items:center;gap:.3em;font-weight:900}.hdr .hhome .tl{font-size:.9rem}
 @media (max-width:1100px){.hdr .hhome .tl{display:none}}
 @media (max-width:900px){.hdr .pill>span{display:none}.hdr .gh{padding:.35em .4em}.hdr .hplay>span{display:none}.hdr .hplay{padding:.42em .62em}}   /* que el encabezado quepa entero en la tablet */
@@ -710,7 +711,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.03-2302';
+const QM_VERSION='2026.10.03-2324';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1066,7 +1067,10 @@ function renderMain(){renderNav();updTop();const m=$('#main');m.innerHTML='';if(
   if(st.crc)m.append(h('div',{class:'banner er'},'Los datos guardados estaban dañados (¿se cortó la luz mientras guardaba?). No los cargué. Importa tu respaldo en Ajustes.'));
   if(st.warn>=0&&st.warn!=null)m.append(h('div',{class:'banner'},`El switch ${st.warn+1} parece no estar en modo momentáneo. Cámbialo en el Ampero.`,h('span',{class:'sp'}),h('button',{onclick:()=>cmd('warnok')},'Entendido')));
   if(st.thru)m.append(h('div',{class:'banner'},'MIDI Thru activado: Quack MIDI deja pasar todo y no toca acordes.'));
-  if(window.APPMODE&&!window.SIM_NOBACKUPNAG&&Date.now()-lastExport()>7*864e5&&M.songs.some(x=>x.id>4))m.append(h('div',{class:'banner'},lastExport()?'Hace más de una semana que no respaldas tus canciones.':'Todavía no respaldas tus canciones en un archivo.',h('span',{class:'sp'}),h('button',{onclick:saveBackup},ic('save'),'Guardar (respaldar)')));
+  // Recordatorio de respaldo: chico, y con "Omitir" (vuelve a aparecer en una semana)
+  const omitido=()=>{try{return +localStorage.getItem('qm_respaldo_omitido')||0;}catch(e){return 0;}};
+  if(window.APPMODE&&!window.SIM_NOBACKUPNAG&&Date.now()-lastExport()>7*864e5&&Date.now()-omitido()>7*864e5&&M.songs.some(x=>x.id>4))m.append(h('div',{class:'banner bchico'},lastExport()?'Hace más de una semana que no respaldas tus canciones.':'Todavía no respaldas tus canciones en un archivo.',h('span',{class:'sp'}),
+    h('button',{onclick:saveBackup},ic('save'),'Respaldar'),h('button',{class:'gh',title:'No recordar por una semana',onclick:()=>{try{localStorage.setItem('qm_respaldo_omitido',Date.now());}catch(e){}renderAll();}},'Omitir')));
   document.documentElement.style.setProperty('--topH',$('#topw').offsetHeight+'px');
   const bc=$('#btnCfg');if(bc)bc.classList.toggle('on',tab==='cfg');
   const bh=$('#btnHome');if(bh)bh.classList.toggle('on',tab==='home');document.body.classList.toggle('home',tab==='home');
