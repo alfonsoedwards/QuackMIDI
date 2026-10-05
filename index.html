@@ -744,7 +744,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-0039';
+const QM_VERSION='2026.10.05-0055';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -840,7 +840,14 @@ async function upload(){if(uploading){upTimer=setTimeout(upload,200);return;}upl
 function snap(){hist.u.push(JSON.stringify(M));if(hist.u.length>40)hist.u.shift();hist.r=[];}
 function undo(){if(!hist.u.length)return;hist.r.push(JSON.stringify(M));M=JSON.parse(hist.u.pop());fixSel();changed();}
 function redo(){if(!hist.r.length)return;hist.u.push(JSON.stringify(M));M=JSON.parse(hist.r.pop());fixSel();changed();}
-function edit(fn,render=true){snap();fn();changed(render);}
+function edit(fn,render=true){snap();fn();if(M&&M.songs[edSong])ajustarBends(M.songs[edSong]);changed(render);}
+/* PITCH BEND: las notas del acorde son a dónde llega. Cuánto se mueve la rueda ("bend") se calcula solo: la nota más aguda
+   del acorde menos la más aguda de lo que sonaba antes (antes era un número aparte y se desfasaba: F# con +2 terminaba en G#). */
+function ajustarBends(s){for(let pi=0;pi<s.phrases.length;pi++)s.phrases[pi].chords.forEach((c,ci)=>{
+  if(c.trans!==2||!c.notes.length)return;const b=bendBaseNotas(s,pi,ci);if(!b||!b.length)return;
+  const d=Math.max(...c.notes)-Math.max(...b),r=s.bendRange||12;if(d!==c.bend)c.bend=Math.max(-r,Math.min(r,d));});}
+function bendFalta(s,pi,ci){const c=s.phrases[pi].chords[ci],b=bendBaseNotas(s,pi,ci);if(!b||!b.length||!c.notes.length)return null;
+  return{desde:Math.max(...b),hasta:Math.max(...c.notes),d:Math.max(...c.notes)-Math.max(...b),r:s.bendRange||12};}
 
 /* ---------- Letras (en el navegador o en la memoria Qwiic) ---------- */
 let lyrTimer=null,lyrDoc={};
@@ -1725,6 +1732,13 @@ async function studio(path,body,ms){const ctl=new AbortController();const to=set
 const ASIS={modelo:'sonnet',esperando:false,hist:[],titulo:null,id:null};
 /* lo que se le manda: las canciones sin lo interno (fechas, bases que lee Studio) */
 const paraAsistente=()=>M.songs.map(x=>{const c=copy(x);delete c._t;delete c.base;delete c.sndBases;return c;});
+/* lo que Alfonso tiene seleccionado: el asistente asume que el pedido es sobre eso */
+function seleccionAsistente(){const s=M.songs[edSong];if(!s||tab!=='edit')return null;
+  const fr=i=>({indice:i,nombre:(s.phrases[i]||{}).name}),ac=(pi,ci)=>{const c=(s.phrases[pi]||{chords:[]}).chords[ci];return c?{frase:fr(pi),acorde:ci+1,notas:c.notes.map(noteName).join(' ')||'silencio'}:null;};
+  if(multiMode&&multi.size)return{nivel:'acordes',acordes:[...multi].map(k=>k.split('.').map(Number)).map(([pi,ci])=>ac(pi,ci)).filter(Boolean)};
+  if((nivel==='acorde'||nivel==='nota')&&edSel&&s.phrases[edSel.p])return Object.assign({nivel:'acorde'},ac(edSel.p,edSel.c));
+  if(nivel==='frase'&&edSel&&s.phrases[edSel.p])return{nivel:'frase',frase:fr(edSel.p)};
+  return{nivel:'cancion'};}
 /* una canción propuesta: se completa con lo interno de la que reemplaza y se revisa que sea válida */
 function prepararPropuesta(pr){const old=pr.id!=null?M.songs.find(x=>x.id===pr.id):null,n=copy(pr);
   if(!old)n.id=null;else for(const k of ['base','sndBases','hasLyr'])if(n[k]===undefined&&old[k]!==undefined)n[k]=copy(old[k]);
@@ -1801,7 +1815,7 @@ async function asistente(){
     est.textContent=ASIS.titulo?'Conversación: '+ASIS.titulo:'Conversación nueva';
     msgs.scrollTop=msgs.scrollHeight;};
   const enviar=async()=>{const t=ta.value.trim();if(!t||ASIS.esperando)return;ASIS.esperando=true;ASIS.hist.push({rol:'tu',texto:t});ta.value='';pintar();
-    try{const sg=M.songs[edSong];await studio('asistente',{mensaje:t,modelo:ASIS.modelo,canciones:paraAsistente(),actual:sg&&sg.id},360000);}
+    try{const sg=M.songs[edSong];await studio('asistente',{mensaje:t,modelo:ASIS.modelo,canciones:paraAsistente(),actual:sg&&sg.id,seleccion:seleccionAsistente()},360000);}
     catch(e){toast('No pude hablar con Claude: '+(e&&e.message||e));}
     ASIS.esperando=false;await traer();cargarLista();};
   let sm=null;const segModelo=()=>{const n=seg([['sonnet','Rápido (Sonnet)'],['opus','Más pensado (Opus)']],ASIS.modelo,v=>{ASIS.modelo=v;segModelo();});if(sm)sm.replaceWith(n);sm=n;return n;};
@@ -1964,11 +1978,13 @@ function chordEditor(s){
   // 2. Cómo se toca (cómo llega desde el anterior, sostén, ligado, tempo y velocity)
   const trOwn=sel.some(c=>c.trans!=null),d=one?diffs(one):[...new Set(sel.flatMap(diffs))];
   card.append(sec('c:toca','right','Glide y pedal',[glideNom(rTr,rGl)+(rTr===2?' '+(rBend>0?'+':'')+rBend+' st':''),...d].join(' · ')+(trOwn||d.length?'':' (como '+(defVacia(pd)?'la canción':'la frase')+')'),()=>[
-    srow('Pitch bend','En vez de tocar notas nuevas, mueve la rueda de pitch desde lo que ya suena (un efecto especial de este acorde).',seg([[false,'No'],[true,'Sí']],rTr===2,v=>edit(()=>{for(const c of sel){if(v){c.trans=2;if(c.bend==null)c.bend=2;}else if(c.trans===2)delete c.trans;}if(v&&s.bendRange==null)s.bendRange=12;}))),
+    srow('Pitch bend','En vez de tocar notas nuevas, mueve la rueda de pitch desde lo que ya suena (un efecto especial de este acorde).',seg([[false,'No'],[true,'Sí']],rTr===2,v=>edit(()=>{for(const c of sel){if(v){c.trans=2;if(c.bend==null)c.bend=0;}else if(c.trans===2){delete c.trans;delete c.bend;}}if(v&&s.bendRange==null)s.bendRange=12;}))),
     rTr!==2?irow('Glide',glideExpl(rTr),sel,'trans',glideNom(sTr,sGl),sTr===2?0:sTr,cur=>seg(GLIDE_OPTS,cur,v=>edit(()=>{for(const c of sel){c.trans=v;if(v===1||v===4)c.glide=glideDefecto(v);}})),deK('trans')):null,
     (rTr===1||rTr===4)?irow(rTr===4?'Velocidad del glide':'Tiempo del glide',rTr===4?'Semitonos por segundo.':'Lo que tarda en llegar desde el acorde anterior.',sel,'glide',glideNom(rTr,sGl),sGl,cur=>glideKnob(rTr,cur,v=>edit(()=>{for(const c of sel)c.glide=v;})),deK('glide'))
       :rTr===2?irow('Tiempo del movimiento (ms)','Cuánto tarda la rueda en llegar.',sel,'glide',sGl+' ms',sGl,cur=>knob({label:'Tiempo',value:cur,min:0,max:2550,step:10,onInput:v=>edit(()=>{for(const c of sel)c.glide=v;})}),deK('glide')):null,
-    rTr===2?srow('Pitch (semitonos)',`Hasta dónde mueve la rueda (rango ±${s.bendRange||12}). Vuelve al centro en el siguiente acorde que no sea Pitch bend.`,knob({label:'Pitch',value:rBend,min:-(s.bendRange||12),max:s.bendRange||12,onInput:v=>edit(()=>{for(const c of sel)c.bend=v;})})):null,
+    rTr===2&&one?(()=>{const f=bendFalta(s,edSel.p,edSel.c);return srow('Hasta dónde','Las notas de este acorde son a dónde llega la rueda, desde lo que sonaba antes. Para cambiar el destino, cambia sus notas.',
+      h('div',null,f?h('b',null,'Desliza desde '+noteName(f.desde)+' hasta '+noteName(f.hasta)+' ('+(f.d>0?'+':'')+f.d+' semitono'+(Math.abs(f.d)===1?'':'s')+')'):h('small',{class:'mu'},'Antes de este acorde no suena nada: se toca normal.'),
+        f&&Math.abs(f.d)>f.r?h('p',{class:'mu sm',style:'margin:4px 0 0'},'⚠ La rueda llega hasta ±'+f.r+' semitonos (Sonido del Mininova → Rango de la rueda): no alcanza.'):null));})():null,
     avisoGlide(rTr,!!par('hold'),s.voice),
     irow('Cada nota suena',HOLD_EXPL,sel,'hold',holdNom(par('hold')),!!par('hold'),cur=>seg(PEDAL_HOLD,cur,v=>edit(()=>{for(const c of sel)c.hold=v;})),deK('hold')),
     irow('Notas repetidas',TIE_EXPL,sel,'tie',tieNom(par('tie')),!!par('tie'),cur=>seg(PEDAL_TIE,cur,v=>edit(()=>{for(const c of sel)c.tie=v;})),deK('tie')),
