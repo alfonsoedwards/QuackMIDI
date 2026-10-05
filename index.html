@@ -535,6 +535,7 @@ body.home .nav,body.home .tbar{display:none!important}
   <span class="htools" id="htools"></span>
   <span id="pill" class="pill off"><i></i><span>Conectando…</span></span>
   <a class="gh hstudio" id="btnStudio" href="http://127.0.0.1:8770/" target="quackstudio" rel="noopener" title="Abrir Quack Studio (editor de sonidos, en este PC)" hidden>Studio</a>
+  <button class="gh hstudio" id="btnAsist" title="Pedirle cambios a tus canciones a Claude (en este PC, con Quack Studio)" hidden>Asistente</button>
   <button class="gh" id="btnCloud" title="Sincronizar con Google Drive" hidden></button>
   <button class="gh" id="btnSnd" title="Sonido en este dispositivo"></button>
   <button class="gh" id="btnHelp" title="Ayuda"></button>
@@ -743,7 +744,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.04-2327';
+const QM_VERSION='2026.10.05-0022';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1718,6 +1719,105 @@ function saveSndNames(){try{localStorage.setItem('qm_sndnames',JSON.stringify(sn
 async function studio(path,body,ms){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),ms||(body?3000:900));
   try{const r=await fetch(STUDIO_URL+'/api/'+path,body?{method:'POST',body:JSON.stringify(body),headers:{'Content-Type':'text/plain'},signal:ctl.signal}:{signal:ctl.signal,cache:'no-store'});return await r.json();}
   finally{clearTimeout(to);}}
+/* ---------- ASISTENTE (solo en el PC, con Quack Studio): Alfonso le pide cambios a sus canciones en palabras y Claude
+   propone las canciones cambiadas. Nada se aplica sin que Alfonso lo apruebe; aplicado, es una edición normal (↶ deshace).
+   Las conversaciones las guarda Studio (en este PC): se pueden retomar o "partir desde aquí" (una nueva que sigue desde esa). */
+const ASIS={modelo:'sonnet',esperando:false,hist:[],titulo:null,id:null};
+/* lo que se le manda: las canciones sin lo interno (fechas, bases que lee Studio) */
+const paraAsistente=()=>M.songs.map(x=>{const c=copy(x);delete c._t;delete c.base;delete c.sndBases;return c;});
+/* una canción propuesta: se completa con lo interno de la que reemplaza y se revisa que sea válida */
+function prepararPropuesta(pr){const old=pr.id!=null?M.songs.find(x=>x.id===pr.id):null,n=copy(pr);
+  if(!old)n.id=null;else for(const k of ['base','sndBases','hasLyr'])if(n[k]===undefined&&old[k]!==undefined)n[k]=copy(old[k]);
+  const err=[];if(!n.name)n.name=old?old.name:'Canción nueva';
+  if(!Array.isArray(n.phrases)||!n.phrases.length)err.push('no tiene frases');
+  for(const f of n.form||[])if(!(f.p>=0&&f.p<(n.phrases||[]).length))err.push('la forma nombra una frase que no existe');
+  for(const ph of n.phrases||[])for(const c of ph.chords||[])if(!Array.isArray(c.notes)||c.notes.some(x=>!(x>=0&&x<=127)))err.push('un acorde de "'+ph.name+'" tiene notas inválidas');
+  if(!err.length)try{dec(enc({settings:M.settings,songs:[Object.assign({},n,{id:n.id||1})],sets:[]}));}catch(e){err.push('no se puede guardar ('+(e&&e.message||e)+')');}
+  return{old,n,err:[...new Set(err)]};}
+/* qué cambia, en palabras */
+function resumenCambio(old,n){const L=[],sn=x=>x.sendPC?sndLabel({bank:x.bank||0,pc:x.pc}):'sin sonido propio',J=x=>JSON.stringify(x);
+  if(!old){L.push('Canción nueva "'+n.name+'": '+n.phrases.length+' frase'+(n.phrases.length===1?'':'s')+', '+n.phrases.reduce((a,p)=>a+p.chords.length,0)+' acordes.');return L;}
+  if(old.name!==n.name)L.push('Nombre: "'+old.name+'" → "'+n.name+'".');
+  if(sn(old)!==sn(n))L.push('Sonido de la canción: '+sn(old)+' → '+sn(n)+'.');
+  if((old.trans||0)!==(n.trans||0)||((old.trans===1||old.trans===4)&&old.glide!==n.glide))L.push('Glide: '+glideNom(old.trans||0,old.glide!=null?old.glide:150)+' → '+glideNom(n.trans||0,n.glide!=null?n.glide:150)+'.');
+  if(!!old.hold!==!!n.hold)L.push('Pedal: '+holdNom(n.hold)+'.');
+  if(!!old.tie!==!!n.tie)L.push('Notas repetidas: '+(n.tie?'dejarlas sonando':'volver a tocarlas')+'.');
+  if(old.bpm!==n.bpm)L.push('Tempo: '+old.bpm+' → '+n.bpm+' BPM.');
+  if(old.vel!==n.vel)L.push('Velocity: '+old.vel+' → '+n.vel+'.');
+  if(old.voice!==n.voice)L.push('Modo de voz: '+(['Mono','Mono AG','Poly'][old.voice]||'el del sonido')+' → '+(['Mono','Mono AG','Poly'][n.voice]||'el del sonido')+'.');
+  if(J(old.ctl||{})!==J(n.ctl||{})||J(old.mn||[])!==J(n.mn||[]))L.push('Cambian los parámetros del Mininova al empezar la canción.');
+  const nom=ph=>ph.name,on=old.phrases.map(nom),nn=n.phrases.map(nom);
+  for(const ph of n.phrases){const i=on.indexOf(ph.name);
+    if(i<0){L.push('Frase nueva "'+ph.name+'"'+(ph.sound?' con el sonido '+sndLabel(ph.sound):'')+': '+ph.chords.length+' acordes.');continue;}
+    const o=old.phrases[i],d=[];
+    if(J(o.sound||null)!==J(ph.sound||null))d.push('sonido '+(o.sound?sndLabel(o.sound):'el de la canción')+' → '+(ph.sound?sndLabel(ph.sound):'el de la canción'));
+    if(J(o.def||{})!==J(ph.def||{}))d.push('sus ajustes');
+    if(o.chords.length!==ph.chords.length)d.push(o.chords.length+' → '+ph.chords.length+' acordes');
+    else if(J(o.chords.map(c=>c.notes))!==J(ph.chords.map(c=>c.notes)))d.push('notas');
+    else if(J(o.chords)!==J(ph.chords))d.push('ajustes de sus acordes');
+    if(o.color!==ph.color)d.push('color');
+    if(d.length)L.push('Frase "'+ph.name+'": '+d.join(', ')+'.');}
+  for(const x of on)if(!nn.includes(x))L.push('Se quita la frase "'+x+'".');
+  const forma=x=>(x.form||[]).map(f=>(x.phrases[f.p]||{}).name+(f.r>1?' ×'+f.r:'')).join(' → ');
+  if(forma(old)!==forma(n))L.push('Orden de las frases: '+(forma(n)||'(vacío)')+'.');
+  if(!L.length)L.push('Sin cambios visibles.');
+  return L;}
+function aplicarPropuesta(r){const ps=r.propuesta.map(prepararPropuesta),malas=ps.filter(x=>x.err.length);
+  if(malas.length)return toast('No la puedo aplicar: '+malas.map(x=>'"'+x.n.name+'" '+x.err.join(', ')).join('; '),7000);
+  const prueba=copy(M);for(const x of ps){if(x.old)prueba.songs[prueba.songs.findIndex(y=>y.id===x.old.id)]=x.n;else prueba.songs.push(Object.assign({},x.n,{id:1}));}
+  let largo=0;try{largo=enc(prueba).length;}catch(e){return toast('No la puedo aplicar: no se puede guardar');}
+  const max=(st&&st.max)||8112;if(largo>max)return toast('No cabe en la memoria del Arduino ('+largo+' de '+max+' bytes)',7000);
+  edit(()=>{for(const x of ps){if(x.old){const i=M.songs.findIndex(y=>y.id===x.old.id);if(i>=0)M.songs[i]=x.n;}else{x.n.id=newId();M.songs.push(x.n);}}});
+  r.estado='aplicada';studio('asistente/marcar',{id:r.id,estado:'aplicada'}).catch(()=>{});revisarBasesPronto(800);
+  toast('Listo: cambios aplicados (se deshacen con ↶).');}
+async function asistente(){
+  const lst=h('select',{style:'flex:1;min-width:0'}),msgs=h('div',{style:'max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:10px;margin:10px 0;padding-right:4px'}),
+    ta=h('textarea',{rows:3,placeholder:'Por ejemplo: haz una nueva versión del Intermedio B2 con el sonido C033',style:'width:100%;box-sizing:border-box'}),
+    est=h('div',{class:'mu sm'});
+  const box=h('div',{class:'box',style:'width:min(760px,96vw);max-width:none'});
+  const ov=h('div',{class:'modal',onclick:e=>{if(e.target===ov)ov.remove();}},box);
+  const conv=async(path,body)=>{const r=await studio(path,body,8000);if(!r||!r.ok)throw Error((r&&r.error)||'Quack Studio no respondió');return r;};
+  const cargarLista=async()=>{try{const r=await conv('asistente/lista',{});lst.innerHTML='';lst.append(h('option',{value:''},'— Conversaciones guardadas ('+r.conversaciones.length+') —'));
+      for(const c of r.conversaciones)lst.append(h('option',{value:c.id},(c.actualizada||c.creada)+' · '+c.titulo+' ('+c.mensajes+')'));}catch(e){}};
+  const traer=async()=>{const r=await studio('asistente',null,4000);ASIS.hist=r.historial||[];ASIS.titulo=r.titulo;ASIS.id=r.id;pintar();};
+  const pintar=()=>{msgs.innerHTML='';
+    if(!ASIS.hist.length)msgs.append(h('p',{class:'mu sm'},'Pídele a Claude cambios a tus canciones, en palabras: crear o duplicar frases, cambiar sonidos, transponer, el glide, el pedal, el tempo, el orden… Te muestra qué cambiaría y tú decides si aplicarlo. Solo cambia canciones (nunca toca el Arduino directamente); lo que apliques se deshace con ↶ y se sincroniza como siempre.'));
+    for(const r of ASIS.hist){
+      if(r.rol==='tu'){msgs.append(h('div',{style:'align-self:flex-end;background:var(--sf2);padding:8px 12px;border-radius:12px;max-width:85%;white-space:pre-wrap'},r.texto));continue;}
+      if(r.rol==='error'){msgs.append(h('div',{class:'warnb'},h('div',{class:'grow'},r.texto)));continue;}
+      const card=h('div',{style:'background:var(--sf);border:1px solid var(--ln);padding:10px 12px;border-radius:12px;max-width:95%'},h('div',{style:'white-space:pre-wrap'},r.texto));
+      if(r.propuesta&&r.propuesta.length){
+        const ul=h('ul',{style:'margin:8px 0 0;padding-left:18px'});
+        for(const pr of r.propuesta){const x=prepararPropuesta(pr);ul.append(h('li',null,h('b',null,(x.old?'"'+x.old.name+'"':'Nueva')+': ')));
+          for(const t of resumenCambio(x.old,x.n))ul.append(h('li',{style:'list-style:circle;margin-left:14px'},t));
+          if(x.err.length)ul.append(h('li',{style:'color:var(--er)'},'⚠ '+x.err.join(', ')));}
+        card.append(h('div',{class:'mu sm',style:'margin-top:8px;font-weight:800'},'Lo que cambiaría:'),ul);
+        if(r.estado==='pendiente')card.append(h('div',{class:'row',style:'gap:8px;margin-top:8px'},
+          h('button',{class:'ac',onclick:()=>{aplicarPropuesta(r);pintar();}},ic('check'),'Aplicar'),
+          h('button',{onclick:()=>{r.estado='descartada';studio('asistente/marcar',{id:r.id,estado:'descartada'}).catch(()=>{});pintar();}},'Descartar')));
+        else card.append(h('p',{class:'mu sm',style:'margin:6px 0 0'},r.estado==='aplicada'?'✓ Aplicado':'Descartado'));}
+      msgs.append(card);}
+    if(ASIS.esperando)msgs.append(h('p',{class:'mu sm'},'Claude está pensando… (puede tardar un minuto)'));
+    est.textContent=ASIS.titulo?'Conversación: '+ASIS.titulo:'Conversación nueva';
+    msgs.scrollTop=msgs.scrollHeight;};
+  const enviar=async()=>{const t=ta.value.trim();if(!t||ASIS.esperando)return;ASIS.esperando=true;ASIS.hist.push({rol:'tu',texto:t});ta.value='';pintar();
+    try{const sg=M.songs[edSong];await studio('asistente',{mensaje:t,modelo:ASIS.modelo,canciones:paraAsistente(),actual:sg&&sg.id},360000);}
+    catch(e){toast('No pude hablar con Claude: '+(e&&e.message||e));}
+    ASIS.esperando=false;await traer();cargarLista();};
+  let sm=null;const segModelo=()=>{const n=seg([['sonnet','Rápido (Sonnet)'],['opus','Más pensado (Opus)']],ASIS.modelo,v=>{ASIS.modelo=v;segModelo();});if(sm)sm.replaceWith(n);sm=n;return n;};
+  const abrir=async partir=>{if(!lst.value)return toast('Elige una conversación de la lista');try{await conv('asistente/abrir',{id:lst.value,partir});await traer();}catch(e){toast(e.message);}};
+  box.append(h('h2',null,'Asistente de Quack MIDI'),
+    h('div',{class:'row',style:'gap:6px;flex-wrap:wrap'},lst,
+      h('button',{onclick:()=>abrir(false),title:'Seguir esa conversación'},'Continuar'),
+      h('button',{onclick:()=>abrir(true),title:'Una conversación nueva que parte con todo lo de esa (la original no cambia)'},'Partir desde aquí'),
+      h('button',{class:'gh',onclick:async()=>{if(!lst.value)return;if(!confirm('¿Borrar esa conversación guardada?'))return;await conv('asistente/borrar',{id:lst.value});await traer();cargarLista();}},ic('close'),'Borrar'),
+      h('button',{onclick:async()=>{await conv('asistente/nueva',{});await traer();}},ic('plus'),'Nueva')),
+    est,msgs,ta,
+    h('div',{class:'row',style:'gap:8px;margin-top:8px;justify-content:space-between;flex-wrap:wrap'},
+      segModelo(),
+      h('div',{class:'row',style:'gap:8px'},h('button',{onclick:()=>ov.remove()},'Cerrar'),h('button',{class:'ac',onclick:enviar},'Enviar'))));
+  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))enviar();});
+  document.body.append(ov);await traer().catch(()=>{});cargarLista();ta.focus();}
 /* ---------- El Arduino conectado por USB a este PC (lo ve Quack Studio) ----------
    Desde la app del PC se le mandan las canciones por el cable, sin pasar por la tablet. Igual que por WiFi: van las
    canciones de la app, el Arduino conserva sus ajustes propios (switches, red), lo que tenía queda como copia, y se avisa. */
@@ -1743,7 +1843,7 @@ async function buscarStudio(){const antes=STUDIO.ok;try{const r=await studio('pi
   if(!antes&&STUDIO.ok)revisarBasesPronto(600);   // recién encontrado: sincronizar sin Google
   revisarUSB();
   if(STUDIO.ok){try{const n=await studio('quack/sonidos');if(n.ok&&hash(n.slots)!==hash(sndNames.slots)){sndNames={t:Date.now(),slots:n.slots};saveSndNames();scheduleSync(3000);}}catch(e){}}
-  const b=$('#btnStudio');if(b)b.hidden=!STUDIO.ok;if(antes!==STUDIO.ok)updSnd();   // el botón "Studio" arriba: solo en el PC donde está abierto
+  const b=$('#btnStudio');if(b)b.hidden=!STUDIO.ok;const ba=$('#btnAsist');if(ba)ba.hidden=!STUDIO.ok;if(antes!==STUDIO.ok)updSnd();   // el botón "Studio" arriba: solo en el PC donde está abierto
   if(antes!==STUDIO.ok&&(tab==='cfg'||tab==='edit'))renderAll();}
 setTimeout(buscarStudio,800);setInterval(buscarStudio,15000);
 // Con el Arduino conectado suena por él (cable MIDI); sin Arduino, por Quack Studio (USB). Nunca por los dos.
@@ -2450,7 +2550,7 @@ if(window.APPMODE){
 
 /* ---------- Ayuda ---------- */
 $('#btnSnd').onclick=toggleMute;updSnd();
-$('#btnStudio').onclick=abrirStudio;
+$('#btnStudio').onclick=abrirStudio;$('#btnAsist').onclick=()=>asistente();
 $('#btnCloud').onclick=()=>syncNow(true);
 $('#btnHelp').append(ic('info','width:22px;height:22px'));
 $('#btnCfg').append(ic('cog','width:22px;height:22px'));$('#btnCfg').onclick=()=>{tab=tab==='cfg'?'edit':'cfg';renderAll();scrollTo(0,0);};
