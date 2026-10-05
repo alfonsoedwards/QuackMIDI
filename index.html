@@ -602,9 +602,9 @@ const NN=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const TYPES=[['',[0,4,7],'Mayor'],['m',[0,3,7],'menor'],['7',[0,4,7,10],'7'],['maj7',[0,4,7,11],'maj7'],['m7',[0,3,7,10],'m7'],['6',[0,4,7,9],'6'],['m6',[0,3,7,9],'m6'],['9',[0,4,7,10,14],'9'],['m9',[0,3,7,10,14],'m9'],['add9',[0,4,7,14],'add9'],['sus2',[0,2,7],'sus2'],['sus4',[0,5,7],'sus4'],['7sus4',[0,5,7,10],'7sus4'],['dim',[0,3,6],'dim'],['dim7',[0,3,6,9],'dim7'],['m7b5',[0,3,6,10],'m7♭5'],['aug',[0,4,8],'aug'],['mMaj7',[0,3,7,11],'m(maj7)'],['5',[0,7],'5 (power)']];
 const noteName=n=>NN[n%12]+(Math.floor(n/12)-1);
 const TRANS_OPTS=[[0,'Normal'],[1,'Legato'],[2,'Pitch bend'],[3,'Como el sonido']];
-/* 2026-10-04: el Arduino volvió a la versión de ayer (sin fades ni "Como el sonido"): no se ofrecen y no se le mandan
-   ("Como el sonido" va como Legato). Para volver a activarlos: NUEVOS=true (y el firmware que los entiende). */
-const NUEVOS=false,TRANS_ELEGIR=TRANS_OPTS.filter(x=>NUEVOS||x[0]!==3);
+/* 2026-10-04: el Arduino volvió a la versión de ayer, y encima se le agregó de nuevo "Como el sonido" (COMO_SONIDO). Los
+   fades no (NUEVOS=false): no se ofrecen ni se le mandan. Para activarlos hace falta el firmware que los entiende. */
+const NUEVOS=false,COMO_SONIDO=true,TRANS_ELEGIR=TRANS_OPTS.filter(x=>COMO_SONIDO||x[0]!==3);
 const conDeslizar=t=>t===1||t===2;   // ("Como el sonido" no manda tiempo: lo decide el Mininova)
 function stepLabel(c,tr=0){if(c.trans===2)return '↗ '+((c.bend||0)>0?'+':'')+(c.bend||0);return chordName(c.notes,tr);}
 function chordName(notes,tr=0){
@@ -633,7 +633,7 @@ function utf8(s,max){let b=te.encode(s||'');while(b.length>max){s=s.slice(0,-1);
 const SX=['voice','bendRange','trans','glide'],CX=['trans','glide','bend','mod'];   // la lista de controles va aparte (bit 4)
 // Controles del MiniNova: [nombre, CC, se puede deslizar, valor inicial]
 const CTRL=[['Modulación',1,true,0],['Filtro (frecuencia)',74,true,64],['Resonancia',71,true,0],['Drive',63,true,0],['Ataque',73,false,0],['Decay',75,false,64],['Sustain',70,false,127],['Release',72,false,20]];
-function packX(d,keys,ns){let f=0;const v=[];keys.forEach((k,i)=>{if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):k==='trans'&&d[k]===3&&!NUEVOS?1:d[k])&255);}});
+function packX(d,keys,ns){let f=0;const v=[];keys.forEach((k,i)=>{if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):k==='trans'&&d[k]===3&&!COMO_SONIDO?1:d[k])&255);}});
   const ids=Object.keys(d.ctl||{}).map(Number).sort((a,b)=>a-b);if(ids.length){f|=16;v.push(ids.length);for(const id of ids){const tm=d.ctlT&&d.ctlT[id];
     if(tm){const q=tm.b?4:10;v.push(id|0x80|(tm.b?0x40:0),d.ctl[id]&127,Math.min(255,Math.round((tm.d||0)*q)),Math.min(255,Math.round((tm.w||0)*q)));}   // transición propia: espera y duración
     else v.push(id,d.ctl[id]&127);}}
@@ -719,7 +719,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.04-2248';
+const QM_VERSION='2026.10.04-2258';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
