@@ -744,7 +744,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-0055';
+const QM_VERSION='2026.10.05-0113';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1879,7 +1879,7 @@ function pasoStudio(so,c,p,{ligado=false,trans=0,tr=0,modo='latch',notasBase=nul
   const mnDe=(x,menos)=>(x.mn||[]).filter(([a,b])=>!(menos&&(menos.mn||[]).some(e=>e[0]===a&&e[1]===b))).map(([a,b,v])=>{const T=mnTrans(x,a,b)||x.trT;return T?[a,b,v,MS(T,T.d||0),MS(T,T.w||0)]:[a,b,v];});
   const ctlsFrase=ctlsDe(d,c),mnFrase=mnDe(d,c);
   return{cancion:so.id,slot:slotDe(snd),voz:so.voice!=null?so.voice:null,bendRange:so.bendRange||0,ctlCancion:so.ctl||{},
-    notas:c.notes.map(n=>n+tr),vel:c.vel!=null?c.vel:so.vel,nv:nvShift(c,tr),ligado,trans,glide,bend:c.bend||0,modo,notasBase,
+    notas:c.notes.map(n=>n+tr),vel:c.vel!=null?c.vel:so.vel,nv:nvShift(c,tr),ligado,trans,glide,bend:c.bend||0,entrada:trans!==2&&c.bend?{st:c.bend,ms:c.glide!=null?c.glide:80}:null,modo,notasBase,
     ctls:[...ctlsFrase,...ctlsDe(c)],mn:[...mnFrase,...mnDe(c)],ctlsFrase,mnFrase,mnCancion:!(p&&p.sound)||(so.sendPC&&p.sound.bank===(so.bank||0)&&p.sound.pc===so.pc)?so.mn||[]:[],base:basesDe(so,p),expr};}   /* (con otro sonido, los de la canción no valen) */
 // El volumen (fade) en un lugar de la canción, como lo hace el Arduino: {de, a, ms} o {a}; null en un silencio (no se toca)
 function exprEn(so,it){if(!NUEVOS)return null;const p=so.phrases[it.p],c=p&&p.chords[it.ci];if(!c||!c.notes.length)return null;const fd=p.fade||{},F=formOf(so),reps=(F[it.st]&&F[it.st].r)||1;
@@ -1979,6 +1979,12 @@ function chordEditor(s){
   const trOwn=sel.some(c=>c.trans!=null),d=one?diffs(one):[...new Set(sel.flatMap(diffs))];
   card.append(sec('c:toca','right','Glide y pedal',[glideNom(rTr,rGl)+(rTr===2?' '+(rBend>0?'+':'')+rBend+' st':''),...d].join(' · ')+(trOwn||d.length?'':' (como '+(defVacia(pd)?'la canción':'la frase')+')'),()=>[
     srow('Pitch bend','En vez de tocar notas nuevas, mueve la rueda de pitch desde lo que ya suena (un efecto especial de este acorde).',seg([[false,'No'],[true,'Sí']],rTr===2,v=>edit(()=>{for(const c of sel){if(v){c.trans=2;if(c.bend==null)c.bend=0;}else if(c.trans===2){delete c.trans;delete c.bend;}}if(v&&s.bendRange==null)s.bendRange=12;}))),
+    rTr!==2?srow('Entrar deslizando con la rueda','La nota se toca de nuevo, pero arranca corrida unos semitonos y la rueda de pitch vuelve rápido a su lugar: como tocarla con la rueda movida y soltarla. Ejemplo: −1 para que una G llegue desde F#.',
+      h('div',null,toggle('Usar',!!(one&&one.bend!=null),on=>edit(()=>{for(const c of sel){if(on){c.bend=-1;if(c.glide==null)c.glide=80;
+          const t=c.trans!=null?c.trans:(pd.trans!=null?pd.trans:(s.trans||0));if(t===1||t===4)c.trans=3;}else delete c.bend;}if(on&&s.bendRange==null)s.bendRange=12;})),
+        one&&one.bend!=null?h('div',{class:'row',style:'gap:10px;margin-top:6px'},
+          knob({label:'Desde (semitonos)',value:one.bend,min:-(s.bendRange||12),max:s.bendRange||12,onInput:v=>edit(()=>{for(const c of sel)if(c.bend!=null)c.bend=v||-1;})}),
+          knob({label:'Vuelve en (ms)',value:one.glide!=null?one.glide:80,min:10,max:1000,step:10,onInput:v=>edit(()=>{for(const c of sel)if(c.bend!=null)c.glide=v;})})):null)):null,
     rTr!==2?irow('Glide',glideExpl(rTr),sel,'trans',glideNom(sTr,sGl),sTr===2?0:sTr,cur=>seg(GLIDE_OPTS,cur,v=>edit(()=>{for(const c of sel){c.trans=v;if(v===1||v===4)c.glide=glideDefecto(v);}})),deK('trans')):null,
     (rTr===1||rTr===4)?irow(rTr===4?'Velocidad del glide':'Tiempo del glide',rTr===4?'Semitonos por segundo.':'Lo que tarda en llegar desde el acorde anterior.',sel,'glide',glideNom(rTr,sGl),sGl,cur=>glideKnob(rTr,cur,v=>edit(()=>{for(const c of sel)c.glide=v;})),deK('glide'))
       :rTr===2?irow('Tiempo del movimiento (ms)','Cuánto tarda la rueda en llegar.',sel,'glide',sGl+' ms',sGl,cur=>knob({label:'Tiempo',value:cur,min:0,max:2550,step:10,onInput:v=>edit(()=>{for(const c of sel)c.glide=v;})}),deK('glide')):null,
