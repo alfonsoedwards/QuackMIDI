@@ -751,7 +751,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-0142';
+const QM_VERSION='2026.10.05-0956';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -2705,7 +2705,18 @@ const realFetch=window.fetch.bind(window);
    sigue sola con su copia. */
 const ARD_URL='http://192.168.4.1';
 window.ARD=false;let ardFallas=0,ardBuscando=false;
-const ardFetch=(path,opt={},ms=0)=>{const o=Object.assign({},opt,{mode:'cors',targetAddressSpace:'local'});
+/* Por el cable USB (solo en el PC, a través de Quack Studio): las mismas consultas, que Studio le pasa al Arduino por el puerto
+   serie (studio/api_quack.py, usb). Así el PC usa el Arduino sin conectarse a su WiFi (y sin perder internet). */
+window.ARD_USB=false;
+async function usbFetch(path,opt={},ms=0){const post=(opt.method||'GET')==='POST';let datos=null;
+  if(post&&opt.body){const b=opt.body instanceof Uint8Array?opt.body:new Uint8Array(opt.body);let x='';for(const v of b)x+=(v<16?'0':'')+v.toString(16);datos=x;}
+  let sig=opt.signal;if(ms&&!sig){const c=new AbortController();setTimeout(()=>c.abort(),ms);sig=c.signal;}
+  const r=await realFetch(STUDIO_URL+'/api/quack/usb',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({ruta:path,metodo:post?'POST':'GET',datos}),signal:sig});
+  const j=await r.json();if(!j.ok)throw Error(j.error||'Arduino por USB');
+  if(j.bin!=null){const u=new Uint8Array(j.bin.length/2);for(let i=0;i<u.length;i++)u[i]=parseInt(j.bin.substr(i*2,2),16);return new Response(u,{headers:{'X-Bv':String(j.bv||0)}});}
+  if(j.texto!=null)return new Response(j.texto);
+  return new Response(JSON.stringify(j.json),{headers:{'Content-Type':'application/json'}});}
+const ardFetch=(path,opt={},ms=0)=>{if(window.ARD_USB)return usbFetch(path,opt,ms);const o=Object.assign({},opt,{mode:'cors',targetAddressSpace:'local'});
   if(ms&&!o.signal){const c=new AbortController();setTimeout(()=>c.abort(),ms);o.signal=c.signal;}return realFetch(ARD_URL+path,o);};
 function pedCmd(x){if(window.ARD)ardFetch('/api/c?x='+x).catch(()=>{});else cmd(new URLSearchParams('x='+x));}
 function espejo(b){blob=b.slice();flash=b.slice();m=dec(blob);persist();}   // la copia de la app, igual a lo que hay en el Arduino
@@ -2735,7 +2746,12 @@ function mezclarArd(am,lm,B){const A={},L={};am.songs.forEach(x=>A[x.id]=x);lm.s
 async function buscarArduino(){
   if(!window.APPMODE||window.ARD||ardBuscando||typeof M==='undefined'||!M)return;ardBuscando=true;let hallado=false;
   try{
-    const r=await ardFetch('/api/s',{cache:'no-store'},1500);if(!r.ok)throw 0;await r.json();hallado=true;
+    let r=null;window.ARD_USB=false;
+    try{r=await ardFetch('/api/s',{cache:'no-store'},1500);if(!r.ok)throw 0;}
+    catch(e){   // no está por WiFi: ¿está por el cable USB de este PC? (lo ve Quack Studio)
+      if(!(typeof STUDIO!=='undefined'&&STUDIO.ok))throw e;window.ARD_USB=true;
+      try{r=await ardFetch('/api/s',{},3000);if(!r.ok)throw 0;}catch(e2){window.ARD_USB=false;throw e2;}}
+    await r.json();hallado=true;
     const ab=new Uint8Array(await (await ardFetch('/api/blob',{cache:'no-store'},4000)).arrayBuffer());
     const am=dec(ab);
     // las canciones: la versión más nueva de cada una (ver mezclarArd); los ajustes: siempre los del Arduino
@@ -2757,12 +2773,12 @@ async function buscarArduino(){
     if(mz.trae.length)partes.push('traje del Arduino: '+lista(mz.trae));
     if(mz.lleva.length)partes.push('le pasé al Arduino: '+lista(mz.lleva));
     if(mz.choques.length)partes.push('cambiaste '+lista(mz.choques)+' en los dos lados: quedó la del Arduino (la de la tablet está en Ajustes → Copias automáticas)');
-    toast(igualArd&&!appCambia?'Conectado al Arduino: tiene las mismas canciones que la app.':'Conectado al Arduino'+(partes.length?'; '+partes.join('; '):'')+'. Quedaron las versiones más nuevas en los dos.',partes.length?8000:4000);
+    toast(igualArd&&!appCambia?'Conectado al Arduino'+(window.ARD_USB?' por USB':'')+': tiene las mismas canciones que la app.':'Conectado al Arduino'+(window.ARD_USB?' por USB':'')+''+(partes.length?'; '+partes.join('; '):'')+'. Quedaron las versiones más nuevas en los dos.',partes.length?8000:4000);
     espejo(nb);baseArd(dec(nb));window.ARD=true;ardFallas=0;knownBv=-1;window.qmTick&&window.qmTick();   // (knownBv=-1: releer del Arduino)
   }catch(e){if(hallado)toast('Encontré el Arduino, pero no pude pasarle las canciones'+(e&&e.message?': '+e.message:'')+'. Lo intento de nuevo en unos segundos.',5000);}
   finally{ardBuscando=false;}}
 if(window.APPMODE){setTimeout(buscarArduino,1200);setInterval(()=>{if(!window.ARD)buscarArduino();},6000);}
-function ardPerdido(){window.ARD=false;try{if(M)espejo(enc(M));}catch(e){}S.bv++;knownBv=-1;toast('Se perdió la conexión con el Arduino: sigues con la copia de la app.',5000);}
+function ardPerdido(){window.ARD=false;window.ARD_USB=false;try{if(M)espejo(enc(M));}catch(e){}S.bv++;knownBv=-1;toast('Se perdió la conexión con el Arduino: sigues con la copia de la app.',5000);}
 window.fetch=async function(path,opt={}){
   if(window.ARD&&typeof path==='string'&&path.startsWith('/api/')){
     try{const r=await ardFetch(path,opt);ardFallas=0;
