@@ -584,6 +584,7 @@ const ICONS={
   down:'<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/>',
   up:'<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M5 19.5h14"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.2"/>',
+  mixer:'<path d="M6 3v18M12 3v18M18 3v18"/><rect x="4" y="13" width="4" height="3" rx="1"/><rect x="10" y="6" width="4" height="3" rx="1"/><rect x="16" y="10" width="4" height="3" rx="1"/>',
   lock:'<rect x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
   unlock:'<rect x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 6.8-1.2"/>',
   map:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.5h16M4 14.5h16M9.5 4v16"/>',
@@ -610,6 +611,12 @@ const NUEVOS=false,COMO_SONIDO=true,TRANS_ELEGIR=TRANS_OPTS.filter(x=>COMO_SONID
    3 como viene en el sonido · 1 en un tiempo (glide = ms; el mismo para cualquier distancia) · 4 a una velocidad (glide =
    semitonos por segundo x 10; más lejos, más demora) · 0 sin glide · 2 pitch bend (solo en acordes: mueve la rueda).
    Con glide, el Arduino hace entrar cada nota antes de soltar la anterior (así desliza el Mininova): no hay que pedirlo aparte. */
+/* MIXER de la canción: el volumen de cada paso de la forma ("v" en el paso) = el PostFX Level del Mininova (CC59: valores
+   52..82 = -12..+18 dB; medido: funciona como fader de salida). Sin "v", el paso suena como viene el sonido. */
+const MIX_MIN=52,MIX_MAX=82,mixDb=v=>v-64,mixTxt=v=>v?((mixDb(v)>0?'+':'')+mixDb(v)+' dB'):'como viene';
+/* cómo viene el PostFX en el sonido de un paso (lo lee Studio; si no se sabe, 0 dB) */
+function mixBase(s,f){const ph=s.phrases[f.p],l=ph&&ph.sound?((s.sndBases||[]).find(y=>y.bank===ph.sound.bank&&y.pc===ph.sound.pc)||{}).v:s.base;
+  const e=(l||[]).find(x=>x[0]===255&&x[1]===59);return e?e[2]:64;}
 const GLIDE_OPTS=[[3,'Como viene en el sonido'],[1,'En un tiempo'],[4,'A una velocidad'],[0,'Sin glide']];
 const conDeslizar=t=>t===1||t===2||t===4;
 const glideNom=(t,g)=>t===2?'pitch bend':t===1?'glide en '+g+' ms':t===4?'glide a '+Math.round(g/10)+' semitonos/s':t===3?'glide como el sonido':'sin glide';
@@ -681,7 +688,7 @@ function enc(m){const o=[];const u8=v=>o.push(v&255),u16=v=>{u8(v);u8(v>>8)},str
       if(fi||fo){const q=(x,k='d')=>x?Math.min(255,Math.round((x[k]||0)*(x.b?4:10))):0,ext=[fi,fo].some(x=>x&&(x.w||x.c));u8((fi?1:0)|(fo?2:0)|(fi&&fi.b?4:0)|(fo&&fo.b?8:0)|(ext?16:0));u8(q(fi));u8(q(fo));
         if(ext){u8(((fi&&fi.c)||0)&3|((((fo&&fo.c)||0)&3)<<2));u8(q(fi,'w'));u8(q(fo,'w'));}}/* fade in / fade out de la frase */if(pd)chordB(pd,[]);   // ajustes propios de la frase (como un acorde sin notas), antes de sus acordes
       for(const c of p.chords)chordB(c,[...c.notes].sort((a,b)=>a-b).slice(0,MAX_NOTAS));}
-    u8(s.form.length);for(const f of s.form){u8(f.p);u8(f.r);}}
+    u8(s.form.length);const mix=s.form.some(f=>f.v);s.form.forEach((f,k)=>{u8(f.p|(mix&&!k?0x80:0));u8(f.r);});if(mix)for(const f of s.form)u8((f.v||0)&127);   /* mixer: volumen de cada paso */}
   u8(m.sets.length);for(const st of m.sets){str(st.name,24);u8(st.entries.length);for(const e of st.entries){if(e.k===0){u8(0);u8(e.s);u8(e.t&255);str(e.note||'',40);}else if(e.notas&&e.notas.length){u8(2);str(e.label||'',24);const l=e.notas.slice(0,20);u8(l.length);for(const n of l){str(n.t||'',24);str(n.x||'',160);}}else{u8(1);str(e.label||'',24);}}}
   return new Uint8Array(o);}
 function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach((k,j)=>{if(f&(1<<j)){let v=u8();if(k==='glide')v*=10;if(k==='bend'&&v>127)v-=256;d[k]=v;}});
@@ -702,7 +709,7 @@ function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach(
   const songs=[];for(let k=u8();k--;){const s={id:u16(),name:str()};const f=u8();Object.assign(s,{hold:!!(f&1),tie:!!(f&2),repeat:!!(f&4),sendPC:!!(f&8),bank:(f>>4)&3,bpm:u16(),vel:u8(),pc:u8(),phrases:[]});if(f&128)s.hasLyr=true;if(f&64)unpackX(s,SX);
     for(let p=u8();p--;){const ph={name:str(),chords:[]},pf=u8();ph.color=pf&7;if(pf&128)ph.sound={bank:u8(),pc:u8()};let nc=u8();if(pf&8){const fl=u8(),di=u8(),dO=u8(),[cv,wi,wo]=fl&16?[u8(),u8(),u8()]:[0,0,0];ph.fade={};if(fl&1)ph.fade.in={d:di/(fl&4?4:10),b:!!(fl&4)};if(fl&2)ph.fade.out={d:dO/(fl&8?4:10),b:!!(fl&8)};
   for(const[k,c,w,u]of[['in',cv&3,wi,fl&4?4:10],['out',cv>>2&3,wo,fl&8?4:10]])if(ph.fade[k]){if(c)ph.fade[k].c=c;if(w)ph.fade[k].w=w/u;}}if(pf&64){ph.def=chordR();delete ph.def.notes;}for(;nc--;)ph.chords.push(chordR());s.phrases.push(ph);}
-    s.form=[];for(let n=u8();n--;)s.form.push({p:u8(),r:u8()});songs.push(s);}
+    s.form=[];for(let n=u8();n--;)s.form.push({p:u8(),r:u8()});if(s.form.length&&s.form[0].p&0x80){s.form[0].p&=0x7F;for(const f of s.form){const v=u8();if(v)f.v=v;}}songs.push(s);}
   const sets=[];for(let k=u8();k--;){const st={name:str(),entries:[]};for(let n=u8();n--;){const kd=u8();if(kd===0){const s=u8();let t=u8();if(t>127)t-=256;st.entries.push({k:0,s,t,note:str()});}else{const e={k:1,label:str()};if(kd===2){e.notas=[];for(let n=u8();n--;)e.notas.push({t:str(),x:str()});}st.entries.push(e);}}sets.push(st);}
   if(i!==b.length)throw Error('sobran bytes');const m={settings:S,songs,sets};dec.migro=migrarH2(m);return m;}
 /* ---------- Cada lugar de la canción suena siempre igual ----------
@@ -744,7 +751,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-0129';
+const QM_VERSION='2026.10.05-0142';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -912,7 +919,7 @@ function tocarEnStudio(s,pos){lastPosStudio=pos;const so=M.songs[s.s];if(!so){la
   else{const same=lastItStudio&&lastSongStudio===s.s,c=it.e,tie=same?(lastItStudio.e.tie!=null?lastItStudio.e.tie:so.tie):false;
     let trans=c.trans!=null?c.trans:(so.trans||0);if((trans===1||trans===3||trans===4)&&!same)trans=0;
     const nb=trans===2?bendBaseNotas(so,it.p,it.ci):null;if(trans===2&&!nb)trans=0;   // (bend sin nada antes: se toca normal)
-    studio('quack/paso',pasoStudio(so,c,p,{ligado:!!tie,trans,tr:liveTr(),notasBase:nb&&nb.map(n=>n+liveTr()),expr:exprEn(so,it)})).catch(()=>{});}
+    studio('quack/paso',pasoStudio(so,c,p,{ligado:!!tie,trans,tr:liveTr(),notasBase:nb&&nb.map(n=>n+liveTr()),expr:exprEn(so,it),mix:(formOf(so)[it.st]||{}).v})).catch(()=>{});}
   lastItStudio=it;lastSongStudio=s.s;}
 window.qmTick=tick;
 // Pedal (virtual) suelto: en "Mantener" sin Ligado, el acorde se apaga
@@ -1074,7 +1081,7 @@ function borrar(){const k=blanco(),s=M.songs[edSong];
   if(k==='paso'){const lo=Math.min(fSel,fFin??fSel),nn=Math.abs((fFin??fSel)-fSel)+1;edit(()=>{s.form.splice(lo,nn);fSel=Math.max(0,lo-1);fFin=null;});return;}
   if(k==='frase'){const idx=(multiX.size?xSel('frase').map(Number):[edSel.p]).sort((a,b)=>b-a);
     return modal(idx.length>1?`¿Borrar ${idx.length} frases?`:'¿Borrar frase?',h('p',null,idx.length>1?'Y sus pasos en la forma.':`"${s.phrases[idx[0]].name}" y sus pasos en la forma.`),[['Cancelar'],['Borrar',()=>{
-      edit(()=>{for(const pi of idx){s.phrases.splice(pi,1);s.form=s.form.filter(f=>f.p!==pi).map(f=>({p:f.p>pi?f.p-1:f.p,r:f.r}));}},false);irA(s.phrases.length?'frase':'cancion',{p:Math.max(0,idx[idx.length-1]-1)});},'er']]);}
+      edit(()=>{for(const pi of idx){s.phrases.splice(pi,1);s.form=s.form.filter(f=>f.p!==pi).map(f=>Object.assign({},f,{p:f.p>pi?f.p-1:f.p}));}},false);irA(s.phrases.length?'frase':'cancion',{p:Math.max(0,idx[idx.length-1]-1)});},'er']]);}
   const p=s.phrases[edSel.p];if(!p)return;
   if(k==='nota'){const c=p.chords[edSel.c];if(!c)return;const ns=(multiX.size?xSel('nota').map(Number):[notaSel]);
     edit(()=>{c.notes=c.notes.filter(n=>!ns.includes(n));if(c.nv){for(const n of ns)delete c.nv[n];if(!Object.keys(c.nv).length)delete c.nv;}},false);irA('acorde',{p:edSel.p,c:edSel.c});return;}
@@ -1446,7 +1453,7 @@ function vEdit(m){
   const fs=h('div',{class:'strip','data-sk':'form'+s.id});
   s.form.forEach((f,i)=>{const p=s.phrases[f.p];fs.append(h('span',{class:'chip'+(i>=fLo&&i<=fHi&&s.form.length&&(lastFocus==='form'||fVarios)?' on':'')+(f.p===edSel.p&&nivel!=='cancion'&&lastFocus!=='form'?' esta':''),'data-idx':i,style:'--pc:'+PCOL[p?p.color%8:0],
     onclick:ev=>{lastFocus='form';if(fVarios){if(fFin==null)fSel=i;fFin=i;renderAll();return;}if(ev.shiftKey&&s.form[fSel]){fFin=i;renderAll();return;}
-      fSel=i;fFin=null;if(p){if(edSel.p!==f.p)edSel={p:f.p,c:0};nivel='frase';multi.clear();multiX.clear();multiMode=false;}renderAll();lastFocus='form';updTop();}},i===fSel&&lastFocus==='form'&&fFin==null?esquinas('form','este paso'):null,p?p.name:'?',f.r>1?h('b',null,'×'+f.r):null));});
+      fSel=i;fFin=null;if(p){if(edSel.p!==f.p)edSel={p:f.p,c:0};nivel='frase';multi.clear();multiX.clear();multiMode=false;}renderAll();lastFocus='form';updTop();}},i===fSel&&lastFocus==='form'&&fFin==null?esquinas('form','este paso'):null,p?p.name:'?',f.r>1?h('b',null,'×'+f.r):null,f.v?h('small',{style:'margin-left:4px;opacity:.75'},mixTxt(f.v)):null));});
   sortable(fs,(a,b)=>edit(()=>{moveArr(s.form,a,b);fSel=b;fFin=null;}));
   const fc=s.form[fSel],fp=fc&&s.phrases[fc.p];
   const fMover=d=>edit(()=>{if(d<0){const x=s.form.splice(fLo-1,1)[0];s.form.splice(fHi,0,x);}else{const x=s.form.splice(fHi+1,1)[0];s.form.splice(fLo,0,x);}
@@ -1460,7 +1467,9 @@ function vEdit(m){
       tb('minus','',()=>edit(()=>fBloque.forEach(f=>f.r=clamp(f.r-1,1,99))),{off:!fc||fBloque.every(f=>f.r<=1),title:'Una repetición menos'}),
       h('span',{class:'cnt',title:'Veces que suena este paso'},fc&&fN===1?'×'+fc.r:''),
       tb('plus','',()=>edit(()=>fBloque.forEach(f=>f.r=clamp(f.r+1,1,99))),{off:!fc,title:'Una repetición más'}),
+      tb('mixer','Mixer',ev=>{ev.stopPropagation();verMix=!verMix;renderAll();},{cl:verMix?'on':'',title:'El volumen de cada paso de la forma'}),
       ]),
+    verMix&&s.form.length?mixerForma(s):null,
     h('p',{class:'mu sm hint'},fVarios?'Varios: toca el primer paso y después el último; quedan elegidos todos los de entremedio. Arriba, Duplicar los copia juntos, a continuación.':'El orden en que suenan las frases, de izquierda a derecha. Toca un paso para elegirlo (las herramientas de arriba actúan sobre él); mantén presionado para moverlo. Repetir una frase no la copia.'),fs));
 
   // ③ Frases, con los acordes de la frase elegida adentro (como un Combinator)
@@ -1559,6 +1568,19 @@ function notaPanel(s,one){if(!one||notaSel==null||!one.notes.includes(notaSel))r
       [toggle('Igual que el acorde',!own,on=>edit(()=>{if(on){if(one.nv){for(const n of ns)delete one.nv[n];if(!Object.keys(one.nv).length)delete one.nv;}}else{one.nv=one.nv||{};for(const n of ns)one.nv[n]=one.nv[n]||10;}})),
        own?knob({label:'±',value:d||0,min:-126,max:126,onInput:v=>edit(()=>{one.nv=one.nv||{};for(const n of ns){if(v)one.nv[n]=v;else delete one.nv[n];}if(!Object.keys(one.nv).length)delete one.nv;})}):null]));}
 
+/* El mixer de la canción: un fader vertical por cada paso de la forma (la misma frase puede sonar distinto cada vez) */
+function mixerForma(s){
+  const box=h('div',{style:'margin-top:10px;padding:10px;border-radius:12px;background:var(--sf2)',onclick:e=>e.stopPropagation()},
+    h('p',{class:'mu sm',style:'margin:0 0 8px'},'El volumen de cada paso: el nivel de salida del sonido del Mininova (PostFX Level), de −12 a +18 dB. "Como viene" deja el del sonido. Al pasar a un paso cambia en el mismo instante; si ese paso cambia de sonido, el volumen llega ~1 s después (lo que tarda en cargar el Mininova): para esas partes conviene dejar el volumen guardado en el sonido.'));
+  const cols=h('div',{style:'display:flex;gap:10px;overflow-x:auto;padding-bottom:4px'});
+  s.form.forEach((f,i)=>{const p=s.phrases[f.p],val=f.v||mixBase(s,f);
+    const r=h('input',{type:'range',min:MIX_MIN,max:MIX_MAX,step:1,value:val,style:'writing-mode:vertical-lr;direction:rtl;height:130px;width:28px;accent-color:'+PCOL[p?p.color%8:0]+(f.v?'':';opacity:.45'),
+      title:'Volumen de este paso',oninput:e=>{lab.textContent=mixTxt(+e.target.value);},onchange:e=>edit(()=>{f.v=+e.target.value;})});
+    const lab=h('b',{style:'font-size:.8rem'},mixTxt(f.v));
+    cols.append(h('div',{style:'display:flex;flex-direction:column;align-items:center;gap:4px;min-width:70px'},
+      h('span',{class:'chip',style:'--pc:'+PCOL[p?p.color%8:0]+';white-space:nowrap'},p?p.name:'?',f.r>1?h('b',null,'×'+f.r):null),r,lab,
+      f.v?h('button',{class:'gh sm',title:'Volver a como viene el sonido',onclick:()=>edit(()=>{delete f.v;})},'Como viene'):h('small',{class:'mu'},'mueve para cambiar')));});
+  box.append(cols);return box;}
 /* Transponer: mueve las notas de todos los acordes de la canción d semitonos (sin salirse de 0-127) */
 function transponer(s,d){const cs=s.phrases.flatMap(p=>p.chords),ns=cs.flatMap(c=>c.notes);
   if(!ns.length)return toast('La canción no tiene notas');
@@ -1872,16 +1894,17 @@ const sndNombre=x=>{const s=slotDe(x),n=s&&sndNames.slots[s];return n?n.replace(
 const sndLabel=x=>{const b=(x.bank?'ABC'[x.bank-1]:'')+String(x.pc||0).padStart(3,'0'),n=sndNombre(x);return n?b+' · '+n:b;};
 /* Un paso para Quack Studio, como lo haría el Arduino: acorde + lo que fija su frase (lo que el acorde no cambia) + cómo
    empieza la canción + cómo viene en el sonido ("base", para volver sin recargar). notasBase: pitch bend, las notas que se mueven */
-function pasoStudio(so,c,p,{ligado=false,trans=0,tr=0,modo='latch',notasBase=null,expr=null}={}){
+function pasoStudio(so,c,p,{ligado=false,trans=0,tr=0,modo='latch',notasBase=null,expr=null,mix=null}={}){
   const snd=(p&&p.sound)||(so.sendPC?{bank:so.bank||0,pc:so.pc}:null),bpm=c.bpm||so.bpm||120,glide=c.glide!=null?c.glide:(so.glide!=null?so.glide:150);
   const MS=(T,x)=>Math.round(T.b?x*60000/bpm:x*1000),d=(p&&p.def)||{};
   const ctlsDe=(x,menos)=>Object.entries(x.ctl||{}).filter(([id])=>!(menos&&menos.ctl&&menos.ctl[id]!=null)).map(([id,v])=>{const T=(x.ctlT&&x.ctlT[id])||x.trT;
     return T?{id:+id,val:v,own:true,dur:MS(T,T.d||0),wait:MS(T,T.w||0),desde:T.f!=null?T.f:undefined}:{id:+id,val:v,own:false,dur:glide,wait:0};});
   const mnDe=(x,menos)=>(x.mn||[]).filter(([a,b])=>!(menos&&(menos.mn||[]).some(e=>e[0]===a&&e[1]===b))).map(([a,b,v])=>{const T=mnTrans(x,a,b)||x.trT;return T?[a,b,v,MS(T,T.d||0),MS(T,T.w||0)]:[a,b,v];});
-  const ctlsFrase=ctlsDe(d,c),mnFrase=mnDe(d,c);
+  const sin59=l=>mix?l.filter(e=>!(e[0]===255&&e[1]===59)):l;   /* el mixer del paso manda sobre la frase y el acorde (como el firmware) */
+  const ctlsFrase=ctlsDe(d,c),mnFrase=sin59(mnDe(d,c)).concat(mix?[[255,59,mix]]:[]);
   return{cancion:so.id,slot:slotDe(snd),voz:so.voice!=null?so.voice:null,bendRange:so.bendRange||0,ctlCancion:so.ctl||{},
     notas:c.notes.map(n=>n+tr),vel:c.vel!=null?c.vel:so.vel,nv:nvShift(c,tr),ligado,trans,glide,bend:c.bend||0,entrada:trans!==2&&c.bend?{st:c.bend,ms:c.glide!=null?c.glide:80}:null,modo,notasBase,
-    ctls:[...ctlsFrase,...ctlsDe(c)],mn:[...mnFrase,...mnDe(c)],ctlsFrase,mnFrase,mnCancion:!(p&&p.sound)||(so.sendPC&&p.sound.bank===(so.bank||0)&&p.sound.pc===so.pc)?so.mn||[]:[],base:basesDe(so,p),expr};}   /* (con otro sonido, los de la canción no valen) */
+    ctls:[...ctlsFrase,...ctlsDe(c)],mn:[...mnFrase,...sin59(mnDe(c))],ctlsFrase,mnFrase,mnCancion:!(p&&p.sound)||(so.sendPC&&p.sound.bank===(so.bank||0)&&p.sound.pc===so.pc)?so.mn||[]:[],base:basesDe(so,p),expr};}   /* (con otro sonido, los de la canción no valen) */
 // El volumen (fade) en un lugar de la canción, como lo hace el Arduino: {de, a, ms} o {a}; null en un silencio (no se toca)
 function exprEn(so,it){if(!NUEVOS)return null;const p=so.phrases[it.p],c=p&&p.chords[it.ci];if(!c||!c.notes.length)return null;const fd=p.fade||{},F=formOf(so),reps=(F[it.st]&&F[it.st].r)||1;
   const ult=Math.max(-1,...p.chords.map((x,k)=>x.notes.length?k:-1)),bpm=c.bpm||(p.def&&p.def.bpm)||so.bpm||120,ms=x=>Math.round(x.b?x.d*60000/bpm:x.d*1000);
@@ -1936,7 +1959,7 @@ function irow(title,expl,sel,key,songTxt,songVal,control,de='la canción',cosa='
     h('div',{class:'sc'},sw),own?h('div',{class:'own'},control(cur)):null);}
 const transExpl=(t,ms,bend)=>t===3?'Lo decide el sonido del Mininova: las notas nuevas entran antes de soltar las anteriores (para que pueda ligar) y no se le manda tiempo de deslizamiento: usa el modo de voz, el portamento y el glide que tenga guardados.':t===1?`Entra antes de soltar el anterior: el MiniNova desliza sin re-atacar, en ${ms} ms.`:t===2?`No toca notas nuevas: mueve la rueda de pitch ${bend>0?'+':''}${bend} semitonos en ${ms} ms.`:'Suelta el acorde anterior y toca este (con Ligado, las notas repetidas no se re-atacan).';
 
-let bRoot=0,bOct=4,bType=0,bInv=0,pianoBase=48,fSel=0,fFin=null,fVarios=false;
+let bRoot=0,bOct=4,bType=0,bInv=0,pianoBase=48,fSel=0,fFin=null,fVarios=false,verMix=false;
 function chordEditor(s){
   const sel=selChords(s);const card=h('div',{class:'card',id:'ceditor'});
   if(!sel.length){card.append(h('p',{class:'mu'},multiMode?'Toca varios acordes para seleccionarlos.':'Selecciona un acorde.'));return card;}
@@ -2063,6 +2086,7 @@ function mnTocados(s,snd){const fij=new Set([...kvAj(s).keys()].map(k=>abDe(k).j
   for(const p of s.phrases){if(snd!==undefined){const ps=p.sound||null;if(snd===null?ps:!(ps&&ps.bank===snd.bank&&ps.pc===snd.pc))continue;}
     for(const c of [...p.chords,p.def||{}])for(const k of kvAj(c).keys()){const ab=abDe(k),kk=ab.join(':');if(kk==='255:1'||fij.has(kk))continue;o.set(kk,ab);}
     if(p.fade&&(p.fade.in||p.fade.out))for(const x of FADE_CC)if(!fij.has('255:'+x))o.set('255:'+x,[255,x]);   // los fades: los niveles del mezclador
+    if((s.form||[]).some(f=>f.v)&&!fij.has('255:59'))o.set('255:59',[255,59]);   /* el mixer: para volver al volumen del sonido */
     if([s,p.def||{},...p.chords].some(x=>x.trans===1||x.trans===4))for(const x of [5,12])if(!fij.has('255:'+x))o.set('255:'+x,[255,x]);}   /* glide de Quack: para devolver el del sonido */
   return[...o.values()];}
 const FADE_CC=[51,52,53,54,55,56];
