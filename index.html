@@ -602,6 +602,9 @@ const NN=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const TYPES=[['',[0,4,7],'Mayor'],['m',[0,3,7],'menor'],['7',[0,4,7,10],'7'],['maj7',[0,4,7,11],'maj7'],['m7',[0,3,7,10],'m7'],['6',[0,4,7,9],'6'],['m6',[0,3,7,9],'m6'],['9',[0,4,7,10,14],'9'],['m9',[0,3,7,10,14],'m9'],['add9',[0,4,7,14],'add9'],['sus2',[0,2,7],'sus2'],['sus4',[0,5,7],'sus4'],['7sus4',[0,5,7,10],'7sus4'],['dim',[0,3,6],'dim'],['dim7',[0,3,6,9],'dim7'],['m7b5',[0,3,6,10],'m7♭5'],['aug',[0,4,8],'aug'],['mMaj7',[0,3,7,11],'m(maj7)'],['5',[0,7],'5 (power)']];
 const noteName=n=>NN[n%12]+(Math.floor(n/12)-1);
 const TRANS_OPTS=[[0,'Normal'],[1,'Legato'],[2,'Pitch bend'],[3,'Como el sonido']];
+/* 2026-10-04: el Arduino volvió a la versión de ayer (sin fades ni "Como el sonido"): no se ofrecen y no se le mandan
+   ("Como el sonido" va como Legato). Para volver a activarlos: NUEVOS=true (y el firmware que los entiende). */
+const NUEVOS=false,TRANS_ELEGIR=TRANS_OPTS.filter(x=>NUEVOS||x[0]!==3);
 const conDeslizar=t=>t===1||t===2;   // ("Como el sonido" no manda tiempo: lo decide el Mininova)
 function stepLabel(c,tr=0){if(c.trans===2)return '↗ '+((c.bend||0)>0?'+':'')+(c.bend||0);return chordName(c.notes,tr);}
 function chordName(notes,tr=0){
@@ -630,7 +633,7 @@ function utf8(s,max){let b=te.encode(s||'');while(b.length>max){s=s.slice(0,-1);
 const SX=['voice','bendRange','trans','glide'],CX=['trans','glide','bend','mod'];   // la lista de controles va aparte (bit 4)
 // Controles del MiniNova: [nombre, CC, se puede deslizar, valor inicial]
 const CTRL=[['Modulación',1,true,0],['Filtro (frecuencia)',74,true,64],['Resonancia',71,true,0],['Drive',63,true,0],['Ataque',73,false,0],['Decay',75,false,64],['Sustain',70,false,127],['Release',72,false,20]];
-function packX(d,keys,ns){let f=0;const v=[];keys.forEach((k,i)=>{if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):d[k])&255);}});
+function packX(d,keys,ns){let f=0;const v=[];keys.forEach((k,i)=>{if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):k==='trans'&&d[k]===3&&!NUEVOS?1:d[k])&255);}});
   const ids=Object.keys(d.ctl||{}).map(Number).sort((a,b)=>a-b);if(ids.length){f|=16;v.push(ids.length);for(const id of ids){const tm=d.ctlT&&d.ctlT[id];
     if(tm){const q=tm.b?4:10;v.push(id|0x80|(tm.b?0x40:0),d.ctl[id]&127,Math.min(255,Math.round((tm.d||0)*q)),Math.min(255,Math.round((tm.w||0)*q)));}   // transición propia: espera y duración
     else v.push(id,d.ctl[id]&127);}}
@@ -648,7 +651,7 @@ function enc(m){const o=[];const u8=v=>o.push(v&255),u16=v=>{u8(v);u8(v>>8)},str
     const cx=packX(c,CX,ns);u8(Math.min(ns.length,7)|(hh?8:0)|(ht?16:0)|(hb?32:0)|(hv?64:0)|(cx.length?128:0));if(ns.length>=7)u8(ns.length);if(hh||ht)u8((c.hold?1:0)|(c.tie?2:0));if(hb)u16(c.bpm);if(hv)u8(c.vel);for(const x of cx)u8(x);for(const n of ns)u8(n);};
   const S=m.settings;u8(S.outCh);u8((S.clock?1:0)|(S.h2?2:0)|4);u8(Math.round(S.longMs/10));for(const t of S.trig){u8(t.t);u8(t.ch);u8(t.n);}str(S.ssid,24);str(S.pass,24);u16(S.nextId);
   u8(m.songs.length);for(const s of m.songs){u16(s.id);str(s.name,24);const sx=packX(s,SX);u8((s.hold?1:0)|(s.tie?2:0)|(s.repeat?4:0)|(s.sendPC?8:0)|((s.bank||0)&3)<<4|(sx.length?64:0)|(s.hasLyr?128:0));u16(s.bpm);u8(s.vel);u8(s.pc);for(const x of sx)u8(x);u8(s.phrases.length);
-    for(const p of s.phrases){str(p.name,16);const pd=defVacia(p.def)?null:p.def,fi=p.fade&&p.fade.in,fo=p.fade&&p.fade.out;u8((p.color&7)|(fi||fo?8:0)|(pd?64:0)|(p.sound?128:0));
+    for(const p of s.phrases){str(p.name,16);const pd=defVacia(p.def)?null:p.def,fi=NUEVOS&&p.fade&&p.fade.in,fo=NUEVOS&&p.fade&&p.fade.out;u8((p.color&7)|(fi||fo?8:0)|(pd?64:0)|(p.sound?128:0));
       if(p.sound){u8(p.sound.bank&3);u8(p.sound.pc&127);}u8(p.chords.length);
       if(fi||fo){const q=(x,k='d')=>x?Math.min(255,Math.round((x[k]||0)*(x.b?4:10))):0,ext=[fi,fo].some(x=>x&&(x.w||x.c));u8((fi?1:0)|(fo?2:0)|(fi&&fi.b?4:0)|(fo&&fo.b?8:0)|(ext?16:0));u8(q(fi));u8(q(fo));
         if(ext){u8(((fi&&fi.c)||0)&3|((((fo&&fo.c)||0)&3)<<2));u8(q(fi,'w'));u8(q(fo,'w'));}}/* fade in / fade out de la frase */if(pd)chordB(pd,[]);   // ajustes propios de la frase (como un acorde sin notas), antes de sus acordes
@@ -716,7 +719,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.04-2019';
+const QM_VERSION='2026.10.04-2248';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1384,7 +1387,7 @@ function vEdit(m){
       srow('Tempo','Velocidad de la canción. También marca el MIDI Clock que recibe el MiniNova.',knob({label:'Tempo',value:s.bpm,min:20,max:300,onInput:v=>edit(()=>s.bpm=v)})),
       srow('Velocity','Qué tan fuerte suenan las notas (1 a 127).',knob({label:'Velocity',value:s.vel,min:1,max:127,onInput:v=>edit(()=>s.vel=v)})),
       srow('Sostén','Latch: el acorde suena hasta la próxima pisada. Mantener: suena solo mientras el pie está abajo.',seg([[false,'Latch'],[true,'Mantener']],s.hold,v=>edit(()=>s.hold=v))),
-      srow('Transición',transExpl(s.trans||0,gl,2),seg(TRANS_OPTS.map(([v,t])=>[v,t]),s.trans||0,v=>edit(()=>{s.trans=v||undefined;if(v===2&&s.bendRange==null)s.bendRange=12;}))),
+      srow('Transición',transExpl(s.trans||0,gl,2),seg(TRANS_ELEGIR.map(([v,t])=>[v,t]),s.trans||0,v=>edit(()=>{s.trans=v||undefined;if(v===2&&s.bendRange==null)s.bendRange=12;}))),
       conDeslizar(s.trans)?srow('Deslizar (ms)','Cuánto tarda el paso de un acorde al otro. Cada acorde puede tener el suyo.',knob({label:'Deslizar',value:gl,min:0,max:2550,step:10,onInput:v=>edit(()=>s.glide=v)})):null,
       srow('Ligado','Las notas que se repiten en el acorde siguiente siguen sonando sin volver a atacar.',toggle('',s.tie,v=>edit(()=>s.tie=v))),
       srow('Repetir desde el inicio','Al terminar la canción vuelve al primer acorde. Apagado: se queda al final.',toggle('',s.repeat,v=>edit(()=>s.repeat=v)))]),
@@ -1473,7 +1476,7 @@ function phraseEditor(s,p,pi){const card=h('div',{class:'card',id:'peditor'});if
   const res=[d.trans!=null?TRANS_OPTS[d.trans][1]:null,d.hold!=null?(d.hold?'Mantener':'Latch'):null,d.tie!=null?(d.tie?'ligado':'sin ligar'):null,d.bpm!=null?d.bpm+' BPM':null,d.vel!=null?'velocity '+d.vel:null].filter(Boolean);
   const IR=(t,e,k,st,sv,ctl)=>irow(t,e,sel,k,st,sv,ctl,'la canción',many?'estas frases':'esta frase');
   card.append(sec('f:toca','right','Cómo se tocan sus acordes',res.length?res.join(' · '):'Como la canción',()=>[
-    IR('Transición',transExpl(rTr,rGl,0),'trans',TRANS_OPTS[sTr][1],sTr===2?0:sTr,cur=>seg(TRANS_OPTS.filter(x=>x[0]!==2),cur,v=>edit(()=>{for(const c of sel)c.trans=v;}))),
+    IR('Transición',transExpl(rTr,rGl,0),'trans',TRANS_OPTS[sTr][1],sTr===2?0:sTr,cur=>seg(TRANS_ELEGIR.filter(x=>x[0]!==2),cur,v=>edit(()=>{for(const c of sel)c.trans=v;}))),
     conDeslizar(rTr)?IR('Deslizar (ms)','Cuánto tarda el paso de un acorde al otro.','glide',sGl+' ms',sGl,cur=>knob({label:'Deslizar',value:cur,min:0,max:2550,step:10,onInput:v=>edit(()=>{for(const c of sel)c.glide=v;})})):null,
     IR('Sostén','Latch: suena hasta la próxima pisada. Mantener: solo mientras el pie está abajo.','hold',s.hold?'Mantener':'Latch',!!s.hold,cur=>seg([[false,'Latch'],[true,'Mantener']],cur,v=>edit(()=>{for(const c of sel)c.hold=v;}))),
     IR('Ligado','Las notas que se repiten en el acorde siguiente no se vuelven a atacar.','tie',s.tie?'sí':'no',!!s.tie,cur=>seg([[false,'No'],[true,'Sí']],cur,v=>edit(()=>{for(const c of sel)c.tie=v;}))),
@@ -1486,7 +1489,7 @@ function phraseEditor(s,p,pi){const card=h('div',{class:'card',id:'peditor'});if
       h('h3',null,'Parámetros al entrar a la frase'),
       paramBloque(s,d,{tipo:'frase',p:pi})]));}
   else card.append(h('p',{class:'mu sm'},'El sonido y los parámetros del Mininova se eligen de a una frase.'));
-  if(!many){const fd=p.fade||{};
+  if(!many&&NUEVOS){const fd=p.fade||{};
     card.append(sec('f:fade','tempo','Fade',[fd.in?(fd.in.w?'tras '+tUn(fd.in.w,fd.in.b)+', ':'')+'entra en '+tUn(fd.in.d,fd.in.b):null,fd.out?(fd.out.w?'tras '+tUn(fd.out.w,fd.out.b)+', ':'')+'sale en '+tUn(fd.out.d,fd.out.b):null].filter(Boolean).join(' · ')||'Sin fade',()=>[
       h('p',{class:'mu sm',style:'margin:8px 0 0'},'Sube o baja el volumen del sonido (con un retardo antes de empezar, si quieres, y la forma que elijas) moviendo juntos los niveles de su mezclador (osciladores, ring mod y ruido), desde 0 hasta como vienen en el sonido: el timbre no cambia. Quack Studio lee esos niveles del sonido guardado en el slot. El fade in empieza en el primer acorde de la frase; el fade out, en su último acorde con notas (si la frase se repite, en la última vuelta). Fuera de los fades, el volumen está siempre pleno.'),
       faltaNivel(s,p)?h('div',{class:'warnb'},ic('info'),h('div',{class:'grow'},h('b',null,'Todavía no sé los niveles de este sonido, así que el fade no se va a escuchar.'),
@@ -1738,7 +1741,7 @@ function pasoStudio(so,c,p,{ligado=false,trans=0,tr=0,modo='latch',notasBase=nul
     notas:c.notes.map(n=>n+tr),vel:c.vel!=null?c.vel:so.vel,nv:nvShift(c,tr),ligado,trans,glide,bend:c.bend||0,modo,notasBase,
     ctls:[...ctlsFrase,...ctlsDe(c)],mn:[...mnFrase,...mnDe(c)],ctlsFrase,mnFrase,mnCancion:!(p&&p.sound)||(so.sendPC&&p.sound.bank===(so.bank||0)&&p.sound.pc===so.pc)?so.mn||[]:[],base:basesDe(so,p),expr};}   /* (con otro sonido, los de la canción no valen) */
 // El volumen (fade) en un lugar de la canción, como lo hace el Arduino: {de, a, ms} o {a}; null en un silencio (no se toca)
-function exprEn(so,it){const p=so.phrases[it.p],c=p&&p.chords[it.ci];if(!c||!c.notes.length)return null;const fd=p.fade||{},F=formOf(so),reps=(F[it.st]&&F[it.st].r)||1;
+function exprEn(so,it){if(!NUEVOS)return null;const p=so.phrases[it.p],c=p&&p.chords[it.ci];if(!c||!c.notes.length)return null;const fd=p.fade||{},F=formOf(so),reps=(F[it.st]&&F[it.st].r)||1;
   const ult=Math.max(-1,...p.chords.map((x,k)=>x.notes.length?k:-1)),bpm=c.bpm||(p.def&&p.def.bpm)||so.bpm||120,ms=x=>Math.round(x.b?x.d*60000/bpm:x.d*1000);
   const ex=(x,o)=>Object.assign(o,{ms:ms(x),espera:ms({d:x.w||0,b:x.b}),curva:x.c||0});
   if(fd.in&&it.ci===0&&it.r===0)return ex(fd.in,{de:0,a:127});
