@@ -744,7 +744,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-0113';
+const QM_VERSION='2026.10.05-0129';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -910,7 +910,7 @@ function tocarEnStudio(s,pos){lastPosStudio=pos;const so=M.songs[s.s];if(!so){la
   const p=it?so.phrases[it.p]:null,snd=(p&&p.sound)||(so.sendPC?{bank:so.bank||0,pc:so.pc}:null),slot=slotDe(snd);
   if(!it){studio('quack/parar',{olvidar:true}).catch(()=>{});if(lastSongStudio!==s.s&&slot)studio('quack/elegir',{slot}).catch(()=>{});}
   else{const same=lastItStudio&&lastSongStudio===s.s,c=it.e,tie=same?(lastItStudio.e.tie!=null?lastItStudio.e.tie:so.tie):false;
-    let trans=c.trans!=null?c.trans:(so.trans||0);if((trans===1||trans===3)&&!same)trans=0;
+    let trans=c.trans!=null?c.trans:(so.trans||0);if((trans===1||trans===3||trans===4)&&!same)trans=0;
     const nb=trans===2?bendBaseNotas(so,it.p,it.ci):null;if(trans===2&&!nb)trans=0;   // (bend sin nada antes: se toca normal)
     studio('quack/paso',pasoStudio(so,c,p,{ligado:!!tie,trans,tr:liveTr(),notasBase:nb&&nb.map(n=>n+liveTr()),expr:exprEn(so,it)})).catch(()=>{});}
   lastItStudio=it;lastSongStudio=s.s;}
@@ -1398,8 +1398,9 @@ function perform(i){cmd('set',i).then(()=>openPerf());}
 function fixSel(){if(!M.songs.length)return;edSong=clamp(edSong,0,M.songs.length-1);const s=M.songs[edSong];if(!s.phrases.length){edSel={p:0,c:0};return;}edSel.p=clamp(edSel.p,0,s.phrases.length-1);edSel.c=clamp(edSel.c,0,Math.max(0,s.phrases[edSel.p].chords.length-1));}
 function selChords(s){if(multiMode&&multi.size)return[...multi].map(k=>k.split('.').map(Number)).filter(([p,c])=>s.phrases[p]&&s.phrases[p].chords[c]).map(([p,c])=>s.phrases[p].chords[c]);const p=s.phrases[edSel.p];return p&&p.chords[edSel.c]?[p.chords[edSel.c]]:[];}
 const nvShift=(c,tr)=>{if(!c.nv)return null;const o={};for(const k in c.nv)o[+k+tr]=c.nv[k];return o;};
-function audition(c,s){if(prefs.mute)return;const v=c.vel!=null?c.vel:s.vel;synthPlay(c.notes,v,{fade:true,trans:c.trans!=null?c.trans:(s.trans||0),glide:c.glide!=null?c.glide:s.glide,bend:c.bend,nv:c.nv});if(c.trans===2)return;
-  if(usarStudio()){const p=s.phrases.find(q=>q.chords.includes(c)),snd=(p&&p.sound)||(s.sendPC?{bank:s.bank||0,pc:s.pc}:null);
+function audition(c0,s){if(prefs.mute)return;const p=s.phrases.find(q=>q.chords.includes(c0)),c=efc(p,c0);   /* (lo que no define el acorde viene de su frase) */
+  const v=c.vel!=null?c.vel:s.vel;synthPlay(c.notes,v,{fade:true,trans:c.trans!=null?c.trans:(s.trans||0),glide:c.glide!=null?c.glide:s.glide,bend:c.bend,nv:c.nv});if(c.trans===2)return;
+  if(usarStudio()){const snd=(p&&p.sound)||(s.sendPC?{bank:s.bank||0,pc:s.pc}:null);
     if(!c.notes.length)studio('quack/parar',{}).catch(()=>{});
     else studio('quack/paso',pasoStudio(s,c,p,{modo:'fade'})).catch(()=>{});
     return;}
@@ -1553,7 +1554,7 @@ function fadeFila(s,p,k,tit,expl){const T=p.fade&&p.fade[k],sube=k==='in',cDef=s
 /* La nota elegida: solo su velocity (más fuerte o más suave que el resto del acorde) */
 function notaPanel(s,one){if(!one||notaSel==null||!one.notes.includes(notaSel))return null;
   const ns=(multiX.size?xSel('nota').map(Number):[notaSel]).filter(n=>one.notes.includes(n)),d=one.nv&&one.nv[ns[0]],own=ns.some(n=>one.nv&&one.nv[n]!=null);
-  return h('div',{class:'card',id:'neditor'},panelHead(ns.length>1?ns.length+' notas':'Nota '+noteName(ns[0]),[stepLabel(one)],[tb('play','Escuchar',()=>synthPlay(ns,100,{fade:true}))]),
+  return h('div',{class:'card',id:'neditor'},panelHead(ns.length>1?ns.length+' notas':'Nota '+noteName(ns[0]),[stepLabel(one)],[tb('play','Escuchar',()=>{const ve=efc(s.phrases[edSel.p],one).vel,b=ve!=null?ve:s.vel;synthPlay(ns,clamp(b+((one.nv&&one.nv[ns[0]])||0),1,127),{fade:true});})]),
     srow('Velocity de '+(ns.length>1?'estas notas':'esta nota'),'Más fuerte (+) o más suave (−) que el resto del acorde. Lo demás de la nota lo decide el acorde.',
       [toggle('Igual que el acorde',!own,on=>edit(()=>{if(on){if(one.nv){for(const n of ns)delete one.nv[n];if(!Object.keys(one.nv).length)delete one.nv;}}else{one.nv=one.nv||{};for(const n of ns)one.nv[n]=one.nv[n]||10;}})),
        own?knob({label:'±',value:d||0,min:-126,max:126,onInput:v=>edit(()=>{one.nv=one.nv||{};for(const n of ns){if(v)one.nv[n]=v;else delete one.nv[n];}if(!Object.keys(one.nv).length)delete one.nv;})}):null]));}
@@ -2127,7 +2128,7 @@ function aplicarAjuste(s,ctx,res){
 /* Velocity de cada nota, bajo su tecla: arrastrar arriba/abajo, tocar el número para escribirlo, mantener = la del acorde */
 function velLane(one,s){const lane=h('div',{class:'vlane'});if(!one.notes.length)return lane;
   const W=[0,2,4,5,7,9,11],whites=[];for(let n=pianoBase;n<pianoBase+36;n++)if(W.includes(n%12))whites.push(n);const ww=100/whites.length;
-  const base=one.vel!=null?one.vel:s.vel,p=s.phrases[edSel.p],prev=p&&p.chords[edSel.c-1],tied=(one.tie!=null?one.tie:s.tie)&&prev;
+  const p=s.phrases[edSel.p],ve=efc(p,one).vel,base=ve!=null?ve:s.vel,prev=p&&p.chords[edSel.c-1],tied=(one.tie!=null?one.tie:s.tie)&&prev;
   const setOff=(n,v)=>edit(()=>{const d=clamp(v,1,127)-base;one.nv=one.nv||{};if(d)one.nv[n]=clamp(d,-126,126);else delete one.nv[n];if(!Object.keys(one.nv).length)delete one.nv;audition(one,s);});
   // números: negras arriba y blancas abajo; si igual chocan con el vecino, se pasan a la otra fila
   const lw=(document.querySelector('#ceditor .piano')||{}).offsetWidth||Math.max(200,(document.getElementById('main')||{}).clientWidth-90||700),ends={up:-1e9,dn:-1e9};
