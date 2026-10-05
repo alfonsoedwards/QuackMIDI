@@ -660,7 +660,7 @@ const SX=['voice','bendRange','trans','glide'],CX=['trans','glide','bend','mod']
 const CTRL=[['Modulación',1,true,0],['Filtro (frecuencia)',74,true,64],['Resonancia',71,true,0],['Drive',63,true,0],['Ataque',73,false,0],['Decay',75,false,64],['Sustain',70,false,127],['Release',72,false,20]];
 function packX(d,keys,ns){let f=0;const v=[];keys.forEach((k,i)=>{if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):k==='trans'&&d[k]===3&&!COMO_SONIDO?1:d[k])&255);}});
   const ids=Object.keys(d.ctl||{}).map(Number).sort((a,b)=>a-b);if(ids.length){f|=16;v.push(ids.length);for(const id of ids){const tm=d.ctlT&&d.ctlT[id];
-    if(tm){const q=tm.b?4:10;v.push(id|0x80|(tm.b?0x40:0),d.ctl[id]&127,Math.min(255,Math.round((tm.d||0)*q)),Math.min(255,Math.round((tm.w||0)*q)));}   // transición propia: espera y duración
+    if(tm){const q=tm.b?4:10;v.push(id|0x80|(tm.b?0x40:0)|(tm.f!=null?0x20:0),d.ctl[id]&127,Math.min(255,Math.round((tm.d||0)*q)),Math.min(255,Math.round((tm.w||0)*q)));if(tm.f!=null)v.push(tm.f&127);}   // transición propia: espera y duración (y "parte desde")
     else v.push(id,d.ctl[id]&127);}}
   if(ns&&d.nv&&ns.some(n=>d.nv[n])){f|=32;for(const n of ns)v.push((d.nv[n]||0)&255);}   // velocity propia de cada nota (+/- sobre la del acorde)
   const gen=keys===CX?d.trT:null,l=(d.mn||[]).slice(0,40),Q=(x,T)=>Math.min(255,Math.round((x||0)*(T.b?4:10)));
@@ -685,7 +685,7 @@ function enc(m){const o=[];const u8=v=>o.push(v&255),u16=v=>{u8(v);u8(v>>8)},str
   u8(m.sets.length);for(const st of m.sets){str(st.name,24);u8(st.entries.length);for(const e of st.entries){if(e.k===0){u8(0);u8(e.s);u8(e.t&255);str(e.note||'',40);}else if(e.notas&&e.notas.length){u8(2);str(e.label||'',24);const l=e.notas.slice(0,20);u8(l.length);for(const n of l){str(n.t||'',24);str(n.x||'',160);}}else{u8(1);str(e.label||'',24);}}}
   return new Uint8Array(o);}
 function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach((k,j)=>{if(f&(1<<j)){let v=u8();if(k==='glide')v*=10;if(k==='bend'&&v>127)v-=256;d[k]=v;}});
-    if(f&16){d.ctl={};for(let n=u8();n--;){const b=u8(),id=b&7;d.ctl[id]=u8();if(b&0x80){const q=b&0x40?4:10,du=u8(),w=u8();d.ctlT=d.ctlT||{};d.ctlT[id]={w:w/q,d:du/q,b:!!(b&0x40)};}}}
+    if(f&16){d.ctl={};for(let n=u8();n--;){const b=u8(),id=b&7;d.ctl[id]=u8();if(b&0x80){const q=b&0x40?4:10,du=u8(),w=u8();d.ctlT=d.ctlT||{};d.ctlT[id]={w:w/q,d:du/q,b:!!(b&0x40)};}if(b&0x20){d.ctlT=d.ctlT||{};(d.ctlT[id]=d.ctlT[id]||{w:0,d:0,b:false}).f=u8();}}}
     if(f&32&&keys===CX){d.nv=[];for(let n=nn;n--;){let x=u8();if(x>127)x-=256;d.nv.push(x);}}
     if(f&64){const hd=u8();if(hd&128){const q=hd&64?4:10,du=u8(),w=u8();d.trT={w:w/q,d:du/q,b:!!(hd&64)};}const mn=[];
       for(let n=hd&63;n--;){const a=u8(),b=u8(),x=u8();
@@ -744,7 +744,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-0022';
+const QM_VERSION='2026.10.05-0039';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1861,7 +1861,7 @@ function pasoStudio(so,c,p,{ligado=false,trans=0,tr=0,modo='latch',notasBase=nul
   const snd=(p&&p.sound)||(so.sendPC?{bank:so.bank||0,pc:so.pc}:null),bpm=c.bpm||so.bpm||120,glide=c.glide!=null?c.glide:(so.glide!=null?so.glide:150);
   const MS=(T,x)=>Math.round(T.b?x*60000/bpm:x*1000),d=(p&&p.def)||{};
   const ctlsDe=(x,menos)=>Object.entries(x.ctl||{}).filter(([id])=>!(menos&&menos.ctl&&menos.ctl[id]!=null)).map(([id,v])=>{const T=(x.ctlT&&x.ctlT[id])||x.trT;
-    return T?{id:+id,val:v,own:true,dur:MS(T,T.d||0),wait:MS(T,T.w||0)}:{id:+id,val:v,own:false,dur:glide,wait:0};});
+    return T?{id:+id,val:v,own:true,dur:MS(T,T.d||0),wait:MS(T,T.w||0),desde:T.f!=null?T.f:undefined}:{id:+id,val:v,own:false,dur:glide,wait:0};});
   const mnDe=(x,menos)=>(x.mn||[]).filter(([a,b])=>!(menos&&(menos.mn||[]).some(e=>e[0]===a&&e[1]===b))).map(([a,b,v])=>{const T=mnTrans(x,a,b)||x.trT;return T?[a,b,v,MS(T,T.d||0),MS(T,T.w||0)]:[a,b,v];});
   const ctlsFrase=ctlsDe(d,c),mnFrase=mnDe(d,c);
   return{cancion:so.id,slot:slotDe(snd),voz:so.voice!=null?so.voice:null,bendRange:so.bendRange||0,ctlCancion:so.ctl||{},
@@ -2004,7 +2004,7 @@ function paramBloque(s,t,ctx){const acorde=ctx.tipo==='acorde',frase=ctx.tipo===
   const ids=Object.keys(t.ctl||{}).map(Number).sort((a,b)=>a-b);
   for(const id of ids)cont.append(h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,CTRL[id][0])),
     h('div',{class:'sc'},knob({label:'',value:t.ctl[id],min:0,max:127,onInput:v=>edit(()=>{t.ctl[id]=v;},acorde)}),h('button',{class:'gh sm',title:'Quitar',onclick:()=>quitarCtl(id)},ic('close'))),
-    acorde?ctlTimeBlock(s,[t],id,t,t.ctl[id]):null));
+    acorde||frase?ctlTimeBlock(s,[t],id,t,t.ctl[id],frase?'Al entrar a la frase':'Al llegar al acorde'):null));
   (t.mn||[]).forEach((e,i)=>{const[a,b,lab,lo,hi]=mnInfo(e[0],e[1]);
     cont.append(h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,lab)),
       h('div',{class:'sc'},knob({label:'',value:clamp(e[2],lo,hi),min:lo,max:hi,onInput:v=>edit(()=>{t.mn[i][2]=v;},false)}),
@@ -2137,14 +2137,16 @@ function tiempoBlock(o){const T=o.T,bpm=o.bpm;
   box.append(seg([[false,'Segundos'],[true,'Tiempos']],!!T.b,v=>{if(v===!!T.b)return;o.setT(x=>{x.w=Math.min(v?63.75:25.5,conv(x.w,v));x.d=Math.min(v?63.75:25.5,conv(x.d,v));x.b=v;});}),
     o.sinEspera?null:knob({label:(o.espera||'Espera')+' ('+u+')',value:T.w||0,min:0,max:mx,step:st,onInput:v=>o.setT(x=>x.w=v)}),
     knob({label:'Duración ('+u+')',value:T.d||0,min:0,max:mx,step:st,onInput:v=>o.setT(x=>x.d=v)}),
+    o.desde?h('div',{class:'row',style:'gap:8px;align-items:center'},toggle('Parte desde',T.f!=null,on=>o.setT(x=>{if(on)x.f=0;else delete x.f;})),
+      T.f!=null?knob({label:'Desde',value:T.f,min:0,max:127,onInput:v=>o.setT(x=>x.f=v)}):h('small',{class:'mu'},'(desde donde esté)')):null,
     ...(o.graf?[o.graf(T)]:[]));
   return box;}
 const tUn=(x,b)=>String(x).replace('.',',')+(b?(x===1?' tiempo':' tiempos'):' s');
 const tGen=(one,s)=>one&&one.trT?`usa la transición para todos (${one.trT.w?'espera '+tUn(one.trT.w,one.trT.b)+', ':''}${one.trT.d?'tarda '+tUn(one.trT.d,one.trT.b):'de golpe'}).`:null;
-function ctlTimeBlock(s,sel,id,one,val){
+function ctlTimeBlock(s,sel,id,one,val,titulo){
   const tm=(sel.find(c=>c.ctlT&&c.ctlT[id])||{}).ctlT;
   const gl=(one&&one.glide!=null?one.glide:(s.glide!=null?s.glide:150));
-  return tiempoBlock({T:tm&&tm[id],bpm:(one&&one.bpm)||s.bpm,
+  return tiempoBlock({T:tm&&tm[id],bpm:(one&&one.bpm)||s.bpm,titulo:titulo||undefined,desde:true,
     setT:fn=>edit(()=>{for(const c of sel){if(!(c.ctl&&c.ctl[id]!=null))continue;c.ctlT=c.ctlT||{};const x=c.ctlT[id]||{w:0,d:0,b:false};fn(x);c.ctlT[id]=x;}}),
     off:()=>edit(()=>{for(const c of sel)if(c.ctlT){delete c.ctlT[id];if(!Object.keys(c.ctlT).length)delete c.ctlT;}}),
     activar:x=>{x.w=0;x.d=CTRL[id][2]?Math.round(gl/100)/10:1;x.b=false;},
