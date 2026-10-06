@@ -667,23 +667,23 @@ function humKnobs(x,fn){return h('div',{class:'row',style:'gap:8px;align-items:c
   knob({label:'Separación (ms)',value:x.ms,min:5,max:63,onInput:v=>fn(y=>{if(y.hum)y.hum.ms=v;})}),
   seg(HUM_DIR,x.dir||0,v=>fn(y=>{if(y.hum)y.hum.dir=v;})));}
 /* Que se apague solo: suena "dur" y después se apaga en el tiempo del Release (en x.ctl[7]) */
-function apagaFila(x,bpm){const on=!!(x.dur&&x.ctl&&x.ctl[7]!=null);
-  return h('div',{class:'own',style:'margin-top:8px'},toggle('Que se apague solo',on,v=>edit(()=>{if(v){x.dur={d:1,b:false};x.ctl=x.ctl||{};x.ctl[7]=relDe(1.5);}
-      else{delete x.dur;if(x.ctl){delete x.ctl[7];if(!Object.keys(x.ctl).length)delete x.ctl;}if(x.ctlT){delete x.ctlT[7];if(!Object.keys(x.ctlT).length)delete x.ctlT;}}})),
+function apagaFila(xs,bpm){if(!Array.isArray(xs))xs=[xs];const x=xs[0],on=!!(x.dur&&x.ctl&&x.ctl[7]!=null);
+  return h('div',{class:'own',style:'margin-top:8px'},toggle('Que se apague solo',on,v=>edit(()=>{for(const x of xs){if(v){x.dur={d:1,b:false};x.ctl=x.ctl||{};x.ctl[7]=relDe(1.5);}
+      else{delete x.dur;if(x.ctl){delete x.ctl[7];if(!Object.keys(x.ctl).length)delete x.ctl;}if(x.ctlT){delete x.ctlT[7];if(!Object.keys(x.ctlT).length)delete x.ctlT;}}}})),
     on?h('div',{class:'row',style:'gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px'},
-      knob({label:'Suena (s)',value:x.dur.b?Math.round(x.dur.d*60/bpm*10)/10:x.dur.d,min:0.1,max:12.7,step:0.1,onInput:v=>edit(()=>{x.dur={d:v,b:false};},false)}),
-      knob({label:'Se apaga en (s)',value:segDe(x.ctl[7]),min:0.1,max:20,step:0.1,onInput:v=>edit(()=>{x.ctl[7]=relDe(v);},false)})):null,
+      knob({label:'Suena (s)',value:x.dur.b?Math.round(x.dur.d*60/bpm*10)/10:x.dur.d,min:0.1,max:12.7,step:0.1,onInput:v=>edit(()=>{for(const x of xs)x.dur={d:v,b:false};},false)}),
+      knob({label:'Se apaga en (s)',value:segDe(x.ctl[7]),min:0.1,max:20,step:0.1,onInput:v=>edit(()=>{for(const x of xs){x.ctl=x.ctl||{};x.ctl[7]=relDe(v);}},false)})):null,
     on?h('small',{class:'mu'},'Las notas se sueltan a los '+String(x.dur.b?Math.round(x.dur.d*60/bpm*10)/10:x.dur.d).replace('.',',')+' s y se apagan en unos '+String(segDe(x.ctl[7])).replace('.',',')+' s (Release '+x.ctl[7]+' del Mininova). Es lo mismo que "Cada nota suena durante un tiempo" más la perilla Release.'):null);}
 /* la fila del humanizador: en la canción (de), o en la frase (heredable: "Igual que la canción") */
-function humFila(x,base,de,bpm,voz){const own=!de||x.hum!==undefined,cur=de?(x.hum!==undefined?x.hum:base):x.hum,on=!!(cur&&cur.ms);
+function humFila(xs,base,de,bpm,voz,cosa='esta frase'){if(!Array.isArray(xs))xs=[xs];const x=xs[0],own=!de||x.hum!==undefined,cur=de?(x.hum!==undefined?x.hum:base):x.hum,on=!!(cur&&cur.ms);
   const mono=voz===0||voz===1||voz===4;
   return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,'Humanizador (experimental)'),h('small',null,HUM_EXPL),
-      de?h('small',null,x.hum!==undefined?'Propio de esta frase.':'Usa el de '+de+': '+humNom(base)+'.'):null),
-    h('div',{class:'sc'},de?toggle('Igual que '+de,x.hum===undefined,v=>edit(()=>{if(v)delete x.hum;else x.hum=base&&base.ms?{ms:base.ms,dir:base.dir||0}:0;})):null),
-    own?h('div',{class:'own'},seg([[false,'Sin humanizar'],[true,'Humanizar']],on,v=>edit(()=>{if(v)x.hum={ms:(cur&&cur.ms)||25,dir:(cur&&cur.dir)||0};else if(de)x.hum=0;else delete x.hum;})),
-      on?humKnobs(x.hum,fn=>edit(()=>fn(x),false)):null,
+      de?h('small',null,x.hum!==undefined?'Propio de '+cosa+'.':'Usa el de '+de+': '+humNom(base)+'.'):null),
+    h('div',{class:'sc'},de?toggle('Igual que '+de,x.hum===undefined,v=>edit(()=>{for(const x of xs){if(v)delete x.hum;else x.hum=base&&base.ms?{ms:base.ms,dir:base.dir||0}:0;}})):null),
+    own?h('div',{class:'own'},seg([[false,'Sin humanizar'],[true,'Humanizar']],on,v=>edit(()=>{for(const x of xs){if(v)x.hum={ms:(cur&&cur.ms)||25,dir:(cur&&cur.dir)||0};else if(de)x.hum=0;else delete x.hum;}})),
+      on?humKnobs(x.hum,fn=>edit(()=>{for(const x of xs)fn(x);},false)):null,
       on&&mono?h('div',{class:'warnb',style:'margin-top:6px'},ic('info'),h('div',{class:'grow'},h('small',null,'El sonido está en modo Mono: suena una nota a la vez, así que el humanizado se escucha como un arpegio rápido que termina en la última nota.'))):null,
-      on?apagaFila(x,bpm):null):null);}
+      on?apagaFila(xs,bpm):null):null);}
 const HOLD_EXPL='Hasta la próxima pisada: la nota sigue sonando aunque levantes el pie (no es el "Latch" del arpegiador del Mininova). Mientras el pie está abajo: al levantarlo, se apaga.';
 const TIE_EXPL='Si el acorde siguiente repite una nota: volver a tocarla (se oye de nuevo su ataque) o dejarla sonando sin cortar.';
 /* combinaciones que no van a sonar como se espera */
@@ -811,7 +811,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-2318';
+const QM_VERSION='2026.10.05-2326';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1240,7 +1240,7 @@ function renderNav(){const nav=$('#nav');if(!nav)return;
         ip.append(nr(onP,aqui&&multiX.has('frase:'+pi),[tw(kp,abp,p.chords.length>0),h('span',{class:'csw',style:'background:'+PCOL[p.color%8]}),h('span',{class:'lb'},p.name),pdot(!defVacia(p.def)||p.sound),h('small',null,p.chords.length+''),acc(onP,'phrase','esta frase')],
           e=>{if(si!==edSong)return irA('frase',{s:si,p:pi});navClick(e,'frase',pi,()=>irA('frase',{s:si,p:pi}));},padP?'padre':'',{k:'frase',s:si,p:pi,o:kp}));
         if(abp){const lc=h('div',{class:'nk'});
-          p.chords.forEach((c,ci)=>{const kc='c'+s.id+'.'+pi+'.'+ci,abc=navOpen.has(kc),ic2=h('div',{'data-idx':ci}),ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||!!c.nv||nPar(c)>0;
+          p.chords.forEach((c,ci)=>{const kc='c'+s.id+'.'+pi+'.'+ci,abc=navOpen.has(kc),ic2=h('div',{'data-idx':ci}),ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.hum!==undefined||!!c.nv||nPar(c)>0;
             const onC=aqui&&!multiMode&&nivel==='acorde'&&edSel.p===pi&&edSel.c===ci&&lastFocus!=='form',msC=aqui&&multiMode&&multi.has(pi+'.'+ci);
             ic2.append(nr(onC,msC,[tw(kc,abc,c.notes.length>0),h('span',{class:'lb'},c.notes.length?stepLabel(c):'silencio'),pdot(ov),acc(onC,'chords','este acorde')],
               e=>{if(si!==edSong||edSel.p!==pi)return irA('acorde',{s:si,p:pi,c:ci});navClick(e,'acorde',pi+'.'+ci,()=>irA('acorde',{s:si,p:pi,c:ci}));},'',{k:'acorde',s:si,p:pi,c:ci,o:kc}));
@@ -1776,7 +1776,7 @@ function fraseEntera(pi){const s=M.songs[edSong],p=s&&s.phrases[pi];if(!p)return
   multi=new Set(p.chords.map((_,ci)=>pi+'.'+ci));lastFocus='chords';renderAll();
   const ed=document.getElementById('ceditor');if(ed)ed.scrollIntoView({block:'start',behavior:'smooth'});}
 function chordCard(s,p,pi,c,ci){
-  const hb=bendHeard(s,pi,ci),key=pi+'.'+ci,sel=!multiMode&&(nivel==='acorde'||nivel==='nota')&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.bend!=null||!!c.nv||(c.ctl&&Object.keys(c.ctl).length>0)||!!(c.mn&&c.mn.length)||!!c.trT;
+  const hb=bendHeard(s,pi,ci),key=pi+'.'+ci,sel=!multiMode&&(nivel==='acorde'||nivel==='nota')&&edSel.p===pi&&edSel.c===ci,ov=c.hold!=null||c.tie!=null||c.bpm!=null||c.vel!=null||c.trans!=null||c.glide!=null||c.hum!==undefined||c.bend!=null||!!c.nv||(c.ctl&&Object.keys(c.ctl).length>0)||!!(c.mn&&c.mn.length)||!!c.trT;
   return h('div',{class:'cc'+(sel&&nivel==='acorde'?' sel':sel?' padre':'')+(multiMode&&multi.has(key)?' msel':'')+(c.notes.length?'':' sil'),'data-idx':ci,onclick:ev=>{
       const card=ev.currentTarget;lastFocus='chords';
       if(suppressClick)return;
@@ -2095,6 +2095,7 @@ function chordEditor(s){
         setT:fn=>edit(()=>{for(const c of sel){const x=c.auto?{w:0,d:c.auto.d,b:c.auto.b}:{w:0,d:0.5,b:false};fn(x);c.auto={d:Math.max(x.b?0.25:0.1,Math.min(x.b?31.75:12.7,x.d)),b:!!x.b};}}),
         off:()=>edit(()=>{for(const c of sel)delete c.auto;}),activar:x=>{x.d=0.5;x.b=false;},def:'Espera tu pisada.'})),
     filaModo(sel,{hold:!!par('hold'),dur:pd.dur!=null?(pd.dur||null):(s.dur||null)},pd.hold!=null||pd.dur!=null?'la frase':'la canción',sel.length>1?'estos acordes':'este acorde',par('bpm')||s.bpm),
+    humFila(sel,pd.hum!==undefined?pd.hum:(s.hum||0),pd.hum!==undefined?'la frase':'la canción',par('bpm')||s.bpm,s.voice,sel.length>1?'estos acordes':'este acorde'),
     irow('Notas repetidas',TIE_EXPL,sel,'tie',tieNom(par('tie')),!!par('tie'),cur=>seg(PEDAL_TIE,cur,v=>edit(()=>{for(const c of sel)c.tie=v;})),deK('tie')),
     irow('Tempo','Al llegar a este acorde cambia el tempo (y el MIDI Clock).',sel,'bpm',par('bpm')+' BPM',par('bpm'),cur=>knob({label:'Tempo',value:cur,min:20,max:300,onInput:v=>edit(()=>{for(const c of sel)c.bpm=v;})}),deK('bpm')),
     irow('Velocity','Qué tan fuerte suenan las notas de este acorde (1 a 127).',sel,'vel','velocity '+par('vel'),par('vel'),cur=>knob({label:'Velocity',value:cur,min:1,max:127,onInput:v=>edit(()=>{for(const c of sel)c.vel=v;})}),deK('vel'))]));
