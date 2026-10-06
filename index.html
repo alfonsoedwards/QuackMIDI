@@ -756,7 +756,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-2214';
+const QM_VERSION='2026.10.05-2229';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -2797,7 +2797,21 @@ async function buscarArduino(){
   finally{ardBuscando=false;}}
 if(window.APPMODE){setTimeout(buscarArduino,1200);setInterval(()=>{if(!window.ARD)buscarArduino();},6000);}
 function ardPerdido(){window.ARD=false;window.ARD_USB=false;try{if(M)espejo(enc(M));}catch(e){}S.bv++;knownBv=-1;toast('Se perdió la conexión con el Arduino: sigues con la copia de la app.',5000);}
+/* Capturar / grabar con el Arduino conectado desde el PC: el teclado está conectado al PC (lo escucha Quack Studio), no a la
+   entrada MIDI del Arduino. Entonces la captura la hace Studio, como sin Arduino, y la app la ve en el estado del Arduino. */
+let capPorStudio=false;
+const conStudio=()=>typeof STUDIO!=='undefined'&&STUDIO.ok;
 window.fetch=async function(path,opt={}){
+  if(window.ARD&&typeof path==='string'&&path.startsWith('/api/c')&&conStudio()&&/[?&]x=cap(&|$)/.test(path)){
+    const a=+((path.match(/[?&]a=(\d+)/)||[])[1]||0);
+    if(!capPorStudio){capPorStudio=true;S.cn=(typeof st!=='undefined'&&st&&st.cn)||0;S.cv=[];S.cw=[];}
+    S.cap=a;S.capN=null;S.capE=0;if(a)capStudio();
+    return J({ok:1});}
+  if(window.ARD&&capPorStudio&&typeof path==='string'&&path.startsWith('/api/s')){
+    if(S.cap)path='/api/s';                     // (capturando: sin "esperar novedades", para ver cada acorde al tiro)
+    let r;try{r=await ardFetch(path,opt);ardFallas=0;}catch(e){if(++ardFallas>=3)ardPerdido();throw e;}
+    const j=await r.json();Object.assign(j,{cap:S.cap,cn:S.cn,cv:S.cv,cw:S.cw});
+    return new Response(JSON.stringify(j),{headers:{'Content-Type':'application/json'}});}
   if(window.ARD&&typeof path==='string'&&path.startsWith('/api/')){
     try{const r=await ardFetch(path,opt);ardFallas=0;
       if(path.startsWith('/api/blob')){const post=(opt.method||'GET')==='POST';
