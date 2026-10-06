@@ -584,6 +584,7 @@ const ICONS={
   down:'<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/>',
   up:'<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M5 19.5h14"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.2"/>',
+  cadena:'<path d="M9.5 14.5l5-5"/><path d="M11 6.5l1.2-1.2a4 4 0 0 1 5.6 5.6L16.6 12"/><path d="M13 17.5l-1.2 1.2a4 4 0 0 1-5.6-5.6L7.4 12"/>',
   mixer:'<path d="M6 3v18M12 3v18M18 3v18"/><rect x="4" y="13" width="4" height="3" rx="1"/><rect x="10" y="6" width="4" height="3" rx="1"/><rect x="16" y="10" width="4" height="3" rx="1"/>',
   lock:'<rect x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
   unlock:'<rect x="5.5" y="10.5" width="13" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 6.8-1.2"/>',
@@ -665,7 +666,9 @@ function utf8(s,max){let b=te.encode(s||'');while(b.length>max){s=s.slice(0,-1);
 const SX=['voice','bendRange','trans','glide'],CX=['trans','glide','bend','mod'];   // la lista de controles va aparte (bit 4)
 // Controles del MiniNova: [nombre, CC, se puede deslizar, valor inicial]
 const CTRL=[['Modulación',1,true,0],['Filtro (frecuencia)',74,true,64],['Resonancia',71,true,0],['Drive',63,true,0],['Ataque',73,false,0],['Decay',75,false,64],['Sustain',70,false,127],['Release',72,false,20]];
-function packX(d,keys,ns){let f=0;const v=[];keys.forEach((k,i)=>{if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):k==='trans'&&d[k]===3&&!COMO_SONIDO?1:d[k])&255);}});
+function packX(d,keys,ns){let f=0;const v=[];keys.forEach((k,i)=>{const tv=x=>k==='trans'&&x===3&&!COMO_SONIDO?1:x;
+    if(k==='trans'&&keys===CX&&d.auto){f|=1<<i;const q=d.auto.b?4:10;v.push(((d.trans!=null?tv(d.trans):7)&0x7F)|0x80,(d.auto.b?0x80:0)|Math.max(1,Math.min(127,Math.round(d.auto.d*q))));}   /* encadenado */
+    else if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):tv(d[k]))&255);}});
   const ids=Object.keys(d.ctl||{}).map(Number).sort((a,b)=>a-b);if(ids.length){f|=16;v.push(ids.length);for(const id of ids){const tm=d.ctlT&&d.ctlT[id];
     if(tm){const q=tm.b?4:10;v.push(id|0x80|(tm.b?0x40:0)|(tm.f!=null?0x20:0),d.ctl[id]&127,Math.min(255,Math.round((tm.d||0)*q)),Math.min(255,Math.round((tm.w||0)*q)));if(tm.f!=null)v.push(tm.f&127);}   // transición propia: espera y duración (y "parte desde")
     else v.push(id,d.ctl[id]&127);}}
@@ -691,7 +694,9 @@ function enc(m){const o=[];const u8=v=>o.push(v&255),u16=v=>{u8(v);u8(v>>8)},str
     u8(s.form.length);const mix=s.form.some(f=>f.v);s.form.forEach((f,k)=>{u8(f.p|(mix&&!k?0x80:0));u8(f.r);});if(mix)for(const f of s.form)u8((f.v||0)&127);   /* mixer: volumen de cada paso */}
   u8(m.sets.length);for(const st of m.sets){str(st.name,24);u8(st.entries.length);for(const e of st.entries){if(e.k===0){u8(0);u8(e.s);u8(e.t&255);str(e.note||'',40);}else if(e.notas&&e.notas.length){u8(2);str(e.label||'',24);const l=e.notas.slice(0,20);u8(l.length);for(const n of l){str(n.t||'',24);str(n.x||'',160);}}else{u8(1);str(e.label||'',24);}}}
   return new Uint8Array(o);}
-function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach((k,j)=>{if(f&(1<<j)){let v=u8();if(k==='glide')v*=10;if(k==='bend'&&v>127)v-=256;d[k]=v;}});
+function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach((k,j)=>{if(f&(1<<j)){let v=u8();
+    if(k==='trans'&&keys===CX&&(v&0x80)){const a=u8();d.auto={d:(a&0x7F)/(a&0x80?4:10),b:!!(a&0x80)};v&=0x7F;if(v===7)return;}   /* encadenado */
+    if(k==='glide')v*=10;if(k==='bend'&&v>127)v-=256;d[k]=v;}});
     if(f&16){d.ctl={};for(let n=u8();n--;){const b=u8(),id=b&7;d.ctl[id]=u8();if(b&0x80){const q=b&0x40?4:10,du=u8(),w=u8();d.ctlT=d.ctlT||{};d.ctlT[id]={w:w/q,d:du/q,b:!!(b&0x40)};}if(b&0x20){d.ctlT=d.ctlT||{};(d.ctlT[id]=d.ctlT[id]||{w:0,d:0,b:false}).f=u8();}}}
     if(f&32&&keys===CX){d.nv=[];for(let n=nn;n--;){let x=u8();if(x>127)x-=256;d.nv.push(x);}}
     if(f&64){const hd=u8();if(hd&128){const q=hd&64?4:10,du=u8(),w=u8();d.trT={w:w/q,d:du/q,b:!!(hd&64)};}const mn=[];
@@ -751,7 +756,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-0956';
+const QM_VERSION='2026.10.05-2214';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1403,6 +1408,12 @@ function perform(i){cmd('set',i).then(()=>openPerf());}
 
 /* ---------- Vista: Editar canción ---------- */
 function fixSel(){if(!M.songs.length)return;edSong=clamp(edSong,0,M.songs.length-1);const s=M.songs[edSong];if(!s.phrases.length){edSel={p:0,c:0};return;}edSel.p=clamp(edSel.p,0,s.phrases.length-1);edSel.c=clamp(edSel.c,0,Math.max(0,s.phrases[edSel.p].chords.length-1));}
+/* ENCADENAR: los acordes elegidos pasan solos al siguiente después de su tiempo ("auto": {d, b} = segundos o tiempos); el
+   último de la selección espera la pisada. Lo hace el Arduino (como si se pisara el switch 2); retroceder no lo activa. */
+function encadenar(s,on){const ks=[...multi].map(k=>k.split('.').map(Number)).filter(([p,c])=>s.phrases[p]&&s.phrases[p].chords[c]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  if(!ks.length)return;
+  edit(()=>{ks.forEach(([p,c],i)=>{const x=s.phrases[p].chords[c];if(on&&i<ks.length-1){if(!x.auto)x.auto={d:0.5,b:false};}else if(!on)delete x.auto;});});
+  toast(on?(ks.length>1?'Encadenados: cada uno pasa solo al siguiente en 0,5 s (cámbialo en "Glide y pedal"); el último espera tu pisada.':'Elige al menos dos acordes'):'Desencadenados: vuelven a esperar tu pisada.',6000);}
 function selChords(s){if(multiMode&&multi.size)return[...multi].map(k=>k.split('.').map(Number)).filter(([p,c])=>s.phrases[p]&&s.phrases[p].chords[c]).map(([p,c])=>s.phrases[p].chords[c]);const p=s.phrases[edSel.p];return p&&p.chords[edSel.c]?[p.chords[edSel.c]]:[];}
 const nvShift=(c,tr)=>{if(!c.nv)return null;const o={};for(const k in c.nv)o[+k+tr]=c.nv[k];return o;};
 function audition(c0,s){if(prefs.mute)return;const p=s.phrases.find(q=>q.chords.includes(c0)),c=efc(p,c0);   /* (lo que no define el acorde viene de su frase) */
@@ -1716,6 +1727,7 @@ function chordCard(s,p,pi,c,ci){
       selectChord(s,pi,ci,card);renderNav();audition(c,s);}},
     ov?h('span',{class:'dot',title:'Tiene ajustes propios'}):null,sel&&nivel==='acorde'?esquinas('chords','este acorde'):null,h('div',{class:'nm'},hb?'↗ '+chordName(hb):stepLabel(c)),
     h('div',{class:'nt'},hb?'pitch '+((c.bend||0)>0?'+':'')+(c.bend||0):(c.notes.length?c.notes.map(noteName).join(' '):'silencio')+(c.notes.length&&(c.trans===1||(c.trans==null&&s.trans===1))?' ~':'')),
+    c.auto?h('div',{class:'cad',title:'Encadenado: pasa solo al siguiente después de este tiempo',style:'display:inline-block;margin-top:3px;background:var(--ac);color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:800;line-height:1.4;white-space:nowrap'},'⟶ '+tUn(c.auto.d,c.auto.b)):null,
     s.hasLyr?(()=>{const x=own(c,0),r0=lyrRes(s,pi,ci,0);return x&&x!==LCUT?h('div',{class:'ly'},x):r0&&x!==LCUT?h('div',{class:'ly cont'},'↳ '+r0):null;})():null);}
 // × y Duplicar en las esquinas de lo elegido (actúan como Borrar y Duplicar de la barra de arriba)
 const esquinas=(foco,cosa)=>[h('button',{class:'cnr cdup nodrag',title:'Duplicar '+cosa,onclick:e=>{e.stopPropagation();if(foco)lastFocus=foco;duplicar();}},ic('dup')),
@@ -1968,7 +1980,9 @@ function chordEditor(s){
     tb('play','Escuchar',()=>audition(one,s)),tb('stop','Parar',()=>cmd('stop')),
     tb('piano','Armar ▾',e=>armarPop(e.currentTarget,one,s),{title:'Armar rápido: nota, tipo, inversión y octava'}),
     tb('rec','Capturar',()=>{cmd('cap',1);toast('Toca el acorde en tu teclado MIDI…');},{title:'Toca el acorde en tu teclado MIDI y reemplaza a este'}),
-    tb('minus','Hacer silencio',()=>edit(()=>{one.notes=[];delete one.nv;}),{off:!one.notes.length,title:'Convertir este acorde en silencio'})]:[]));
+    tb('minus','Hacer silencio',()=>edit(()=>{one.notes=[];delete one.nv;}),{off:!one.notes.length,title:'Convertir este acorde en silencio'})]:[
+    tb('cadena','Encadenar',()=>encadenar(s,true),{title:'Cada acorde elegido pasa solo al siguiente (el último espera tu pisada)'}),
+    sel.some(c=>c.auto)?tb('close','Desencadenar',()=>encadenar(s,false),{title:'Vuelven a esperar tu pisada'}):null]));
   if(one){const hb=bendHeard(s,edSel.p,edSel.c),ctr=one.trans!=null?one.trans:(s.trans||0);const srt=a=>[...a].sort((x,y)=>x-y).join();
     if(hb&&srt(hb)!==srt(one.notes))card.append(h('div',{class:'warnb'},ic('info'),h('div',{class:'grow'},h('b',null,`Con pitch bend no se llega a ${one.notes.length?chordName(one.notes):'estas notas'}.`),
       h('small',null,`Pitch bend no toca notas nuevas: mueve lo que ya suena. Aquí sonará ${chordName(hb)} (${hb.map(noteName).join(' ')}).`),
@@ -2016,6 +2030,10 @@ function chordEditor(s){
       h('div',null,f?h('b',null,'Desliza desde '+noteName(f.desde)+' hasta '+noteName(f.hasta)+' ('+(f.d>0?'+':'')+f.d+' semitono'+(Math.abs(f.d)===1?'':'s')+')'):h('small',{class:'mu'},'Antes de este acorde no suena nada: se toca normal.'),
         f&&Math.abs(f.d)>f.r?h('p',{class:'mu sm',style:'margin:4px 0 0'},'⚠ La rueda llega hasta ±'+f.r+' semitonos (Sonido del Mininova → Rango de la rueda): no alcanza.'):null));})():null,
     avisoGlide(rTr,!!par('hold'),s.voice),
+    srow('Pasar solo al siguiente','Encadenado: después de este tiempo pasa solo al acorde siguiente, como si pisaras el switch 2 (si pisas antes, gana tu pisada). Retroceder no lo activa; con "mientras el pie está abajo", levantar el pie corta la cadena. Hasta 12,7 s o 31,75 tiempos.',
+      tiempoBlock({T:(sel.find(c=>c.auto)||{}).auto?{w:0,d:sel.find(c=>c.auto).auto.d,b:sel.find(c=>c.auto).auto.b}:null,bpm:par('bpm')||s.bpm,titulo:'Encadenado',sinEspera:true,
+        setT:fn=>edit(()=>{for(const c of sel){const x=c.auto?{w:0,d:c.auto.d,b:c.auto.b}:{w:0,d:0.5,b:false};fn(x);c.auto={d:Math.max(x.b?0.25:0.1,Math.min(x.b?31.75:12.7,x.d)),b:!!x.b};}}),
+        off:()=>edit(()=>{for(const c of sel)delete c.auto;}),activar:x=>{x.d=0.5;x.b=false;},def:'Espera tu pisada.'})),
     irow('Cada nota suena',HOLD_EXPL,sel,'hold',holdNom(par('hold')),!!par('hold'),cur=>seg(PEDAL_HOLD,cur,v=>edit(()=>{for(const c of sel)c.hold=v;})),deK('hold')),
     irow('Notas repetidas',TIE_EXPL,sel,'tie',tieNom(par('tie')),!!par('tie'),cur=>seg(PEDAL_TIE,cur,v=>edit(()=>{for(const c of sel)c.tie=v;})),deK('tie')),
     irow('Tempo','Al llegar a este acorde cambia el tempo (y el MIDI Clock).',sel,'bpm',par('bpm')+' BPM',par('bpm'),cur=>knob({label:'Tempo',value:cur,min:20,max:300,onInput:v=>edit(()=>{for(const c of sel)c.bpm=v;})}),deK('bpm')),
