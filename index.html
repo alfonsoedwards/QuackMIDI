@@ -651,6 +651,39 @@ function filaModo(sel,base,de,cosa,bpm){const own=sel.some(c=>c.hold!=null||c.du
   return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,'Cada nota suena'),h('small',null,HOLD_EXPL+DUR_EXPL),h('small',null,own?'Propio de '+cosa+'.':'Usa el de '+de+': '+modoNom(base)+'.')),
     h('div',{class:'sc'},sw),own?h('div',{class:'own'},seg(MODOS,modoDe(x),v=>edit(()=>{for(const c of sel)ponerModo(c,v,true);})),
       x.dur?durKnobs(x,bpm,fn=>edit(()=>{for(const c of sel)fn(c);})):null):null);}
+/* HUMANIZADOR (experimental): las notas del acorde no entran juntas ("hum": {ms: separación de 1 a 63 ms, dir: 0 de la grave a
+   la aguda, 1 de la aguda a la grave, 2 al azar}; en la frase, 0 = sin humanizar aunque la canción lo tenga). Lo hace el
+   Arduino (applyNotesHum). "Que se apague solo" no es nuevo: es "durante un tiempo" + el Release (perilla 7), en segundos. */
+const HUM_DIR=[[0,'De grave a aguda'],[1,'De aguda a grave'],[2,'Al azar']];
+const HUM_EXPL='Las notas del acorde no entran todas juntas: la primera al tiro y las siguientes separadas por este tiempo. De 10 a 30 ms se siente humano; de 40 a 60, rasgueo. El acorde queda sostenido como siempre (o se apaga solo, si eliges eso). Sirve con cualquier sonido. No vale en los acordes con glide o pitch bend.';
+const humNom=x=>x&&x.ms?'humanizado '+x.ms+' ms':'sin humanizar';
+/* Release del Mininova (CC72) → en cuánto se apaga, en segundos: medido con la Focusrite (2026-10-05, envolvente del amplificador) */
+const REL_T=[[40,0.08],[50,0.11],[60,0.18],[70,0.34],[80,0.76],[85,1],[90,1.5],[95,1.8],[100,2.5],[105,3.9],[110,4.8],[115,7.2],[120,12],[127,20]];
+function relDe(sg){if(sg<=REL_T[0][1])return REL_T[0][0];for(let i=1;i<REL_T.length;i++){const[v1,t1]=REL_T[i-1],[v2,t2]=REL_T[i];
+  if(sg<=t2)return Math.round(v1+(v2-v1)*Math.log(sg/t1)/Math.log(t2/t1));}return 127;}
+function segDe(v){if(v<=REL_T[0][0])return REL_T[0][1];for(let i=1;i<REL_T.length;i++){const[v1,t1]=REL_T[i-1],[v2,t2]=REL_T[i];
+  if(v<=v2)return Math.round(t1*Math.pow(t2/t1,(v-v1)/(v2-v1))*10)/10;}return 20;}
+function humKnobs(x,fn){return h('div',{class:'row',style:'gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px'},
+  knob({label:'Separación (ms)',value:x.ms,min:5,max:63,onInput:v=>fn(y=>{if(y.hum)y.hum.ms=v;})}),
+  seg(HUM_DIR,x.dir||0,v=>fn(y=>{if(y.hum)y.hum.dir=v;})));}
+/* Que se apague solo: suena "dur" y después se apaga en el tiempo del Release (en x.ctl[7]) */
+function apagaFila(x,bpm){const on=!!(x.dur&&x.ctl&&x.ctl[7]!=null);
+  return h('div',{class:'own',style:'margin-top:8px'},toggle('Que se apague solo',on,v=>edit(()=>{if(v){x.dur={d:1,b:false};x.ctl=x.ctl||{};x.ctl[7]=relDe(1.5);}
+      else{delete x.dur;if(x.ctl){delete x.ctl[7];if(!Object.keys(x.ctl).length)delete x.ctl;}if(x.ctlT){delete x.ctlT[7];if(!Object.keys(x.ctlT).length)delete x.ctlT;}}})),
+    on?h('div',{class:'row',style:'gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px'},
+      knob({label:'Suena (s)',value:x.dur.b?Math.round(x.dur.d*60/bpm*10)/10:x.dur.d,min:0.1,max:12.7,step:0.1,onInput:v=>edit(()=>{x.dur={d:v,b:false};},false)}),
+      knob({label:'Se apaga en (s)',value:segDe(x.ctl[7]),min:0.1,max:20,step:0.1,onInput:v=>edit(()=>{x.ctl[7]=relDe(v);},false)})):null,
+    on?h('small',{class:'mu'},'Las notas se sueltan a los '+String(x.dur.b?Math.round(x.dur.d*60/bpm*10)/10:x.dur.d).replace('.',',')+' s y se apagan en unos '+String(segDe(x.ctl[7])).replace('.',',')+' s (Release '+x.ctl[7]+' del Mininova). Es lo mismo que "Cada nota suena durante un tiempo" más la perilla Release.'):null);}
+/* la fila del humanizador: en la canción (de), o en la frase (heredable: "Igual que la canción") */
+function humFila(x,base,de,bpm,voz){const own=!de||x.hum!==undefined,cur=de?(x.hum!==undefined?x.hum:base):x.hum,on=!!(cur&&cur.ms);
+  const mono=voz===0||voz===1||voz===4;
+  return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,'Humanizador (experimental)'),h('small',null,HUM_EXPL),
+      de?h('small',null,x.hum!==undefined?'Propio de esta frase.':'Usa el de '+de+': '+humNom(base)+'.'):null),
+    h('div',{class:'sc'},de?toggle('Igual que '+de,x.hum===undefined,v=>edit(()=>{if(v)delete x.hum;else x.hum=base&&base.ms?{ms:base.ms,dir:base.dir||0}:0;})):null),
+    own?h('div',{class:'own'},seg([[false,'Sin humanizar'],[true,'Humanizar']],on,v=>edit(()=>{if(v)x.hum={ms:(cur&&cur.ms)||25,dir:(cur&&cur.dir)||0};else if(de)x.hum=0;else delete x.hum;})),
+      on?humKnobs(x.hum,fn=>edit(()=>fn(x),false)):null,
+      on&&mono?h('div',{class:'warnb',style:'margin-top:6px'},ic('info'),h('div',{class:'grow'},h('small',null,'El sonido está en modo Mono: suena una nota a la vez, así que el humanizado se escucha como un arpegio rápido que termina en la última nota.'))):null,
+      on?apagaFila(x,bpm):null):null);}
 const HOLD_EXPL='Hasta la próxima pisada: la nota sigue sonando aunque levantes el pie (no es el "Latch" del arpegiador del Mininova). Mientras el pie está abajo: al levantarlo, se apaga.';
 const TIE_EXPL='Si el acorde siguiente repite una nota: volver a tocarla (se oye de nuevo su ataque) o dejarla sonando sin cortar.';
 /* combinaciones que no van a sonar como se espera */
@@ -686,8 +719,9 @@ const SX=['voice','bendRange','trans','glide'],CX=['trans','glide','bend','mod']
 // Controles del MiniNova: [nombre, CC, se puede deslizar, valor inicial]
 const CTRL=[['Modulación',1,true,0],['Filtro (frecuencia)',74,true,64],['Resonancia',71,true,0],['Drive',63,true,0],['Ataque',73,false,0],['Decay',75,false,64],['Sustain',70,false,127],['Release',72,false,20]];
 function packX(d,keys,ns){let f=0;const v=[];keys.forEach((k,i)=>{const tv=x=>k==='trans'&&x===3&&!COMO_SONIDO?1:x;
-    const au=k==='trans'&&keys===CX?d.auto:null,du=k==='trans'?d.dur:null,tb=x=>(x.b?0x80:0)|Math.max(1,Math.min(127,Math.round(x.d*(x.b?4:10))));
-    if(au||du!=null){f|=1<<i;v.push(((d.trans!=null?tv(d.trans):7)&0x3F)|(au?0x80:0)|(du!=null?0x40:0));if(au)v.push(tb(au));if(du!=null)v.push(du?tb(du):0);}   /* encadenado (b7) y duración (b6) */
+    const au=k==='trans'&&keys===CX?d.auto:null,du=k==='trans'?d.dur:null,hu=k==='trans'?d.hum:null,tb=x=>(x.b?0x80:0)|Math.max(1,Math.min(127,Math.round(x.d*(x.b?4:10))));
+    if(au||du!=null||hu!=null){f|=1<<i;v.push(((d.trans!=null?tv(d.trans):7)&0x1F)|(au?0x80:0)|(du!=null?0x40:0)|(hu!=null?0x20:0));if(au)v.push(tb(au));if(du!=null)v.push(du?tb(du):0);
+      if(hu!=null)v.push(hu&&hu.ms?(hu.ms&63)|((hu.dir||0)&3)<<6:0);}   /* encadenado (b7), duración (b6) y humanizador (b5) */
     else if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):tv(d[k]))&255);}});
   const ids=Object.keys(d.ctl||{}).map(Number).sort((a,b)=>a-b);if(ids.length){f|=16;v.push(ids.length);for(const id of ids){const tm=d.ctlT&&d.ctlT[id];
     if(tm){const q=tm.b?4:10;v.push(id|0x80|(tm.b?0x40:0)|(tm.f!=null?0x20:0),d.ctl[id]&127,Math.min(255,Math.round((tm.d||0)*q)),Math.min(255,Math.round((tm.w||0)*q)));if(tm.f!=null)v.push(tm.f&127);}   // transición propia: espera y duración (y "parte desde")
@@ -715,7 +749,8 @@ function enc(m){const o=[];const u8=v=>o.push(v&255),u16=v=>{u8(v);u8(v>>8)},str
   u8(m.sets.length);for(const st of m.sets){str(st.name,24);u8(st.entries.length);for(const e of st.entries){if(e.k===0){u8(0);u8(e.s);u8(e.t&255);str(e.note||'',40);}else if(e.notas&&e.notas.length){u8(2);str(e.label||'',24);const l=e.notas.slice(0,20);u8(l.length);for(const n of l){str(n.t||'',24);str(n.x||'',160);}}else{u8(1);str(e.label||'',24);}}}
   return new Uint8Array(o);}
 function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach((k,j)=>{if(f&(1<<j)){let v=u8();
-    if(k==='trans'&&(v&0xC0)){const tv=a=>({d:(a&0x7F)/(a&0x80?4:10),b:!!(a&0x80)});if(v&0x80)d.auto=tv(u8());if(v&0x40){const a=u8();d.dur=a?tv(a):0;}v&=0x3F;if(v===7)return;}   /* encadenado y duración */
+    if(k==='trans'&&(v&0xE0)){const tv=a=>({d:(a&0x7F)/(a&0x80?4:10),b:!!(a&0x80)});if(v&0x80)d.auto=tv(u8());if(v&0x40){const a=u8();d.dur=a?tv(a):0;}
+      if(v&0x20){const a=u8();d.hum=a&63?{ms:a&63,dir:a>>6}:0;}v&=0x1F;if(v===7)return;}   /* encadenado, duración y humanizador */
     if(k==='glide')v*=10;if(k==='bend'&&v>127)v-=256;d[k]=v;}});
     if(f&16){d.ctl={};for(let n=u8();n--;){const b=u8(),id=b&7;d.ctl[id]=u8();if(b&0x80){const q=b&0x40?4:10,du=u8(),w=u8();d.ctlT=d.ctlT||{};d.ctlT[id]={w:w/q,d:du/q,b:!!(b&0x40)};}if(b&0x20){d.ctlT=d.ctlT||{};(d.ctlT[id]=d.ctlT[id]||{w:0,d:0,b:false}).f=u8();}}}
     if(f&32&&keys===CX){d.nv=[];for(let n=nn;n--;){let x=u8();if(x>127)x-=256;d.nv.push(x);}}
@@ -776,7 +811,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-2235';
+const QM_VERSION='2026.10.05-2318';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1459,10 +1494,11 @@ function vEdit(m){
       srow('Tempo','Velocidad de la canción. También marca el MIDI Clock que recibe el MiniNova.',knob({label:'Tempo',value:s.bpm,min:20,max:300,onInput:v=>edit(()=>s.bpm=v)})),
       srow('Velocity','Qué tan fuerte suenan las notas (1 a 127).',knob({label:'Velocity',value:s.vel,min:1,max:127,onInput:v=>edit(()=>s.vel=v)})),
       srow('Repetir desde el inicio','Al terminar la canción vuelve al primer acorde. Apagado: se queda al final.',toggle('',s.repeat,v=>edit(()=>s.repeat=v)))]),
-    sec('s:pedal','right','Pedal',[modoNom(s),tieNom(s.tie)].join(' · '),()=>[
+    sec('s:pedal','right','Pedal',[modoNom(s),tieNom(s.tie),s.hum&&s.hum.ms?humNom(s.hum):null].filter(Boolean).join(' · '),()=>[
       h('p',{class:'mu sm',style:'margin:8px 0 0'},'Cómo responde Quack a tus pisadas. No es parte del sonido: vale igual con cualquier sonido. Cada frase y cada acorde pueden tener lo suyo.'),
       srow('Cada nota suena',HOLD_EXPL+DUR_EXPL,[seg(MODOS,modoDe(s),v=>edit(()=>ponerModo(s,v,false))),s.dur?durKnobs(s,s.bpm,fn=>edit(()=>fn(s))):null]),
-      srow('Notas repetidas',TIE_EXPL,seg(PEDAL_TIE,!!s.tie,v=>edit(()=>s.tie=v)))]),
+      srow('Notas repetidas',TIE_EXPL,seg(PEDAL_TIE,!!s.tie,v=>edit(()=>s.tie=v))),
+      humFila(s,null,null,s.bpm,s.voice)]),
     sec('s:sonido','piano','Sonido del Mininova',[s.sendPC?sndLabel({bank:s.bank||0,pc:s.pc}):'No cambia el sonido',glideNom(s.trans||0,gl),s.voice!=null?['Mono','Mono AG','Poly'][s.voice]||'':null,s.bendRange!=null?'rueda ±'+s.bendRange:null,nPar(s)?nPar(s)+' parámetro'+(nPar(s)===1?'':'s'):null].filter(Boolean).join(' · '),()=>{
       const elegir=()=>elegirSonidoDlg(s.sendPC?{bank:s.bank||0,pc:s.pc||0}:null,x=>sndCancion(s,()=>{s.sendPC=true;s.bank=x.bank;s.pc=x.pc;}));
       return[
@@ -1549,13 +1585,14 @@ function phraseEditor(s,p,pi){const card=h('div',{class:'card',id:'peditor'});if
     tb('paste','Nombre',()=>renamePhrase(p))]),
     h('p',{class:'mu sm',style:'margin:8px 0 0'},'Lo que pongas aquí vale para todos los acordes de '+(many?'estas frases':'esta frase')+', salvo los que tengan el suyo. Lo que no pongas viene de la canción.'));
   const sGl=s.glide!=null?s.glide:150,sTr=s.trans||0,rTr=d.trans!=null?d.trans:sTr,rGl=d.glide!=null?d.glide:sGl;
-  const res=[d.hold!=null||d.dur!=null?modoNom({hold:d.hold!=null?d.hold:s.hold,dur:d.dur!=null?d.dur:s.dur}):null,d.tie!=null?tieNom(d.tie):null,d.bpm!=null?d.bpm+' BPM':null,d.vel!=null?'velocity '+d.vel:null].filter(Boolean);
+  const res=[d.hum!==undefined?humNom(d.hum):null,d.hold!=null||d.dur!=null?modoNom({hold:d.hold!=null?d.hold:s.hold,dur:d.dur!=null?d.dur:s.dur}):null,d.tie!=null?tieNom(d.tie):null,d.bpm!=null?d.bpm+' BPM':null,d.vel!=null?'velocity '+d.vel:null].filter(Boolean);
   const IR=(t,e,k,st,sv,ctl)=>irow(t,e,sel,k,st,sv,ctl,'la canción',many?'estas frases':'esta frase');
   card.append(sec('f:toca','right','Pedal, tempo y fuerza',res.length?res.join(' · '):'Como la canción',()=>[
     filaModo(sel,{hold:!!s.hold,dur:s.dur||null},'la canción',many?'estas frases':'esta frase',s.bpm),
     IR('Notas repetidas',TIE_EXPL,'tie',tieNom(s.tie),!!s.tie,cur=>seg(PEDAL_TIE,cur,v=>edit(()=>{for(const c of sel)c.tie=v;}))),
     IR('Tempo','Al llegar a esta frase cambia el tempo (y el MIDI Clock).','bpm',s.bpm+' BPM',s.bpm,cur=>knob({label:'Tempo',value:cur,min:20,max:300,onInput:v=>edit(()=>{for(const c of sel)c.bpm=v;})})),
-    IR('Velocity','Qué tan fuerte suenan sus notas (1 a 127).','vel','velocity '+s.vel,s.vel,cur=>knob({label:'Velocity',value:cur,min:1,max:127,onInput:v=>edit(()=>{for(const c of sel)c.vel=v;})}))]));
+    IR('Velocity','Qué tan fuerte suenan sus notas (1 a 127).','vel','velocity '+s.vel,s.vel,cur=>knob({label:'Velocity',value:cur,min:1,max:127,onInput:v=>edit(()=>{for(const c of sel)c.vel=v;})})),
+    many?null:humFila(d,s.hum||0,'la canción',s.bpm,s.voice)]));
   if(!many){const elegir=()=>elegirSonidoDlg(p.sound||null,x=>edit(()=>{p.sound={bank:x.bank,pc:x.pc};}),
       {titulo:'Sonido de "'+p.name+'"',nota:'Al llegar a esta frase el Mininova cambia a este sonido (el cambio corta lo que suena).',quitar:p.sound?['Quitar (usar el de la canción)',()=>edit(()=>{delete p.sound;})]:null});
     card.append(sec('f:sonido','music','Sonido del Mininova',[p.sound?sndLabel(p.sound):'el de la canción',d.trans!=null?glideNom(d.trans,rGl):null,nPar(d)?nPar(d)+' parámetro'+(nPar(d)===1?'':'s')+' al entrar':null].filter(Boolean).join(' · '),()=>[
@@ -1937,6 +1974,8 @@ function pasoStudio(so,c,p,{ligado=false,trans=0,tr=0,modo='latch',notasBase=nul
   const ctlsFrase=ctlsDe(d,c),mnFrase=sin59(mnDe(d,c)).concat(mix?[[255,59,mix]]:[]);
   return{cancion:so.id,slot:slotDe(snd),voz:so.voice!=null?so.voice:null,bendRange:so.bendRange||0,ctlCancion:so.ctl||{},
     notas:c.notes.map(n=>n+tr),vel:c.vel!=null?c.vel:so.vel,nv:nvShift(c,tr),ligado,trans,glide,bend:c.bend||0,entrada:trans!==2&&c.bend?{st:c.bend,ms:c.glide!=null?c.glide:80}:null,modo,notasBase,
+    hum:(()=>{const x=c.hum!==undefined?c.hum:d.hum!==undefined?d.hum:so.hum;return x&&x.ms?{ms:x.ms,dir:x.dir||0}:null;})(),
+    suelta:(()=>{const x=c.dur!=null?c.dur:d.dur!=null?d.dur:so.dur;return x?MS(x,x.d):0;})(),
     ctls:[...ctlsFrase,...ctlsDe(c)],mn:[...mnFrase,...sin59(mnDe(c))],ctlsFrase,mnFrase,mnCancion:!(p&&p.sound)||(so.sendPC&&p.sound.bank===(so.bank||0)&&p.sound.pc===so.pc)?so.mn||[]:[],base:basesDe(so,p),expr};}   /* (con otro sonido, los de la canción no valen) */
 // El volumen (fade) en un lugar de la canción, como lo hace el Arduino: {de, a, ms} o {a}; null en un silencio (no se toca)
 function exprEn(so,it){if(!NUEVOS)return null;const p=so.phrases[it.p],c=p&&p.chords[it.ci];if(!c||!c.notes.length)return null;const fd=p.fade||{},F=formOf(so),reps=(F[it.st]&&F[it.st].r)||1;
