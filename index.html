@@ -632,6 +632,25 @@ const glideDefecto=t=>t===4?120:300;   /* al elegir "a una velocidad" (12 semito
 /* PEDAL: cuánto dura cada nota (antes Sostén: Latch/Mantener) y qué pasa con las que se repiten (antes Ligado) */
 const PEDAL_HOLD=[[false,'Hasta la próxima pisada'],[true,'Mientras el pie está abajo']],PEDAL_TIE=[[false,'Volver a tocarlas'],[true,'Dejarlas sonando']];
 const holdNom=x=>x?'mientras el pie está abajo':'hasta la próxima pisada',tieNom=x=>x?'repetidas siguen sonando':'repetidas se vuelven a tocar';
+/* CADA NOTA SUENA: hasta la próxima pisada (hold false) · mientras el pie está abajo (hold true) · durante un tiempo ("dur":
+   {d, b} = segundos o tiempos; el Arduino suelta las notas solo). En frases y acordes, dur 0 = "sin duración" propio. */
+const MODOS=[['pisada','Hasta la próxima pisada'],['pie','Mientras el pie está abajo'],['tiempo','Durante un tiempo']];
+const modoDe=x=>x.dur?'tiempo':x.hold?'pie':'pisada';
+const modoNom=x=>x.dur?'cada nota suena '+tUn(x.dur.d,x.dur.b):holdNom(x.hold);
+function ponerModo(x,v,propio){if(v==='tiempo'){x.hold=false;if(!x.dur)x.dur={d:0.5,b:false};}else{x.hold=v==='pie';if(propio)x.dur=0;else delete x.dur;}}
+/* el tiempo de "durante un tiempo": en segundos o en tiempos de la canción (fn cambia el "dur" de cada uno) */
+function durKnobs(x,bpm,fn){const T=x.dur;
+  return h('div',{class:'row',style:'gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px'},
+    seg([[false,'Segundos'],[true,'Tiempos']],!!T.b,b=>fn(y=>{if(!y.dur||!!y.dur.b===b)return;y.dur={d:b?Math.max(0.25,Math.round(y.dur.d*bpm/60*4)/4):Math.max(0.1,Math.round(y.dur.d*60/bpm*10)/10),b};})),
+    knob({label:'Duración ('+(T.b?'tiempos':'s')+')',value:T.d,min:T.b?0.25:0.1,max:T.b?31.75:12.7,step:T.b?0.25:0.1,onInput:v=>fn(y=>{if(y.dur)y.dur={d:v,b:!!y.dur.b};})}));}
+const DUR_EXPL=' Durante un tiempo: cada nota suena lo que elijas y se suelta sola, aunque no pises.';
+/* la fila heredable (frase o acorde): "Igual que …" o propio */
+function filaModo(sel,base,de,cosa,bpm){const own=sel.some(c=>c.hold!=null||c.dur!=null),c0=sel[0];
+  const x=own?{hold:c0.hold!=null?c0.hold:base.hold,dur:c0.dur!=null?c0.dur:base.dur}:base;
+  const sw=toggle('Igual que '+de,!own,on=>edit(()=>{for(const c of sel){if(on){delete c.hold;delete c.dur;}else{c.hold=!!base.hold;c.dur=base.dur?copy(base.dur):0;}}}));
+  return h('div',{class:'srow'},h('div',{class:'sl'},h('b',null,'Cada nota suena'),h('small',null,HOLD_EXPL+DUR_EXPL),h('small',null,own?'Propio de '+cosa+'.':'Usa el de '+de+': '+modoNom(base)+'.')),
+    h('div',{class:'sc'},sw),own?h('div',{class:'own'},seg(MODOS,modoDe(x),v=>edit(()=>{for(const c of sel)ponerModo(c,v,true);})),
+      x.dur?durKnobs(x,bpm,fn=>edit(()=>{for(const c of sel)fn(c);})):null):null);}
 const HOLD_EXPL='Hasta la próxima pisada: la nota sigue sonando aunque levantes el pie (no es el "Latch" del arpegiador del Mininova). Mientras el pie está abajo: al levantarlo, se apaga.';
 const TIE_EXPL='Si el acorde siguiente repite una nota: volver a tocarla (se oye de nuevo su ataque) o dejarla sonando sin cortar.';
 /* combinaciones que no van a sonar como se espera */
@@ -667,7 +686,8 @@ const SX=['voice','bendRange','trans','glide'],CX=['trans','glide','bend','mod']
 // Controles del MiniNova: [nombre, CC, se puede deslizar, valor inicial]
 const CTRL=[['Modulación',1,true,0],['Filtro (frecuencia)',74,true,64],['Resonancia',71,true,0],['Drive',63,true,0],['Ataque',73,false,0],['Decay',75,false,64],['Sustain',70,false,127],['Release',72,false,20]];
 function packX(d,keys,ns){let f=0;const v=[];keys.forEach((k,i)=>{const tv=x=>k==='trans'&&x===3&&!COMO_SONIDO?1:x;
-    if(k==='trans'&&keys===CX&&d.auto){f|=1<<i;const q=d.auto.b?4:10;v.push(((d.trans!=null?tv(d.trans):7)&0x7F)|0x80,(d.auto.b?0x80:0)|Math.max(1,Math.min(127,Math.round(d.auto.d*q))));}   /* encadenado */
+    const au=k==='trans'&&keys===CX?d.auto:null,du=k==='trans'?d.dur:null,tb=x=>(x.b?0x80:0)|Math.max(1,Math.min(127,Math.round(x.d*(x.b?4:10))));
+    if(au||du!=null){f|=1<<i;v.push(((d.trans!=null?tv(d.trans):7)&0x3F)|(au?0x80:0)|(du!=null?0x40:0));if(au)v.push(tb(au));if(du!=null)v.push(du?tb(du):0);}   /* encadenado (b7) y duración (b6) */
     else if(d[k]!=null){f|=1<<i;v.push((k==='glide'?Math.round(d[k]/10):tv(d[k]))&255);}});
   const ids=Object.keys(d.ctl||{}).map(Number).sort((a,b)=>a-b);if(ids.length){f|=16;v.push(ids.length);for(const id of ids){const tm=d.ctlT&&d.ctlT[id];
     if(tm){const q=tm.b?4:10;v.push(id|0x80|(tm.b?0x40:0)|(tm.f!=null?0x20:0),d.ctl[id]&127,Math.min(255,Math.round((tm.d||0)*q)),Math.min(255,Math.round((tm.w||0)*q)));if(tm.f!=null)v.push(tm.f&127);}   // transición propia: espera y duración (y "parte desde")
@@ -695,7 +715,7 @@ function enc(m){const o=[];const u8=v=>o.push(v&255),u16=v=>{u8(v);u8(v>>8)},str
   u8(m.sets.length);for(const st of m.sets){str(st.name,24);u8(st.entries.length);for(const e of st.entries){if(e.k===0){u8(0);u8(e.s);u8(e.t&255);str(e.note||'',40);}else if(e.notas&&e.notas.length){u8(2);str(e.label||'',24);const l=e.notas.slice(0,20);u8(l.length);for(const n of l){str(n.t||'',24);str(n.x||'',160);}}else{u8(1);str(e.label||'',24);}}}
   return new Uint8Array(o);}
 function dec(b){let i=0;const unpackX=(d,keys,nn=0)=>{const f=u8();keys.forEach((k,j)=>{if(f&(1<<j)){let v=u8();
-    if(k==='trans'&&keys===CX&&(v&0x80)){const a=u8();d.auto={d:(a&0x7F)/(a&0x80?4:10),b:!!(a&0x80)};v&=0x7F;if(v===7)return;}   /* encadenado */
+    if(k==='trans'&&(v&0xC0)){const tv=a=>({d:(a&0x7F)/(a&0x80?4:10),b:!!(a&0x80)});if(v&0x80)d.auto=tv(u8());if(v&0x40){const a=u8();d.dur=a?tv(a):0;}v&=0x3F;if(v===7)return;}   /* encadenado y duración */
     if(k==='glide')v*=10;if(k==='bend'&&v>127)v-=256;d[k]=v;}});
     if(f&16){d.ctl={};for(let n=u8();n--;){const b=u8(),id=b&7;d.ctl[id]=u8();if(b&0x80){const q=b&0x40?4:10,du=u8(),w=u8();d.ctlT=d.ctlT||{};d.ctlT[id]={w:w/q,d:du/q,b:!!(b&0x40)};}if(b&0x20){d.ctlT=d.ctlT||{};(d.ctlT[id]=d.ctlT[id]||{w:0,d:0,b:false}).f=u8();}}}
     if(f&32&&keys===CX){d.nv=[];for(let n=nn;n--;){let x=u8();if(x>127)x-=256;d.nv.push(x);}}
@@ -756,7 +776,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.05-2229';
+const QM_VERSION='2026.10.05-2235';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -893,7 +913,7 @@ async function tick(){let wait=perfOn?200:400;
   // cuando algo cambia (o a los 4 s). Así el WiFi casi no se usa y el Bluetooth del pedal tiene la vía libre.
   const largo=conArduino()&&st&&st.sg!=null;
   try{const r=await api(largo?'/api/s?w='+st.sg:'/api/s',{timeout:largo?7000:2500});if(largo)wait=15;const s=await r.json();const was=online;online=true;
-    const oldCn=st.cn,oldL=st.L,oldDirty=st.dirty;st=s;
+    const oldCn=st.cn,oldL=st.L,oldDirty=st.dirty,oldCap=st.cap;st=s;
     if(oldDirty&&!s.dirty&&!s.fe&&conArduino())toast('Guardado en la memoria del Arduino ✓');
     if(!M||(!pendingUp&&!uploading&&s.bv!==knownBv)){await loadBlob();renderAll();}
     if(M&&s.cn!==oldCn&&oldCn!=null&&s.cv)onCapture(s.cv,s.cw);
@@ -909,6 +929,7 @@ async function tick(){let wait=perfOn?200:400;
     if(M&&window.SIM&&usarStudio()&&pos!==lastPosStudio)tocarEnStudio(s,pos);
     const sig=[s.s,s.st,s.r,s.c,s.set,s.se,s.sep,s.sp,s.thru,s.warn,s.cap,s.end,s.dirty,s.bt].join();
     if(sig!==lastSig||!was){lastSig=sig;renderLive();}
+    if(M&&oldCap!=null&&s.cap!==oldCap&&!document.activeElement.matches('input,textarea,select'))renderAll();   /* empezó o terminó una captura: el botón "Detener grabación" está en el editor */
     if(s.bt!==tick.bt){tick.bt=s.bt;if(tab==='cfg'&&!document.activeElement.matches('input,textarea,select'))renderAll();}   // el pedal se conectó o se desconectó
     if(perfOn)renderPerf();
   }catch(e){online=false;wait=1200;}
@@ -1438,9 +1459,9 @@ function vEdit(m){
       srow('Tempo','Velocidad de la canción. También marca el MIDI Clock que recibe el MiniNova.',knob({label:'Tempo',value:s.bpm,min:20,max:300,onInput:v=>edit(()=>s.bpm=v)})),
       srow('Velocity','Qué tan fuerte suenan las notas (1 a 127).',knob({label:'Velocity',value:s.vel,min:1,max:127,onInput:v=>edit(()=>s.vel=v)})),
       srow('Repetir desde el inicio','Al terminar la canción vuelve al primer acorde. Apagado: se queda al final.',toggle('',s.repeat,v=>edit(()=>s.repeat=v)))]),
-    sec('s:pedal','right','Pedal',[holdNom(s.hold),tieNom(s.tie)].join(' · '),()=>[
+    sec('s:pedal','right','Pedal',[modoNom(s),tieNom(s.tie)].join(' · '),()=>[
       h('p',{class:'mu sm',style:'margin:8px 0 0'},'Cómo responde Quack a tus pisadas. No es parte del sonido: vale igual con cualquier sonido. Cada frase y cada acorde pueden tener lo suyo.'),
-      srow('Cada nota suena',HOLD_EXPL,seg(PEDAL_HOLD,!!s.hold,v=>edit(()=>s.hold=v))),
+      srow('Cada nota suena',HOLD_EXPL+DUR_EXPL,[seg(MODOS,modoDe(s),v=>edit(()=>ponerModo(s,v,false))),s.dur?durKnobs(s,s.bpm,fn=>edit(()=>fn(s))):null]),
       srow('Notas repetidas',TIE_EXPL,seg(PEDAL_TIE,!!s.tie,v=>edit(()=>s.tie=v)))]),
     sec('s:sonido','piano','Sonido del Mininova',[s.sendPC?sndLabel({bank:s.bank||0,pc:s.pc}):'No cambia el sonido',glideNom(s.trans||0,gl),s.voice!=null?['Mono','Mono AG','Poly'][s.voice]||'':null,s.bendRange!=null?'rueda ±'+s.bendRange:null,nPar(s)?nPar(s)+' parámetro'+(nPar(s)===1?'':'s'):null].filter(Boolean).join(' · '),()=>{
       const elegir=()=>elegirSonidoDlg(s.sendPC?{bank:s.bank||0,pc:s.pc||0}:null,x=>sndCancion(s,()=>{s.sendPC=true;s.bank=x.bank;s.pc=x.pc;}));
@@ -1528,10 +1549,10 @@ function phraseEditor(s,p,pi){const card=h('div',{class:'card',id:'peditor'});if
     tb('paste','Nombre',()=>renamePhrase(p))]),
     h('p',{class:'mu sm',style:'margin:8px 0 0'},'Lo que pongas aquí vale para todos los acordes de '+(many?'estas frases':'esta frase')+', salvo los que tengan el suyo. Lo que no pongas viene de la canción.'));
   const sGl=s.glide!=null?s.glide:150,sTr=s.trans||0,rTr=d.trans!=null?d.trans:sTr,rGl=d.glide!=null?d.glide:sGl;
-  const res=[d.hold!=null?holdNom(d.hold):null,d.tie!=null?tieNom(d.tie):null,d.bpm!=null?d.bpm+' BPM':null,d.vel!=null?'velocity '+d.vel:null].filter(Boolean);
+  const res=[d.hold!=null||d.dur!=null?modoNom({hold:d.hold!=null?d.hold:s.hold,dur:d.dur!=null?d.dur:s.dur}):null,d.tie!=null?tieNom(d.tie):null,d.bpm!=null?d.bpm+' BPM':null,d.vel!=null?'velocity '+d.vel:null].filter(Boolean);
   const IR=(t,e,k,st,sv,ctl)=>irow(t,e,sel,k,st,sv,ctl,'la canción',many?'estas frases':'esta frase');
   card.append(sec('f:toca','right','Pedal, tempo y fuerza',res.length?res.join(' · '):'Como la canción',()=>[
-    IR('Cada nota suena',HOLD_EXPL,'hold',holdNom(s.hold),!!s.hold,cur=>seg(PEDAL_HOLD,cur,v=>edit(()=>{for(const c of sel)c.hold=v;}))),
+    filaModo(sel,{hold:!!s.hold,dur:s.dur||null},'la canción',many?'estas frases':'esta frase',s.bpm),
     IR('Notas repetidas',TIE_EXPL,'tie',tieNom(s.tie),!!s.tie,cur=>seg(PEDAL_TIE,cur,v=>edit(()=>{for(const c of sel)c.tie=v;}))),
     IR('Tempo','Al llegar a esta frase cambia el tempo (y el MIDI Clock).','bpm',s.bpm+' BPM',s.bpm,cur=>knob({label:'Tempo',value:cur,min:20,max:300,onInput:v=>edit(()=>{for(const c of sel)c.bpm=v;})})),
     IR('Velocity','Qué tan fuerte suenan sus notas (1 a 127).','vel','velocity '+s.vel,s.vel,cur=>knob({label:'Velocity',value:cur,min:1,max:127,onInput:v=>edit(()=>{for(const c of sel)c.vel=v;})}))]));
@@ -2034,7 +2055,7 @@ function chordEditor(s){
       tiempoBlock({T:(sel.find(c=>c.auto)||{}).auto?{w:0,d:sel.find(c=>c.auto).auto.d,b:sel.find(c=>c.auto).auto.b}:null,bpm:par('bpm')||s.bpm,titulo:'Encadenado',sinEspera:true,
         setT:fn=>edit(()=>{for(const c of sel){const x=c.auto?{w:0,d:c.auto.d,b:c.auto.b}:{w:0,d:0.5,b:false};fn(x);c.auto={d:Math.max(x.b?0.25:0.1,Math.min(x.b?31.75:12.7,x.d)),b:!!x.b};}}),
         off:()=>edit(()=>{for(const c of sel)delete c.auto;}),activar:x=>{x.d=0.5;x.b=false;},def:'Espera tu pisada.'})),
-    irow('Cada nota suena',HOLD_EXPL,sel,'hold',holdNom(par('hold')),!!par('hold'),cur=>seg(PEDAL_HOLD,cur,v=>edit(()=>{for(const c of sel)c.hold=v;})),deK('hold')),
+    filaModo(sel,{hold:!!par('hold'),dur:pd.dur!=null?(pd.dur||null):(s.dur||null)},pd.hold!=null||pd.dur!=null?'la frase':'la canción',sel.length>1?'estos acordes':'este acorde',par('bpm')||s.bpm),
     irow('Notas repetidas',TIE_EXPL,sel,'tie',tieNom(par('tie')),!!par('tie'),cur=>seg(PEDAL_TIE,cur,v=>edit(()=>{for(const c of sel)c.tie=v;})),deK('tie')),
     irow('Tempo','Al llegar a este acorde cambia el tempo (y el MIDI Clock).',sel,'bpm',par('bpm')+' BPM',par('bpm'),cur=>knob({label:'Tempo',value:cur,min:20,max:300,onInput:v=>edit(()=>{for(const c of sel)c.bpm=v;})}),deK('bpm')),
     irow('Velocity','Qué tan fuerte suenan las notas de este acorde (1 a 127).',sel,'vel','velocity '+par('vel'),par('vel'),cur=>knob({label:'Velocity',value:cur,min:1,max:127,onInput:v=>edit(()=>{for(const c of sel)c.vel=v;})}),deK('vel'))]));
@@ -2799,17 +2820,19 @@ if(window.APPMODE){setTimeout(buscarArduino,1200);setInterval(()=>{if(!window.AR
 function ardPerdido(){window.ARD=false;window.ARD_USB=false;try{if(M)espejo(enc(M));}catch(e){}S.bv++;knownBv=-1;toast('Se perdió la conexión con el Arduino: sigues con la copia de la app.',5000);}
 /* Capturar / grabar con el Arduino conectado desde el PC: el teclado está conectado al PC (lo escucha Quack Studio), no a la
    entrada MIDI del Arduino. Entonces la captura la hace Studio, como sin Arduino, y la app la ve en el estado del Arduino. */
-let capPorStudio=false;
+let capPorStudio=false,capDespierta=null;   // (capDespierta: corta la espera de novedades al empezar o terminar una captura)
 const conStudio=()=>typeof STUDIO!=='undefined'&&STUDIO.ok;
 window.fetch=async function(path,opt={}){
   if(window.ARD&&typeof path==='string'&&path.startsWith('/api/c')&&conStudio()&&/[?&]x=cap(&|$)/.test(path)){
     const a=+((path.match(/[?&]a=(\d+)/)||[])[1]||0);
     if(!capPorStudio){capPorStudio=true;S.cn=(typeof st!=='undefined'&&st&&st.cn)||0;S.cv=[];S.cw=[];}
     S.cap=a;S.capN=null;S.capE=0;if(a)capStudio();
+    if(capDespierta){capDespierta();capDespierta=null;}
     return J({ok:1});}
   if(window.ARD&&capPorStudio&&typeof path==='string'&&path.startsWith('/api/s')){
     if(S.cap)path='/api/s';                     // (capturando: sin "esperar novedades", para ver cada acorde al tiro)
-    let r;try{r=await ardFetch(path,opt);ardFallas=0;}catch(e){if(++ardFallas>=3)ardPerdido();throw e;}
+    let r;try{const larga=ardFetch(path,opt);r=await Promise.race([larga,new Promise(res=>{capDespierta=()=>res(null);})]);
+      if(r===null)r=await ardFetch('/api/s',{});ardFallas=0;}catch(e){if(++ardFallas>=3)ardPerdido();throw e;}
     const j=await r.json();Object.assign(j,{cap:S.cap,cn:S.cn,cv:S.cv,cw:S.cw});
     return new Response(JSON.stringify(j),{headers:{'Content-Type':'application/json'}});}
   if(window.ARD&&typeof path==='string'&&path.startsWith('/api/')){
