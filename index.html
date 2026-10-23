@@ -840,7 +840,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.22-2351';
+const QM_VERSION='2026.10.22-2355';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -921,7 +921,9 @@ const cmd=(x,a,extra='')=>((x==='stop'||x==='mute'||x==='restart')&&(synthStop()
 
 // Las letras no van al Arduino: al releer sus datos se conservan las que ya tenemos (lo más nuevo es lo que está en pantalla)
 async function loadBlob(){const r=await api('/api/blob');const b=new Uint8Array(await r.arrayBuffer());if(M)lyrDoc=collectLyrics();M=dec(b);const mig=dec.migro;attachLyrics();knownBv=+(r.headers.get('X-Bv')||0);
-  if(mig){sinFechaNueva();changed(false);toast('Canciones actualizadas: ahora cada acorde suena siempre igual, vengas de donde vengas');}}
+  sinFechaNueva();   /* lo que llega del Arduino no es una edición de aquí: sin fecha nueva (2026-10-22: un Déficit viejo del Arduino
+                        quedó "más nuevo" que el de Drive y lo pisó dos veces). Las canciones nuevas del Arduino sí se suben. */
+  if(mig){changed(false);toast('Canciones actualizadas: ahora cada acorde suena siempre igual, vengas de donde vengas');}}
 // La conversión (migrarH2) no es una edición: no les pone fecha nueva a las canciones (si no, la copia de un dispositivo
 // viejo -por ejemplo con las canciones de ejemplo- les "gana" a las de verdad al sincronizar). Cada dispositivo convierte igual.
 function sinFechaNueva(){if(!window.APPMODE||!M)return;const m=syncMeta();if(!m.hash)return;
