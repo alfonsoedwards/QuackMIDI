@@ -840,7 +840,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.22-2336';
+const QM_VERSION='2026.10.22-2351';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -2847,23 +2847,28 @@ const ARD_BASE='qm_ard_base';
 const hCan=x=>{try{return hash(dec(enc({settings:m.settings,songs:[x],sets:[]})).songs[0]);}catch(e){return hash(x);}};   // tal como la guarda el Arduino
 function baseArd(md){try{const o={s:{},sets:hash(md.sets||[])};for(const x of md.songs)o.s[x.id]=hCan(x);localStorage.setItem(ARD_BASE,JSON.stringify(o));}catch(e){}}
 function leerBase(){try{return JSON.parse(localStorage.getItem(ARD_BASE)||'null');}catch(e){return null;}}
-// Mezcla canción por canción: la que cambió de un solo lado gana; si cambiaron las dos (o no hay base), gana la del Arduino
+// Mezcla canción por canción: la que cambió de un solo lado gana. Si cambiaron las dos (o no hay base para saberlo), se
+// quedan LAS DOS: la del Arduino con su nombre y la de esta app como copia "(de este PC)" (2026-10-22: así se perdió de vista
+// el Déficit nuevo de Alfonso, que quedó escondido en Copias automáticas). Nunca se esconde una versión.
 function mezclarArd(am,lm,B){const A={},L={};am.songs.forEach(x=>A[x.id]=x);lm.songs.forEach(x=>L[x.id]=x);
-  const bs=(B&&B.s)||{},out={},trae=[],lleva=[],choques=[];
+  const bs=(B&&B.s)||{},out={},trae=[],lleva=[],choques=[],copias=[];
   for(const id of new Set([...Object.keys(A),...Object.keys(L)])){const a=A[id],l=L[id],b=bs[id];
     if(a&&l){const ha=hCan(a),hl=hCan(l);
       if(ha===hl||hl===b)out[id]=a;else if(ha===b){out[id]=l;lleva.push(l.name);}
-      else{out[id]=a;choques.push(a.name);}
+      else{out[id]=a;choques.push(a.name);copias.push({tras:id,s:l});}
       out[id]=conservarBases(out[id],out[id]===a?l:a);   // (los niveles que sabe una y no la otra no se pierden)
       if(ha!==hl&&hl===b)trae.push(a.name);}
     else if(a){if(b===undefined||hCan(a)!==b){out[id]=a;if(b===undefined)trae.push(a.name);}}   // nueva en el Arduino (o la borraste acá pero allá cambió)
     else{if(b===undefined||hCan(l)!==b){out[id]=l;lleva.push(l.name);}}}                      // nueva en la app (si no, se borró en el Arduino)
   const orden=[...am.songs.map(x=>x.id),...lm.songs.map(x=>x.id)].filter((id,i,a)=>a.indexOf(id)===i&&out[id]);
   const songs=orden.map(id=>out[id]);
+  let nid=Math.max(am.settings.nextId||0,lm.settings&&lm.settings.nextId||0,...songs.map(x=>x.id+1));   /* las copias: id nuevo, justo después de la original */
+  for(const c of copias){const x=JSON.parse(JSON.stringify(c.s));x.id=nid++;x.name=(x.name+' (de este PC)').slice(0,24);songs.splice(songs.findIndex(y=>String(y.id)===String(c.tras))+1,0,x);}
+  am.settings.nextId=nid;
   const appSets=B&&hash(lm.sets||[])!==B.sets&&hash(am.sets||[])===B.sets;   // las presentaciones: igual, la que cambió
   const fuenteSets=appSets?lm:am,ix=id=>songs.findIndex(x=>x.id===id);
   const sets=(fuenteSets.sets||[]).map(st=>({name:st.name,entries:st.entries.map(e=>{if(e.k!==0)return e;const so=fuenteSets.songs[e.s];const i=so?ix(so.id):-1;return i<0?null:Object.assign({},e,{s:i});}).filter(Boolean)}));
-  return{songs,sets,trae,lleva,choques};}
+  return{songs,sets,trae,lleva,choques};}   /* (las copias van en songs; am.settings.nextId queda al día) */
 async function buscarArduino(){
   if(!window.APPMODE||window.ARD||ardBuscando||typeof M==='undefined'||!M)return;ardBuscando=true;let hallado=false;
   try{
@@ -2893,7 +2898,7 @@ async function buscarArduino(){
     const partes=[];
     if(mz.trae.length)partes.push('traje del Arduino: '+lista(mz.trae));
     if(mz.lleva.length)partes.push('le pasé al Arduino: '+lista(mz.lleva));
-    if(mz.choques.length)partes.push('cambiaste '+lista(mz.choques)+' en los dos lados: quedó la del Arduino (la de la tablet está en Ajustes → Copias automáticas)');
+    if(mz.choques.length)partes.push('cambiaste '+lista(mz.choques)+' en los dos lados: quedaron LAS DOS versiones (la de esta app se llama "… (de este PC)"); revisa cuál quieres y borra la otra');
     toast(igualArd&&!appCambia?'Conectado al Arduino'+(window.ARD_USB?' por USB':'')+': tiene las mismas canciones que la app.':'Conectado al Arduino'+(window.ARD_USB?' por USB':'')+''+(partes.length?'; '+partes.join('; '):'')+'. Quedaron las versiones más nuevas en los dos.',partes.length?8000:4000);
     espejo(nb);baseArd(dec(nb));window.ARD=true;ardFallas=0;knownBv=-1;window.qmTick&&window.qmTick();   // (knownBv=-1: releer del Arduino)
   }catch(e){if(hallado)toast('Encontré el Arduino, pero no pude pasarle las canciones'+(e&&e.message?': '+e.message:'')+'. Lo intento de nuevo en unos segundos.',5000);}
