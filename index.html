@@ -840,7 +840,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.22-2355';
+const QM_VERSION='2026.10.23-0007';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -2903,6 +2903,7 @@ async function buscarArduino(){
     if(mz.choques.length)partes.push('cambiaste '+lista(mz.choques)+' en los dos lados: quedaron LAS DOS versiones (la de esta app se llama "… (de este PC)"); revisa cuál quieres y borra la otra');
     toast(igualArd&&!appCambia?'Conectado al Arduino'+(window.ARD_USB?' por USB':'')+': tiene las mismas canciones que la app.':'Conectado al Arduino'+(window.ARD_USB?' por USB':'')+''+(partes.length?'; '+partes.join('; '):'')+'. Quedaron las versiones más nuevas en los dos.',partes.length?8000:4000);
     espejo(nb);baseArd(dec(nb));window.ARD=true;ardFallas=0;knownBv=-1;window.qmTick&&window.qmTick();   // (knownBv=-1: releer del Arduino)
+    try{if(typeof STUDIO!=='undefined'&&STUDIO.ok)studio('quack/parar',{reloj:0}).catch(()=>{});}catch(e){}   /* el reloj lo manda el Arduino: el de Studio se calla (dos relojes = tempo loco) */
   }catch(e){if(hallado)toast('Encontré el Arduino, pero no pude pasarle las canciones'+(e&&e.message?': '+e.message:'')+'. Lo intento de nuevo en unos segundos.',5000);}
   finally{ardBuscando=false;}}
 if(window.APPMODE){setTimeout(buscarArduino,1200);setInterval(()=>{if(!window.ARD)buscarArduino();},6000);}
