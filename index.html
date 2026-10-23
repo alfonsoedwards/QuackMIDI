@@ -840,7 +840,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.22-2330';
+const QM_VERSION='2026.10.22-2336';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -1009,7 +1009,7 @@ let lastPosStudio='',lastItStudio=null,lastSongStudio=-1;
 function tocarEnStudio(s,pos){lastPosStudio=pos;const so=M.songs[s.s];if(!so){lastItStudio=null;return;}
   const it=s.c>=0?flatten(so).find(x=>x.st===s.st&&x.r===s.r&&x.ci===s.c):null;
   const p=it?so.phrases[it.p]:null,snd=(p&&p.sound)||(so.sendPC?{bank:so.bank||0,pc:so.pc}:null),slot=slotDe(snd);
-  if(!it){studio('quack/parar',{olvidar:true}).catch(()=>{});if(lastSongStudio!==s.s&&slot)studio('quack/elegir',{slot}).catch(()=>{});}
+  if(!it){studio('quack/parar',{olvidar:true,reloj:M.settings&&M.settings.clock?(so.bpm||120):0}).catch(()=>{});   /* (el tempo de la canción al elegirla, como el Arduino) */if(lastSongStudio!==s.s&&slot)studio('quack/elegir',{slot}).catch(()=>{});}
   else{const same=lastItStudio&&lastSongStudio===s.s,c=it.e,tie=same?(lastItStudio.e.tie!=null?lastItStudio.e.tie:so.tie):false;
     let trans=c.trans!=null?c.trans:(so.trans||0);if((trans===1||trans===3||trans===4)&&!same)trans=0;
     const nb=trans===2?bendBaseNotas(so,it.p,it.ci):null;if(trans===2&&!nb)trans=0;   // (bend sin nada antes: se toca normal)
