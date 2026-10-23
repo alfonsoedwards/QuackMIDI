@@ -840,7 +840,7 @@ function migrarCanciones(songs){for(const s of songs)for(const p of s.phrases)mi
 function migrarH2(m){if(m.settings.h2)return false;migrarCanciones(m.songs);m.settings.h2=true;return true;}
 
 /* ---------- Preferencias de este dispositivo ---------- */
-const QM_VERSION='2026.10.06-0018';
+const QM_VERSION='2026.10.22-2330';
 const PREF_DEF={theme:'light',mute:false,lyrics:false,lyrStore:'local',lyrMin:5,lyrMax:25,view:'tele'};
 let prefs=PREF_DEF;
 try{prefs=Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem('qm_prefs2')||'{}'));if(prefs.audition===false)prefs.mute=true;delete prefs.audition;delete prefs.sound;delete prefs.studioSnd;}catch(e){}
@@ -2011,7 +2011,8 @@ function pasoStudio(so,c,p,{ligado=false,trans=0,tr=0,modo='latch',notasBase=nul
   const mnDe=(x,menos)=>(x.mn||[]).filter(([a,b])=>!(menos&&(menos.mn||[]).some(e=>e[0]===a&&e[1]===b))).map(([a,b,v])=>{const T=mnTrans(x,a,b)||x.trT;return T?[a,b,v,MS(T,T.d||0),MS(T,T.w||0)]:[a,b,v];});
   const sin59=l=>mix?l.filter(e=>!(e[0]===255&&e[1]===59)):l;   /* el mixer del paso manda sobre la frase y el acorde (como el firmware) */
   const ctlsFrase=ctlsDe(d,c),mnFrase=sin59(mnDe(d,c)).concat(mix?[[255,59,mix]]:[]);
-  return{cancion:so.id,slot:slotDe(snd),voz:so.voice!=null?so.voice:null,bendRange:so.bendRange||0,ctlCancion:so.ctl||{},
+  return{reloj:M&&M.settings&&M.settings.clock?(c.bpm||d.bpm||so.bpm||120):0,   /* MIDI Clock por Studio (sin el Arduino), al tempo del acorde, la frase o la canción */
+    cancion:so.id,slot:slotDe(snd),voz:so.voice!=null?so.voice:null,bendRange:so.bendRange||0,ctlCancion:so.ctl||{},
     notas:c.notes.map(n=>n+tr),vel:c.vel!=null?c.vel:so.vel,nv:nvShift(c,tr),ligado,trans,glide,bend:c.bend||0,entrada:trans!==2&&c.bend?{st:c.bend,ms:c.glide!=null?c.glide:80}:null,modo,notasBase,
     hum:(()=>{const x=c.hum!==undefined?c.hum:d.hum!==undefined?d.hum:so.hum;if(!humActivo(x))return null;
       return{ms:humMs(x.t||x.ms,x.t,bpm),dir:x.dir||0,dura:x.g==='sig'?-1:x.g?humMs(x.g,x.t,bpm):0};})(),
